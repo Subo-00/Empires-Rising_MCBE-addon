@@ -43,7 +43,7 @@ Enemy camps appear throughout the Overworld as you explore new lands.
 
 Each camp is built to suit its surroundings and is totally unique.
 
-<img width="288" height="162" alt="Screenshot 2026-08-26 151553" src="https://github.com/user-attachments/assets/a0ca1e96-1cb6-4b2a-b8b2-0a917dc49006" /> <img width="288" height="162" alt="Screenshot 2026-08-26 155847" src="https://github.com/user-attachments/assets/443241a5-f241-4516-81e0-b8b3215d74a6" /> <img width="288" height="162" alt="Screenshot 2026-08-26 153051" src="https://github.com/user-attachments/assets/0db9fc73-3b27-4132-b64f-f951651348fb" />
+<img width="288" height="162" alt="Screenshot 2026-08-26 151553" src="https://github.com/user-attachments/assets/a0ca1e96-1cb6-4b2a-b8b2-0a917dc49006" /> <img width="288" height="162" alt="Screenshot 2026-08-26 155847" src="https://github.com/user-attachments/assets/443241a5-f241-4516-81e0-b8b3215d74a6" /> <img width="288" height="162" alt="Screenshot 2026-08-26 153051" src="https://github.com/user-attachments/assets/0db9fc73-3b27-4132-b64f-f951651348fb" /> <img width="288" height="162" alt="Screenshot 2026-08-31 1647562" src="https://github.com/user-attachments/assets/13f38514-0b84-4b34-9593-3ac9146a7640" />
 
 ### Raid the Defenders
 
