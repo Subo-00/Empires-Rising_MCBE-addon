@@ -8,6 +8,8 @@ Fight hostile mobs, collect corrupted resources, purify them during dangerous ni
 
 Command Barbarians, Archers, and Dragons, join one of three rival factions, build a personal portal network, and take your troops wherever your empire expands.
 
+**Want the full showcase?** [Watch the addon demo on YouTube](https://youtu.be/CDfpcTod6do).
+
 ## Download and Installation
 
 1. Download the latest addon file:[Download Empires Rising](./Empires_Rising.mcaddon)<img width="1440" height="135" alt="Screenshot 2026-08-22 220159" src="https://github.com/user-attachments/assets/09ddd4cb-01f5-48a7-aaab-c4b37c03686c" />
