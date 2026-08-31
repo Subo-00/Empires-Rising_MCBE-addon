@@ -1,0 +1,31 @@
+{
+    "format_version": "1.21.0",
+    "minecraft:block": {
+        "description": {
+            "identifier": "subo:random_spawner_2",
+            "menu_category": { "category": "construction" }
+        },
+        "components": {
+            "minecraft:geometry": "minecraft:geometry.full_block",
+            "minecraft:material_instances": {
+                "*": { "texture": "random_spawner_2", "render_method": "alpha_test" }
+            },
+            "minecraft:collision_box": false,
+			"minecraft:selection_box": {
+				"origin": [
+					-8,
+					0,
+					-8
+				],
+				"size": [
+					16,
+					16,
+					16
+				]
+			},
+            "minecraft:light_dampening": 0,
+            "minecraft:tick": { "interval_range": [1, 1] },
+            "subo:on_first_tick_spawn": {}
+        }
+    }
+}

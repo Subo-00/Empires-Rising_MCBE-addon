@@ -1,0 +1,15 @@
+{
+  "format_version": "1.21.90",
+  "minecraft:item": {
+    "description": {
+      "identifier": "subo:potion_blaster",
+      "menu_category": { "category": "equipment" }
+    },
+    "components": {
+      "minecraft:icon": "potion_blaster",
+      "minecraft:max_stack_size": 1,
+      "minecraft:hand_equipped": true,
+      "subo:potion_blaster": {}
+    }
+  }
+}

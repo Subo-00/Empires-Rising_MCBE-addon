@@ -1,0 +1,21 @@
+[
+    {
+        "flipbook_texture": "textures/blocks/purifier_top_active",
+        "atlas_tile": "purifier_top_active",
+        "ticks_per_frame": 3,
+        "replicate": 1,
+        "blend_frames": true
+    },
+  {
+    "atlas_tile": "subo_portal",
+    "flipbook_texture": "textures/blocks/subo_portal",
+    "ticks_per_frame": 6,
+    "blend_frames": true
+  },
+  {
+    "atlas_tile": "subo_portal_active",
+    "flipbook_texture": "textures/blocks/subo_portal_active",
+    "ticks_per_frame": 3,
+    "blend_frames": true
+  }
+]

@@ -1,0 +1,333 @@
+{
+    "format_version": "1.20.0",
+    "minecraft:entity": {
+        "description": {
+            "identifier": "subo:archer_void",
+            "is_spawnable": false,
+            "is_summonable": true,
+            "properties": {
+                "subo:is_attacking": {
+                    "type": "float",
+                    "range": [
+                        0.0,
+                        1.0
+                    ],
+                    "default": 0.0,
+                    "client_sync": true
+                },
+                "subo:armor_material": {
+                    "type": "float",
+                    "range": [
+                        0.0,
+                        4.0
+                    ],
+                    "default": 0.0,
+                    "client_sync": true
+                },
+                "subo:weapon_material": {
+                    "type": "float",
+                    "range": [
+                        0.0,
+                        4.0
+                    ],
+                    "default": 0.0,
+                    "client_sync": true
+                }
+            }
+        },
+        "components": {
+            "minecraft:persistent": {},
+            "minecraft:behavior.float": {
+                "priority": 0
+            },
+            "minecraft:health": {
+                "value": 24,
+                "max": 24
+            },
+            "minecraft:movement": {
+                "value": 0.3
+            },
+			"minecraft:underwater_movement": {
+				"value": 0.3
+			},
+			"minecraft:water_movement": {
+				"drag_factor": 0.98
+			},
+            "minecraft:follow_range": {
+                "value": 35,
+                "max": 35
+            },
+            "minecraft:breathable": {
+                "total_supply": 15,
+                "suffocate_time": 4,
+                "breathes_air": true,
+                "breathes_water": false,
+                "generates_bubbles": true
+            },
+            "minecraft:movement.basic": {},
+            "minecraft:navigation.walk": {
+                "can_walk": true,
+                "can_jump": true,
+                "can_open_doors": true,
+                "avoid_portals": true
+            },
+            "minecraft:jump.static": {},
+            "minecraft:physics": {},
+            "minecraft:type_family": {
+                "family": [
+                    "archer",
+                    "subo_troop",
+                     "player"
+                     
+                ]
+            },
+            "minecraft:nameable": {
+                "allow_name_tag_renaming": true,
+                "always_show": false
+            },
+            "minecraft:tameable": {
+                "probability": 1.0,
+                "tame_items": [
+                    "minecraft:stick"
+                ],
+                "tame_event": {
+                    "event": "minecraft:on_tame",
+                    "target": "self"
+                }
+            },
+            "minecraft:is_tamed": {},
+            "minecraft:shooter": {
+                "sound": "bow",
+                "power": 2.3,
+                "projectiles": [
+                    {
+                        "def": "subo:arrow_netherite",
+                        "filters": {
+                            "test": "float_property",
+                            "domain": "subo:weapon_material",
+                            "operator": "==",
+                            "value": 4.0
+                        }
+                    },
+                    {
+                        "def": "subo:arrow_diamond",
+                        "filters": {
+                            "test": "float_property",
+                            "domain": "subo:weapon_material",
+                            "operator": "==",
+                            "value": 3.0
+                        }
+                    },
+                    {
+                        "def": "subo:arrow_iron",
+                        "filters": {
+                            "test": "float_property",
+                            "domain": "subo:weapon_material",
+                            "operator": "==",
+                            "value": 2.0
+                        }
+                    },
+                    {
+                        "def": "subo:arrow_copper",
+                        "filters": {
+                            "test": "float_property",
+                            "domain": "subo:weapon_material",
+                            "operator": "==",
+                            "value": 1.0
+                        }
+                    },
+                    {
+                        "def": "subo:arrow_none"
+                    }
+                ]
+            },
+            "minecraft:behavior.ranged_attack": {
+                "priority": 4,
+                "speed_multiplier": 1.2,
+                "attack_interval": 1.8,
+                "attack_radius": 25.0,
+                "ranged_fov": 120.0,
+                "x_max_rotation": 1.0,
+                "burst_shots": 1
+            },
+            "minecraft:behavior.nearest_attackable_target": {
+                "priority": 3,
+                "within_radius": 35,
+                "reselect_targets": true,
+                "must_see": true,
+                "must_see_forget_duration": 1.0,
+                "entity_types": [
+                    {
+                        "filters": {
+                            "test": "is_family",
+                            "subject": "other",
+                            "value": "monster"
+                        },
+                        "max_dist": 35
+                    },
+                    {
+                        "filters": {
+                            "all_of": [
+                                {
+                                    "test": "is_family",
+                                    "subject": "other",
+                                    "value": "subo_troop"
+                                },
+                                {
+                                    "test": "has_tag",
+                                    "subject": "other",
+                                    "value": "faction:void",
+                                    "operator": "!="
+                                }
+                            ]
+                        },
+                        "max_dist": 35
+                    },
+                    {
+                        "filters": {
+                            "all_of": [
+                                {
+                                    "test": "is_family",
+                                    "subject": "other",
+                                    "value": "player"
+                                },
+                                {
+                                    "test": "has_tag",
+                                    "subject": "other",
+                                    "value": "faction:void",
+                                    "operator": "!="
+                                }
+                            ]
+                        },
+                        "max_dist": 35
+                    }
+                ]
+            },
+            "minecraft:behavior.hurt_by_target": {
+                "priority": 0
+            },
+            "minecraft:behavior.look_at_player": {
+                "priority": 7,
+                "look_distance": 8
+            },
+            "minecraft:behavior.random_look_around": {
+                "priority": 8
+            }
+        },
+        "component_groups": {
+            "archer:follow_mode": {
+                "minecraft:behavior.follow_owner": {
+                    "priority": 2,
+                    "speed_multiplier": 1.2,
+                    "start_distance": 8,
+                    "stop_distance": 2
+                },
+                "minecraft:behavior.owner_hurt_by_target": {
+                    "priority": 1
+                },
+                "minecraft:interact": {
+                    "interactions": [
+                        {
+                            "on_interact": {
+                                "filters": {
+                                    "all_of": [
+                                        {
+                                            "test": "is_owner",
+                                            "subject": "other",
+                                            "value": true
+                                        },
+                                        {
+                                            "test": "is_sneaking",
+                                            "subject": "other",
+                                            "value": true
+                                        }
+                                    ]
+                                },
+                                "event": "archer:stay",
+                                "target": "self"
+                            },
+                            "interact_text": "Stay"
+                        }
+                    ]
+                },
+                "minecraft:mark_variant": {
+                    "value": 1
+                }
+            },
+            "archer:patrol_mode": {
+                "minecraft:behavior.random_stroll": {
+                    "priority": 5,
+                    "speed_multiplier": 0.8
+                },
+                "minecraft:behavior.owner_hurt_by_target": {
+                    "priority": 1
+                },
+                "minecraft:interact": {
+                    "interactions": [
+                        {
+                            "on_interact": {
+                                "filters": {
+                                    "all_of": [
+                                        {
+                                            "test": "is_owner",
+                                            "subject": "other",
+                                            "value": true
+                                        },
+                                        {
+                                            "test": "is_sneaking",
+                                            "subject": "other",
+                                            "value": true
+                                        }
+                                    ]
+                                },
+                                "event": "archer:follow",
+                                "target": "self"
+                            },
+                            "interact_text": "Follow"
+                        }
+                    ]
+                },
+                "minecraft:mark_variant": {
+                    "value": 0
+                }
+            }
+        },
+        "events": {
+            "minecraft:entity_spawned": {
+                "set_property": {
+                    "subo:armor_material": 0.0,
+                    "subo:weapon_material": 0.0
+                },
+                "add": {
+                    "component_groups": [
+                        "archer:follow_mode"
+                    ]
+                }
+            },
+            "archer:stay": {
+                "remove": {
+                    "component_groups": [
+                        "archer:follow_mode"
+                    ]
+                },
+                "add": {
+                    "component_groups": [
+                        "archer:patrol_mode"
+                    ]
+                }
+            },
+            "archer:follow": {
+                "remove": {
+                    "component_groups": [
+                        "archer:patrol_mode"
+                    ]
+                },
+                "add": {
+                    "component_groups": [
+                        "archer:follow_mode"
+                    ]
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,39 @@
+{
+  "format_version": "1.10.0",
+  "animation_controllers": {
+    "controller.animation.archer.main": {
+      "initial_state": "idle",
+      "states": {
+        "idle": {
+          "animations": [ "idle" ],
+          "transitions": [
+            { "walk": "query.modified_move_speed > 0.1" }
+          ]
+        },
+        "walk": {
+          "animations": [ "walk" ],
+          "transitions": [
+            { "idle": "query.modified_move_speed <= 0.1" }
+          ]
+        }
+      }
+    },
+
+    "controller.animation.archer.combat": {
+      "initial_state": "default",
+      "states": {
+        "default": {
+          "transitions": [
+            { "aiming": "query.has_target || query.property('subo:is_attacking') == 1.0" }
+          ]
+        },
+        "aiming": {
+          "animations": [ "attack" ],
+          "transitions": [
+            { "default": "!query.has_target && query.property('subo:is_attacking') == 0.0" }
+          ]
+        }
+      }
+    }
+  }
+}

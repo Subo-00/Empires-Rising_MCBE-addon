@@ -1,0 +1,53 @@
+{
+	"format_version": "1.8.0",
+	"animations": {
+		"animation.subo.dragon_fireball.spin": {
+			"loop": true,
+			"animation_length": 0.4,
+			"bones": {
+				"bone": {
+					"rotation": {
+						"0.0": [0, 0, 0],
+						"0.4": [365, 0, 0]
+					}
+				}
+			},
+			"particle_effects": {
+				"0.0": {
+					"effect": "flame",
+					"locator": "root"
+				},
+				"0.1": [
+					{
+						"effect": "flame",
+						"locator": "root"
+					},
+					{
+						"effect": "smoke",
+						"locator": "root"
+					}
+				],
+				"0.2": [
+					{
+						"effect": "flame",
+						"locator": "root"
+					},
+					{
+						"effect": "smoke",
+						"locator": "root"
+					}
+				],
+				"0.3": [
+					{
+						"effect": "flame",
+						"locator": "root"
+					},
+					{
+						"effect": "smoke",
+						"locator": "root"
+					}
+				]
+			}
+		}
+	}
+}

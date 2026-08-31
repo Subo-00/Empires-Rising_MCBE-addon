@@ -1,0 +1,46 @@
+{
+	"format_version": 2,
+	"header": {
+		"name": "Empires Rising",
+		"description": "Empires Rising Behavior Pack",
+		"uuid": "e402d6a0-63ec-83bd-ba04-cc5fcb6d5d67",
+		"version": [1, 0, 0],
+		"min_engine_version": [1, 26, 10]
+	},
+	"metadata": {
+		"authors": ["Subo"],
+		"generated_with": {
+			"blockbench_block_wizard": ["1.6.1"],
+			"blockbench_entity_wizard": ["1.8.2"]
+		}
+	},
+	"modules": [
+		{
+			"description": "Behavior",
+			"version": [1, 0, 0],
+			"uuid": "4cc5add0-27e6-2a3e-e4d4-eed9fae063d1",
+			"type": "data"
+		},
+		{
+			"description": "Script",
+			"version": [1, 0, 0],
+			"uuid": "019d312c-8fbf-7083-9542-e68de07e6f27",
+			"type": "script",
+			"entry": "scripts/main.js"
+		}
+	],
+	"dependencies": [
+		{
+			"module_name": "@minecraft/server",
+			"version": "2.8.0"
+		},
+		{
+			"module_name": "@minecraft/server-ui",
+			"version": "2.0.0"
+		},
+		{
+			"uuid": "e23ce1e7-a16d-6f43-3b65-269508d189b6",
+			"version": [2, 0, 0]
+		}
+	]
+}

@@ -1,0 +1,392 @@
+{
+    "format_version": "1.20.0",
+    "minecraft:entity": {
+        "description": {
+            "identifier": "subo:dark_knight",
+            "is_spawnable": true,
+            "is_summonable": true,
+            "properties": {
+                "subo:attack_state": {
+                    "type": "float",
+                    "range": [
+                        0.0,
+                        5.0
+                    ],
+                    "default": 0.0,
+                    "client_sync": true
+                },
+                "subo:use_basic2": {
+                    "type": "bool",
+                    "default": false,
+                    "client_sync": true
+                },
+                "subo:is_taunting": {
+                    "type": "bool",
+                    "default": false,
+                    "client_sync": true
+                }
+            }
+        },
+        "components": {
+            "minecraft:type_family": {
+                "family": [
+                    "dark_knight",
+                    "boss",
+                    "monster"
+                ]
+            },
+            "minecraft:health": {
+                "value": 300,
+                "max": 300
+            },
+            "minecraft:movement": {
+                "value": 0.50
+            },
+            "minecraft:underwater_movement": {
+                "value": 0.15
+            },
+            "minecraft:follow_range": {
+                "value": 60,
+                "max": 60
+            },
+            "minecraft:knockback_resistance": {
+                "value": 1
+            },
+            "minecraft:mob_effect_immunity": {
+                "mob_effects": [
+                    "poison"
+                ]
+            },
+            "minecraft:damage_sensor": {
+                "triggers": [
+                    {
+                        "on_damage": {
+                            "filters": {
+                                "test": "is_family",
+                                "subject": "other",
+                                "value": "monster"
+                            }
+                        },
+                        "deals_damage": "no"
+                    },
+                    {
+                        "cause": "magic",
+                        "deals_damage": "no"
+                    }
+                ]
+            },
+            "minecraft:fire_immune": {},
+            "minecraft:physics": {},
+            "minecraft:movement.basic": {},
+            "minecraft:jump.static": {},
+            "minecraft:navigation.walk": {
+                "can_walk": true,
+                "can_jump": true,
+                "can_path_over_water": true,
+                "can_sink": false,
+                "can_path_from_air": true
+            },
+            "minecraft:collision_box": {
+                "width": 0.55,
+                "height": 2.0
+            },
+            "minecraft:scale": {
+                "value": 1.1
+            },
+            "minecraft:attack": {
+                "damage": 0
+            },
+            "minecraft:loot": {
+                "table": "loot_tables/entities/dark_knight.json"
+            },
+            "minecraft:experience_reward": {
+                "on_death": 150
+            },
+            "minecraft:behavior.float": {
+                "priority": 0
+            },
+            "minecraft:behavior.hurt_by_target": {
+                "priority": 1
+            },
+            "minecraft:behavior.nearest_attackable_target": {
+                "priority": 2,
+                "within_radius": 60,
+                "reselect_targets": true,
+                "must_see": true,
+                "entity_types": [
+                    {
+                        "filters": {
+                            "test": "is_family",
+                            "subject": "other",
+                            "value": "player"
+                        },
+                        "max_dist": 60
+                    },
+                    {
+                        "filters": {
+                            "test": "is_family",
+                            "subject": "other",
+                            "value": "subo_troop"
+                        },
+                        "max_dist": 60
+                    }
+                ]
+            },
+            "minecraft:behavior.melee_attack": {
+                "priority": 3,
+                "speed_multiplier": 1.0,
+                "attack_once": false,
+                "track_target": true,
+                "require_complete_path": false,
+                "reach_multiplier": 0.0,
+                "cooldown_time": 60
+            },
+            "minecraft:behavior.look_at_target": {
+                "priority": 4,
+                "look_distance": 60,
+                "probability": 1.0
+            },
+            "minecraft:behavior.random_stroll": {
+                "priority": 8,
+                "speed_multiplier": 0.8,
+                "xz_dist": 10,
+                "y_dist": 4
+            },
+            "minecraft:behavior.look_at_player": {
+                "priority": 9,
+                "look_distance": 20
+            },
+            "minecraft:behavior.random_look_around": {
+                "priority": 10
+            }
+        },
+        "component_groups": {
+            "dark_knight:restore_movement": {
+                "minecraft:movement": {
+                    "value": 0.50
+                },
+                "minecraft:navigation.walk": {
+                    "can_walk": true,
+                    "can_jump": true,
+                    "can_path_over_water": true,
+                    "can_sink": false,
+                    "can_path_from_air": true
+                }
+            },
+            "dark_knight:state_basic": {
+                "minecraft:timer": {
+                    "time": 0.6,
+                    "time_down_event": {
+                        "event": "dark_knight:end_attack",
+                        "target": "self"
+                    }
+                }
+            },
+            "dark_knight:state_basic2": {
+                "minecraft:timer": {
+                    "time": 0.6,
+                    "time_down_event": {
+                        "event": "dark_knight:end_attack",
+                        "target": "self"
+                    }
+                }
+            },
+            "dark_knight:state_spin": {
+                "minecraft:timer": {
+                    "time": 0.6,
+                    "time_down_event": {
+                        "event": "dark_knight:end_attack",
+                        "target": "self"
+                    }
+                }
+            },
+            "dark_knight:state_leap": {
+                "minecraft:timer": {
+                    "time": 0.6,
+                    "time_down_event": {
+                        "event": "dark_knight:end_attack",
+                        "target": "self"
+                    }
+                },
+                "minecraft:movement": {
+                    "value": 0.6
+                }
+            },
+            "dark_knight:dashing": {
+                "minecraft:behavior.look_at_target": {
+                    "priority": 99
+                }
+            },
+            "dark_knight:state_heal": {
+                "minecraft:timer": {
+                    "time": 2.0,
+                    "time_down_event": {
+                        "event": "dark_knight:end_attack",
+                        "target": "self"
+                    }
+                },
+                "minecraft:movement": {
+                    "value": 0.0
+                },
+                "minecraft:navigation.walk": {
+                    "can_walk": false,
+                    "can_jump": false
+                },
+                "minecraft:behavior.random_stroll": {
+                    "priority": 99
+                },
+                "minecraft:behavior.look_at_target": {
+                    "priority": 99
+                }
+            },
+            "dark_knight:state_blink": {
+                "minecraft:timer": {
+                    "time": 1.2,
+                    "time_down_event": {
+                        "event": "dark_knight:end_attack",
+                        "target": "self"
+                    }
+                }
+            },
+            "dark_knight:taunt_timer": {
+                "minecraft:timer": {
+                    "time": 3.0,
+                    "time_down_event": {
+                        "event": "dark_knight:end_taunt",
+                        "target": "self"
+                    }
+                }
+            }
+        },
+        "events": {
+            "dark_knight:start_basic": {
+                "set_property": {
+                    "subo:attack_state": 1.0
+                },
+                "remove": {
+                    "component_groups": [
+                        "dark_knight:state_basic"
+                    ]
+                },
+                "add": {
+                    "component_groups": [
+                        "dark_knight:state_basic"
+                    ]
+                }
+            },
+            "dark_knight:start_spin": {
+                "set_property": {
+                    "subo:attack_state": 2.0
+                },
+                "remove": {
+                    "component_groups": [
+                        "dark_knight:state_spin"
+                    ]
+                },
+                "add": {
+                    "component_groups": [
+                        "dark_knight:state_spin"
+                    ]
+                }
+            },
+            "dark_knight:start_leap": {
+                "set_property": {
+                    "subo:attack_state": 3.0
+                },
+                "remove": {
+                    "component_groups": [
+                        "dark_knight:state_leap",
+                        "dark_knight:dashing"
+                    ]
+                },
+                "add": {
+                    "component_groups": [
+                        "dark_knight:state_leap",
+                        "dark_knight:dashing"
+                    ]
+                }
+            },
+            "dark_knight:start_heal": {
+                "set_property": {
+                    "subo:attack_state": 4.0
+                },
+                "remove": {
+                    "component_groups": [
+                        "dark_knight:state_heal"
+                    ]
+                },
+                "add": {
+                    "component_groups": [
+                        "dark_knight:state_heal"
+                    ]
+                }
+            },
+            "dark_knight:start_blink": {
+                "set_property": {
+                    "subo:attack_state": 5.0
+                },
+                "remove": {
+                    "component_groups": [
+                        "dark_knight:state_blink"
+                    ]
+                },
+                "add": {
+                    "component_groups": [
+                        "dark_knight:state_blink"
+                    ]
+                }
+            },
+            "dark_knight:use_basic1": {
+                "set_property": {
+                    "subo:use_basic2": false
+                }
+            },
+            "dark_knight:use_basic2": {
+                "set_property": {
+                    "subo:use_basic2": true
+                }
+            },
+            "dark_knight:end_attack": {
+                "set_property": {
+                    "subo:attack_state": 0.0
+                },
+                "remove": {
+                    "component_groups": [
+                        "dark_knight:state_basic",
+                        "dark_knight:state_basic2",
+                        "dark_knight:state_spin",
+                        "dark_knight:state_leap",
+                        "dark_knight:dashing",
+                        "dark_knight:state_heal",
+                        "dark_knight:state_blink"
+                    ]
+                },
+                "add": {
+                    "component_groups": [
+                        "dark_knight:restore_movement"
+                    ]
+                }
+            },
+            "dark_knight:start_taunt": {
+                "set_property": {
+                    "subo:is_taunting": true
+                },
+                "add": {
+                    "component_groups": [
+                        "dark_knight:taunt_timer"
+                    ]
+                }
+            },
+            "dark_knight:end_taunt": {
+                "set_property": {
+                    "subo:is_taunting": false
+                },
+                "remove": {
+                    "component_groups": [
+                        "dark_knight:taunt_timer"
+                    ]
+                }
+            }
+        }
+    }
+}

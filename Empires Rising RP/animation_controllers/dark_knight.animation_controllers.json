@@ -1,0 +1,125 @@
+{
+  "format_version": "1.10.0",
+  "animation_controllers": {
+    "controller.animation.dark_knight.main": {
+      "initial_state": "idle",
+      "states": {
+        "idle": {
+          "blend_transition": 0.08,
+          "animations": [
+            "idle"
+          ],
+          "transitions": [
+            {
+              "walk": "query.modified_move_speed > 0.1"
+            }
+          ]
+        },
+        "walk": {
+          "blend_transition": 0.08,
+          "animations": [
+            "walk"
+          ],
+          "transitions": [
+            {
+              "idle": "query.modified_move_speed <= 0.1"
+            }
+          ]
+        }
+      }
+    },
+    "controller.animation.dark_knight.taunt": {
+      "initial_state": "idle",
+      "states": {
+        "idle": {
+          "transitions": [
+            {
+              "taunting": "query.property('subo:is_taunting') == true"
+            }
+          ]
+        },
+        "taunting": {
+          "blend_transition": 0.08,
+          "animations": [
+            "taunt"
+          ],
+          "transitions": [
+            {
+              "idle": "query.anim_time >= 3.0 || query.property('subo:is_taunting') == false"
+            }
+          ]
+        }
+      }
+    },
+    "controller.animation.dark_knight.attack": {
+      "initial_state": "none",
+      "states": {
+        "none": {
+          "transitions": [
+            {
+              "basic": "query.property('subo:attack_state') == 1.0"
+            },
+            {
+              "spin": "query.property('subo:attack_state') == 2.0"
+            },
+            {
+              "leap": "query.property('subo:attack_state') == 3.0"
+            },
+            {
+              "heal": "query.property('subo:attack_state') == 4.0"
+            }
+          ]
+        },
+        "basic": {
+          "blend_transition": 0.08,
+          "animations": [
+            {
+              "basic_attack": "!(variable.use_basic2)"
+            },
+            {
+              "basic_attack2": "variable.use_basic2"
+            }
+          ],
+          "transitions": [
+            {
+              "none": "query.property('subo:attack_state') == 0.0"
+            }
+          ]
+        },
+        "spin": {
+          "blend_transition": 0.08,
+          "animations": [
+            "spin_attack"
+          ],
+          "transitions": [
+            {
+              "none": "query.property('subo:attack_state') == 0.0"
+            }
+          ]
+        },
+        "leap": {
+          "blend_transition": 0.08,
+          "animations": [
+            "leap_attack"
+          ],
+          "transitions": [
+            {
+              "none": "query.property('subo:attack_state') == 0.0"
+            }
+          ]
+        },
+        "heal": {
+          "blend_transition": 0.08,
+          "animations": [
+            "heal"
+          ],
+          "transitions": [
+            {
+              "none": "query.property('subo:attack_state') == 0.0"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "format_version": "1.19.80",
+  "minecraft:recipe_shaped": {
+    "description": { "identifier": "subo:potion_blaster" },
+    "tags": [ "crafting_table" ],
+    "pattern": [
+      "GPG",
+      "GGG",
+      "  G"
+    ],
+    "key": {
+      "G": { "item": "minecraft:copper_ingot" },
+      "P": { "item": "minecraft:glass_bottle" }
+    },
+    "result": { "item": "subo:potion_blaster", "count": 1 }
+  }
+}

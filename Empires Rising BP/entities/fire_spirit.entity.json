@@ -1,0 +1,152 @@
+{
+    "format_version": "1.20.0",
+    "minecraft:entity": {
+        "description": {
+            "identifier": "subo:fire_spirit",
+            "is_spawnable": true,
+            "is_summonable": true,
+            "properties": {
+                "subo:is_leaping": {
+                    "type": "bool",
+                    "default": false,
+                    "client_sync": true
+                }
+            }
+        },
+        "components": {
+            "minecraft:type_family": {
+                "family": [
+                    "fire_spirit",
+                    "monster"
+                ]
+            },
+            "minecraft:health": {
+                "value": 12,
+                "max": 12
+            },
+            "minecraft:movement": {
+                "value": 0.32
+            },
+            "minecraft:follow_range": {
+                "value": 24,
+                "max": 24
+            },
+            "minecraft:fire_immune": {},
+            "minecraft:physics": {},
+            "minecraft:movement.basic": {},
+            "minecraft:jump.static": {},
+            "minecraft:navigation.walk": {
+                "can_walk": true,
+                "can_jump": true,
+                "avoid_water": true
+            },
+            "minecraft:collision_box": {
+                "width": 0.5,
+                "height": 0.6
+            },
+            "minecraft:scale": {
+                "value": 0.55
+            },
+            "minecraft:attack": {
+                "damage": 0
+            },
+            "minecraft:knockback_resistance": {
+                "value": 0.0
+            },
+            "minecraft:burns_in_daylight": false,
+            "minecraft:behavior.float": {
+                "priority": 0
+            },
+            "minecraft:behavior.hurt_by_target": {
+                "priority": 1
+            },
+            "minecraft:behavior.nearest_attackable_target": {
+                "priority": 2,
+                "within_radius": 24,
+                "reselect_targets": true,
+                "must_see": false,
+                "entity_types": [
+                    {
+                        "filters": {
+                            "test": "is_family",
+                            "subject": "other",
+                            "value": "player"
+                        },
+                        "max_dist": 24
+                    },
+                    {
+                        "filters": {
+                            "test": "is_family",
+                            "subject": "other",
+                            "value": "subo_troop"
+                        },
+                        "max_dist": 24
+                    }
+                ]
+            },
+            "minecraft:behavior.melee_attack": {
+                "priority": 3,
+                "speed_multiplier": 1.2,
+                "attack_once": false,
+                "track_target": true,
+                "reach_multiplier": 0.0,
+                "cooldown_time": 999
+            },
+            "minecraft:behavior.random_stroll": {
+                "priority": 8,
+                "speed_multiplier": 0.6,
+                "xz_dist": 4,
+                "y_dist": 2
+            },
+            "minecraft:behavior.look_at_player": {
+                "priority": 9,
+                "look_distance": 8
+            },
+            "minecraft:behavior.random_look_around": {
+                "priority": 10
+            },
+            "minecraft:timer": {
+                "time": 60,
+                "looping": false,
+                "time_down_event": {
+                    "event": "fire_spirit:explode",
+                    "target": "self"
+                }
+            }
+        },
+        "component_groups": {
+            "fire_spirit:leaping": {
+                "minecraft:timer": {
+                    "time": 0.5,
+                    "looping": false,
+                    "time_down_event": {
+                        "event": "fire_spirit:explode",
+                        "target": "self"
+                    }
+                }
+            },
+            "fire_spirit:dead": {
+                "minecraft:instant_despawn": {}
+            }
+        },
+        "events": {
+            "fire_spirit:start_leap": {
+                "set_property": {
+                    "subo:is_leaping": true
+                },
+                "add": {
+                    "component_groups": [
+                        "fire_spirit:leaping"
+                    ]
+                }
+            },
+            "fire_spirit:explode": {
+                "add": {
+                    "component_groups": [
+                        "fire_spirit:dead"
+                    ]
+                }
+            }
+        }
+    }
+}

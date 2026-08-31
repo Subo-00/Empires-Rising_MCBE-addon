@@ -1,0 +1,611 @@
+{
+    "format_version": "1.20.0",
+    "minecraft:entity": {
+        "description": {
+            "identifier": "subo:dragon_fire",
+            "is_spawnable": false,
+            "is_summonable": true,
+            "properties": {
+                "subo:attack_state": {
+                    "type": "float",
+                    "range": [
+                        0.0,
+                        2.0
+                    ],
+                    "default": 0.0,
+                    "client_sync": true
+                },
+                "subo:is_flying": {
+                    "type": "bool",
+                    "default": false,
+                    "client_sync": true
+                },
+                "subo:armor_material": {
+                    "type": "float",
+                    "range": [
+                        0.0,
+                        4.0
+                    ],
+                    "default": 0.0,
+                    "client_sync": true
+                },
+                "subo:is_patrolling": {
+                    "type": "bool",
+                    "default": false,
+                    "client_sync": true
+                }
+            }
+        },
+        "components": {
+            "minecraft:underwater_movement": {
+                "value": 0.15
+            },
+            "minecraft:water_movement": {
+                "drag_factor": 0.3
+            },
+            "minecraft:buoyant": {
+                "base_buoyancy": 0.2,
+                "apply_gravity": true,
+                "liquid_blocks": [
+                    "minecraft:water",
+                    "minecraft:flowing_water"
+                ]
+            },
+            "minecraft:nameable": {
+                "always_show": false,
+                "allow_name_tag_renaming": true
+            },
+            "minecraft:type_family": {
+                "family": [
+                    "dragon",
+                    "subo_troop",
+                    "player"
+                ]
+            },
+            "minecraft:health": {
+                "value": 20,
+                "max": 20
+            },
+            "minecraft:damage_sensor": {
+                "triggers": [
+                    {
+                        "cause": "fall",
+                        "deals_damage": false
+                    },
+                    {
+                        "cause": "all",
+                        "deals_damage": "yes",
+                        "damage_multiplier": 0.12
+                    }
+                ]
+            },
+            "minecraft:attack": {
+                "damage": 0
+            },
+            "minecraft:movement": {
+                "value": 0.28
+            },
+            "minecraft:follow_range": {
+                "value": 40,
+                "max": 40
+            },
+            "minecraft:knockback_resistance": {
+                "value": 0.5
+            },
+            "minecraft:fire_immune": {},
+            "minecraft:physics": {},
+            "minecraft:collision_box": {
+                "width": 1.0,
+                "height": 1.5
+            },
+            "minecraft:scale": {
+                "value": 1.0
+            },
+            "minecraft:breathable": {
+                "total_supply": 15,
+                "suffocate_time": 4,
+                "breathes_air": true,
+                "breathes_water": false,
+                "generates_bubbles": true
+            },
+            "minecraft:rideable": {
+                "seat_count": 1,
+                "family_types": [
+                    "player"
+                ],
+                "interact_text": "Ride",
+                "seats": [
+                    {
+                        "position": [
+                            0,
+                            1.1,
+                            0
+                        ],
+                        "min_rider_count": 0,
+                        "max_rider_count": 1
+                    }
+                ]
+            },
+            "minecraft:tameable": {
+                "probability": 1.0,
+                "tame_items": [
+                    "minecraft:stick"
+                ],
+                "tame_event": {
+                    "event": "minecraft:on_tame",
+                    "target": "self"
+                }
+            },
+            "minecraft:is_tamed": {}
+        },
+        "component_groups": {
+            "dragon:unmounted": {
+                "minecraft:behavior.nearest_attackable_target": {
+                    "priority": 3,
+                    "within_radius": 40,
+                    "reselect_targets": true,
+                    "must_see": true,
+                    "must_see_forget_duration": 4.0,
+                    "entity_types": [
+                        {
+                            "filters": {
+                                "test": "is_family",
+                                "subject": "other",
+                                "value": "monster"
+                            },
+                            "max_dist": 40
+                        },
+                        {
+                            "filters": {
+                                "all_of": [
+                                    {
+                                        "test": "is_family",
+                                        "subject": "other",
+                                        "value": "subo_troop"
+                                    },
+                                    {
+                                        "test": "has_tag",
+                                        "subject": "other",
+                                        "value": "faction:fire",
+                                        "operator": "!="
+                                    }
+                                ]
+                            },
+                            "max_dist": 40
+                        },
+                        {
+                            "filters": {
+                                "all_of": [
+                                    {
+                                        "test": "is_family",
+                                        "subject": "other",
+                                        "value": "player"
+                                    },
+                                    {
+                                        "test": "has_tag",
+                                        "subject": "other",
+                                        "value": "faction:fire",
+                                        "operator": "!="
+                                    }
+                                ]
+                            },
+                            "max_dist": 40
+                        }
+                    ]
+                },
+                "minecraft:behavior.hurt_by_target": {
+                    "priority": 1,
+                    "filters": {
+                        "none_of": [
+                            {
+                                "test": "is_family",
+                                "subject": "other",
+                                "value": "subo_troop"
+                            },
+                            {
+                                "test": "is_owner",
+                                "subject": "other",
+                                "value": true
+                            },
+                            {
+                                "test": "has_tag",
+                                "subject": "other",
+                                "value": "faction:fire"
+                            }
+                        ]
+                    }
+                },
+                "minecraft:behavior.owner_hurt_by_target": {
+                    "priority": 1,
+                    "filters": {
+                        "none_of": [
+                            {
+                                "test": "is_family",
+                                "subject": "other",
+                                "value": "subo_troop"
+                            },
+                            {
+                                "test": "has_tag",
+                                "subject": "other",
+                                "value": "faction:fire"
+                            }
+                        ]
+                    }
+                }
+            },
+            "dragon:mounted": {
+                "minecraft:behavior.hurt_by_target": {
+                    "priority": 99,
+                    "filters": {
+                        "test": "has_tag",
+                        "value": "never_true_tag_placeholder"
+                    }
+                },
+                "minecraft:input_air_controlled": {}
+            },
+            "dragon:rideable": {
+                "minecraft:rideable": {
+                    "seat_count": 1,
+                    "controlling_seat": 0,
+                    "family_types": [
+                        "player"
+                    ],
+                    "seats": [
+                        {
+                            "position": [
+                                0,
+                                1.4,
+                                0
+                            ],
+                            "min_rider_count": 0,
+                            "max_rider_count": 1,
+                            "lock_rider_rotation": 0
+                        }
+                    ]
+                }
+            },
+            "dragon:follow_mode": {
+                "minecraft:behavior.follow_owner": {
+                    "priority": 2,
+                    "speed_multiplier": 1.0,
+                    "start_distance": 7,
+                    "stop_distance": 3
+                },
+                "minecraft:interact": {
+                    "interactions": [
+                        {
+                            "on_interact": {
+                                "filters": {
+                                    "all_of": [
+                                        {
+                                            "test": "is_owner",
+                                            "subject": "other",
+                                            "value": true
+                                        },
+                                        {
+                                            "test": "is_sneaking",
+                                            "subject": "other",
+                                            "value": false
+                                        }
+                                    ]
+                                },
+                                "event": "dragon:on_mount",
+                                "target": "self"
+                            },
+                            "interact_text": "Ride"
+                        },
+                        {
+                            "on_interact": {
+                                "filters": {
+                                    "all_of": [
+                                        {
+                                            "test": "is_owner",
+                                            "subject": "other",
+                                            "value": true
+                                        },
+                                        {
+                                            "test": "is_sneaking",
+                                            "subject": "other",
+                                            "value": true
+                                        }
+                                    ]
+                                },
+                                "event": "dragon:stay",
+                                "target": "self"
+                            },
+                            "interact_text": "Stay"
+                        }
+                    ]
+                },
+                "minecraft:mark_variant": {
+                    "value": 1
+                }
+            },
+            "dragon:patrol_mode": {
+                "minecraft:interact": {
+                    "interactions": [
+                        {
+                            "on_interact": {
+                                "filters": {
+                                    "all_of": [
+                                        {
+                                            "test": "is_owner",
+                                            "subject": "other",
+                                            "value": true
+                                        },
+                                        {
+                                            "test": "is_sneaking",
+                                            "subject": "other",
+                                            "value": false
+                                        }
+                                    ]
+                                },
+                                "event": "dragon:on_mount",
+                                "target": "self"
+                            },
+                            "interact_text": "Ride"
+                        },
+                        {
+                            "on_interact": {
+                                "filters": {
+                                    "all_of": [
+                                        {
+                                            "test": "is_owner",
+                                            "subject": "other",
+                                            "value": true
+                                        },
+                                        {
+                                            "test": "is_sneaking",
+                                            "subject": "other",
+                                            "value": true
+                                        }
+                                    ]
+                                },
+                                "event": "dragon:follow",
+                                "target": "self"
+                            },
+                            "interact_text": "Follow"
+                        }
+                    ]
+                },
+                "minecraft:mark_variant": {
+                    "value": 0
+                }
+            },
+            "dragon:patrol_wander": {
+                "minecraft:behavior.random_stroll": {
+                    "priority": 5,
+                    "speed_multiplier": 0.8
+                }
+            },
+            "dragon:state_bite": {
+                "minecraft:timer": {
+                    "time": 0.8,
+                    "time_down_event": {
+                        "event": "dragon:end_bite",
+                        "target": "self"
+                    }
+                }
+            },
+            "dragon:state_spit": {
+                "minecraft:timer": {
+                    "time": 2.0,
+                    "time_down_event": {
+                        "event": "dragon:end_spit",
+                        "target": "self"
+                    }
+                }
+            },
+            "dragon:flying": {
+                "minecraft:physics": {
+                    "has_gravity": false
+                },
+                "minecraft:navigation.fly": {
+                    "can_path_over_water": true,
+                    "can_path_from_air": true
+                },
+                "minecraft:movement.fly": {},
+                "minecraft:can_fly": {},
+                "minecraft:flying_speed": {
+                    "value": 0.25
+                },
+                "minecraft:movement": {
+                    "value": 0.25
+                }
+            },
+            "dragon:grounded": {
+                "minecraft:physics": {
+                    "has_gravity": true
+                },
+                "minecraft:navigation.walk": {
+                    "can_walk": true,
+                    "can_jump": true,
+                    "can_float": true,
+                    "can_sink": false,
+                    "can_path_over_water": true,
+                    "can_breach": true
+                },
+                "minecraft:movement": {
+                    "value": 0.5
+                },
+                "minecraft:movement.basic": {},
+                "minecraft:jump.static": {
+                    "jump_power": 0.6
+                }
+            }
+        },
+        "events": {
+            "dragon:enter_combat": {
+                "remove": {
+                    "component_groups": [
+                        "dragon:patrol_wander"
+                    ]
+                }
+            },
+            "dragon:exit_combat": {
+                "add": {
+                    "component_groups": [
+                        "dragon:patrol_wander"
+                    ]
+                }
+            },
+            "dragon:on_dismount": {
+                "set_property": {
+                    "subo:is_patrolling": false
+                },
+                "remove": {
+                    "component_groups": [
+                        "dragon:mounted"
+                    ]
+                },
+                "add": {
+                    "component_groups": [
+                        "dragon:unmounted",
+                        "dragon:follow_mode"
+                    ]
+                }
+            },
+            "minecraft:entity_spawned": {
+                "set_property": {
+                    "subo:armor_material": 0.0,
+                    "subo:is_flying": false,
+                    "subo:is_patrolling": false
+                },
+                "add": {
+                    "component_groups": [
+                        "dragon:follow_mode",
+                        "dragon:grounded",
+                        "dragon:unmounted"
+                    ]
+                }
+            },
+            "dragon:follow": {
+                "set_property": {
+                    "subo:is_patrolling": false
+                },
+                "remove": {
+                    "component_groups": [
+                        "dragon:patrol_mode",
+                        "dragon:patrol_wander"
+                    ]
+                },
+                "add": {
+                    "component_groups": [
+                        "dragon:follow_mode"
+                    ]
+                }
+            },
+            "dragon:stay": {
+                "set_property": {
+                    "subo:is_patrolling": true
+                },
+                "remove": {
+                    "component_groups": [
+                        "dragon:follow_mode"
+                    ]
+                },
+                "add": {
+                    "component_groups": [
+                        "dragon:patrol_mode",
+                        "dragon:patrol_wander"
+                    ]
+                }
+            },
+            "dragon:on_mount": {
+                "remove": {
+                    "component_groups": [
+                        "dragon:unmounted",
+                        "dragon:follow_mode",
+                        "dragon:patrol_mode",
+                        "dragon:patrol_wander"
+                    ]
+                },
+                "add": {
+                    "component_groups": [
+                        "dragon:mounted"
+                    ]
+                }
+            },
+            "dragon:start_flying": {
+                "set_property": {
+                    "subo:is_flying": true
+                },
+                "remove": {
+                    "component_groups": [
+                        "dragon:grounded"
+                    ]
+                },
+                "add": {
+                    "component_groups": [
+                        "dragon:flying"
+                    ]
+                }
+            },
+            "dragon:stop_flying": {
+                "set_property": {
+                    "subo:is_flying": false
+                },
+                "remove": {
+                    "component_groups": [
+                        "dragon:flying"
+                    ]
+                },
+                "add": {
+                    "component_groups": [
+                        "dragon:grounded"
+                    ]
+                }
+            },
+            "dragon:on_bite": {
+                "set_property": {
+                    "subo:attack_state": 1.0
+                },
+                "remove": {
+                    "component_groups": [
+                        "dragon:state_bite"
+                    ]
+                },
+                "add": {
+                    "component_groups": [
+                        "dragon:state_bite"
+                    ]
+                }
+            },
+            "dragon:end_bite": {
+                "set_property": {
+                    "subo:attack_state": 0.0
+                },
+                "remove": {
+                    "component_groups": [
+                        "dragon:state_bite"
+                    ]
+                }
+            },
+            "dragon:on_spit": {
+                "set_property": {
+                    "subo:attack_state": 2.0
+                },
+                "remove": {
+                    "component_groups": [
+                        "dragon:state_spit"
+                    ]
+                },
+                "add": {
+                    "component_groups": [
+                        "dragon:state_spit"
+                    ]
+                }
+            },
+            "dragon:end_spit": {
+                "set_property": {
+                    "subo:attack_state": 0.0
+                },
+                "remove": {
+                    "component_groups": [
+                        "dragon:state_spit"
+                    ]
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,111 @@
+{
+  "format_version": "1.10.0",
+  "animation_controllers": {
+    "controller.animation.subo.dragon.main": {
+      "initial_state": "idle",
+      "states": {
+        "idle": {
+          "animations": [
+            "idle"
+          ],
+          "blend_transition": 0.2,
+          "transitions": [
+            {
+              "run": "!query.property('subo:is_flying') && query.modified_move_speed > 0.1"
+            },
+            {
+              "fly": "query.property('subo:is_flying')"
+            }
+          ]
+        },
+        "run": {
+          "animations": [
+            "run"
+          ],
+          "blend_transition": 0.2,
+          "transitions": [
+            {
+              "idle": "!query.property('subo:is_flying') && query.modified_move_speed <= 0.1"
+            },
+            {
+              "fly": "query.property('subo:is_flying')"
+            }
+          ]
+        },
+        "fly": {
+          "animations": [
+            {
+              "fly": "1.0"
+            }
+          ],
+          "blend_transition": 0.2,
+          "transitions": [
+            {
+              "idle": "!query.property('subo:is_flying')"
+            },
+            {
+              "glide": "query.property('subo:is_flying') && query.vertical_speed < -0.4"
+            }
+          ]
+        },
+        "glide": {
+          "animations": [
+            {
+              "glide": "1.0"
+            }
+          ],
+          "blend_transition": 0.2,
+          "transitions": [
+            {
+              "idle": "!query.property('subo:is_flying')"
+            },
+            {
+              "fly": "query.property('subo:is_flying') && query.vertical_speed >= -0.2"
+            }
+          ]
+        }
+      }
+    },
+    "controller.animation.subo.dragon.attack": {
+      "initial_state": "none",
+      "states": {
+        "none": {
+          "transitions": [
+            {
+              "bite": "query.property('subo:attack_state') == 1.0"
+            },
+            {
+              "spit": "query.property('subo:attack_state') == 2.0"
+            }
+          ]
+        },
+        "bite": {
+          "animations": [
+            "bite"
+          ],
+          "transitions": [
+            {
+              "spit": "query.property('subo:attack_state') == 2.0"
+            },
+            {
+              "none": "query.property('subo:attack_state') == 0.0"
+            }
+          ]
+        },
+        "spit": {
+          "animations": [
+            "spit"
+          ],
+          "transitions": [
+            {
+              "bite": "query.property('subo:attack_state') == 1.0"
+            },
+            {
+              "none": "query.property('subo:attack_state') == 0.0"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

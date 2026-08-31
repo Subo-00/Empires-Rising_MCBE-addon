@@ -1,0 +1,26 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "subo:empty_soul",
+      "materials": { "default": "entity_emissive_alpha" },
+      "textures": { "default": "textures/entity/empty_soul" },
+      "geometry": { "default": "geometry.empty_soul" },
+      "animations": {
+        "spawn": "animation.empty_soul.spawn",
+        "move": "animation.empty_soul.move",
+        "destroy": "animation.empty_soul.destroy",
+        "die": "animation.empty_soul.die",
+        "state": "controller.animation.empty_soul.state"
+      },
+"sound_effects": {
+    "spawn": "mob.empty_soul.spawn",
+    "die": "mob.empty_soul.die"
+},
+      "scripts": {
+        "animate": [ "state" ]
+      },
+      "render_controllers": [ "controller.render.empty_soul" ]
+    }
+  }
+}

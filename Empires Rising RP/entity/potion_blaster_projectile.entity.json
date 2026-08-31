@@ -1,0 +1,12 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "subo:potion_blaster_projectile",
+      "materials": { "default": "entity_alphatest" },
+      "textures": { "default": "textures/items/potion_bottle_splash" },
+      "geometry": { "default": "geometry.potion_blaster_projectile" },
+      "render_controllers": [ "controller.render.potion_blaster_projectile" ]
+    }
+  }
+}

@@ -1,0 +1,18 @@
+{
+    "format_version": "1.21.100",
+    "minecraft:item": {
+        "description": {
+            "identifier": "subo:portal",
+            "menu_category": {
+                "category": "items"
+            }
+        },
+        "components": {
+            "minecraft:max_stack_size": 64,
+            "minecraft:icon": "portal",
+            "minecraft:block_placer": {
+                "block": "subo:portal"
+            }
+        }
+    }
+}

@@ -1,0 +1,31 @@
+{
+  "format_version": "1.20.50",
+  "minecraft:recipe_shaped": {
+    "description": {
+      "identifier": "subo:dragon_spawner"
+    },
+    "tags": ["crafting_table"],
+    "pattern": [
+      "SSS",
+      "SAS",
+      "SSS"
+    ],
+    "key": {
+      "S": {
+        "item": "subo:pure_soul"
+      },
+      "A": {
+        "item": "subo:magma_core"
+      }
+    },
+    "result": {
+      "item": "subo:dragon_spawner",
+      "count": 1
+    },
+    "unlock": [
+      {
+        "item": "subo:pure_soul"
+      }
+    ]
+  }
+}

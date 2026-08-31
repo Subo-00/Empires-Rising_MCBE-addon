@@ -1,0 +1,41 @@
+{
+	"format_version": "1.21.100",
+	"minecraft:block": {
+		"description": {
+			"identifier": "subo:barbarian_spawner",
+			"menu_category": {
+				"category": "construction"
+			}
+		},
+		"components": {
+			"subo:barbarian_block": {},
+			"minecraft:loot": "loot_tables/empty.json",
+			"minecraft:collision_box": true,
+			"minecraft:selection_box": true,
+			"minecraft:destructible_by_mining": {
+				"seconds_to_destroy": 10
+			},
+			"minecraft:destructible_by_explosion": {
+				"explosion_resistance": 80
+			},
+			"minecraft:geometry": "minecraft:geometry.full_block",
+			"minecraft:material_instances": {
+				"*": {
+					"texture": "barbarian_spawner_side",
+					"render_method": "alpha_test"
+				},
+				"up": {
+					"texture": "barbarian_spawner_top",
+					"render_method": "alpha_test"
+				},
+				"down": {
+					"texture": "barbarian_spawner_bottom",
+					"render_method": "alpha_test"
+				}
+			},
+			"minecraft:map_color": "#7d7d7d",
+			"minecraft:light_emission": 3,
+			"tag:minecraft:is_pickaxe_item_destructible": {}
+		}
+	}
+}

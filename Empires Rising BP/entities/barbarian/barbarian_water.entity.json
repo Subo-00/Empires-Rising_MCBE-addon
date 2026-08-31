@@ -1,0 +1,357 @@
+{
+	"format_version": "1.20.0",
+	"minecraft:entity": {
+		"description": {
+			"identifier": "subo:barbarian_water",
+			"is_spawnable": false,
+			"is_summonable": true,
+			"properties": {
+				"subo:is_attacking": {
+					"type": "float",
+					"range": [
+						0.0,
+						1.0
+					],
+					"default": 0.0,
+					"client_sync": true
+				},
+				"subo:armor_material": {
+					"type": "float",
+					"range": [
+						0.0,
+						4.0
+					],
+					"default": 0.0,
+					"client_sync": true
+				}
+			}
+		},
+		"components": {
+			"minecraft:persistent": {},
+			"minecraft:behavior.float": {
+				"priority": 0
+			},
+			"minecraft:health": {
+				"value": 30,
+				"max": 30
+			},
+			"minecraft:attack": {
+				"damage": 7
+			},
+			"minecraft:movement": {
+				"value": 0.35
+			},
+			"minecraft:underwater_movement": {
+				"value": 0.35
+			},
+			"minecraft:water_movement": {
+				"drag_factor": 0.98
+			},
+			"minecraft:follow_range": {
+				"value": 35,
+				"max": 35
+			},
+			"minecraft:breathable": {
+				"total_supply": 15,
+				"suffocate_time": 4,
+				"breathes_air": true,
+				"breathes_water": false,
+				"generates_bubbles": true
+			},
+			"minecraft:movement.basic": {},
+			"minecraft:navigation.walk": {
+				"can_walk": true,
+				"can_jump": true,
+				"can_open_doors": true,
+				"avoid_portals": true
+			},
+			"minecraft:jump.static": {},
+			"minecraft:physics": {},
+			"minecraft:type_family": {
+				"family": [
+					"barbarian",
+					"subo_troop",
+					 "player"
+					 
+				]
+			},
+			"minecraft:nameable": {
+				"allow_name_tag_renaming": true,
+				"always_show": false
+			},
+			"minecraft:tameable": {
+				"probability": 1.0,
+				"tame_items": [
+					"minecraft:stick"
+				],
+				"tame_event": {
+					"event": "minecraft:on_tame",
+					"target": "self"
+				}
+			},
+			"minecraft:is_tamed": {},
+			"minecraft:behavior.melee_attack": {
+				"priority": 3,
+				"speed_multiplier": 1.2,
+				"track_target": true,
+				"require_complete_path": false,
+				"cooldown_time": 0.9
+			},
+			"minecraft:behavior.hurt_by_target": {
+				"priority": 4
+			},
+			"minecraft:behavior.look_at_player": {
+				"priority": 7,
+				"look_distance": 8
+			},
+			"minecraft:behavior.random_look_around": {
+				"priority": 8
+			}
+		},
+		"component_groups": {
+			"barbarian:skin_default": {
+				"minecraft:variant": {
+					"value": 0
+				}
+			},
+			"barbarian:skin_alt": {
+				"minecraft:variant": {
+					"value": 1
+				}
+			},
+			"barbarian:follow_mode": {
+				"minecraft:behavior.follow_owner": {
+					"priority": 2,
+					"speed_multiplier": 1.2,
+					"start_distance": 11,
+					"stop_distance": 2
+				},
+				"minecraft:behavior.owner_hurt_by_target": {
+					"priority": 1
+				},
+				"minecraft:behavior.nearest_attackable_target": {
+					"priority": 3,
+					"within_radius": 10,
+					"reselect_targets": true,
+					"must_see": true,
+					"must_see_forget_duration": 4.0,
+					"entity_types": [
+						{
+							"filters": {
+								"test": "is_family",
+								"subject": "other",
+								"value": "monster"
+							},
+							"max_dist": 10
+						},
+						{
+							"filters": {
+								"all_of": [
+									{
+										"test": "is_family",
+										"subject": "other",
+										"value": "subo_troop"
+									},
+									{
+										"test": "has_tag",
+										"subject": "other",
+										"value": "faction:water",
+										"operator": "!="
+									}
+								]
+							},
+							"max_dist": 10
+						},
+						{
+							"filters": {
+								"all_of": [
+									{
+										"test": "is_family",
+										"subject": "other",
+										"value": "player"
+									},
+									{
+										"test": "has_tag",
+										"subject": "other",
+										"value": "faction:water",
+										"operator": "!="
+									}
+								]
+							},
+							"max_dist": 10
+						}
+					]
+				},
+				"minecraft:interact": {
+					"interactions": [
+						{
+							"on_interact": {
+								"filters": {
+									"all_of": [
+										{
+											"test": "is_owner",
+											"subject": "other",
+											"value": true
+										},
+										{
+											"test": "is_sneaking",
+											"subject": "other",
+											"value": true
+										}
+									]
+								},
+								"event": "barbarian:stay",
+								"target": "self"
+							},
+							"interact_text": "Stay"
+						}
+					]
+				},
+				"minecraft:mark_variant": {
+					"value": 1
+				}
+			},
+			"barbarian:patrol_mode": {
+				"minecraft:behavior.random_stroll": {
+					"priority": 5,
+					"speed_multiplier": 0.8
+				},
+				"minecraft:behavior.owner_hurt_by_target": {
+					"priority": 1
+				},
+				"minecraft:behavior.nearest_attackable_target": {
+					"priority": 3,
+					"within_radius": 35,
+					"reselect_targets": true,
+					"must_see": true,
+					"must_see_forget_duration": 4.0,
+					"entity_types": [
+						{
+							"filters": {
+								"test": "is_family",
+								"subject": "other",
+								"value": "monster"
+							},
+							"max_dist": 35
+						},
+						{
+							"filters": {
+								"all_of": [
+									{
+										"test": "is_family",
+										"subject": "other",
+										"value": "subo_troop"
+									},
+									{
+										"test": "has_tag",
+										"subject": "other",
+										"value": "faction:water",
+										"operator": "!="
+									}
+								]
+							},
+							"max_dist": 35
+						},
+						{
+							"filters": {
+								"all_of": [
+									{
+										"test": "is_family",
+										"subject": "other",
+										"value": "player"
+									},
+									{
+										"test": "has_tag",
+										"subject": "other",
+										"value": "faction:water",
+										"operator": "!="
+									}
+								]
+							},
+							"max_dist": 35
+						}
+					]
+				},
+				"minecraft:interact": {
+					"interactions": [
+						{
+							"on_interact": {
+								"filters": {
+									"all_of": [
+										{
+											"test": "is_owner",
+											"subject": "other",
+											"value": true
+										},
+										{
+											"test": "is_sneaking",
+											"subject": "other",
+											"value": true
+										}
+									]
+								},
+								"event": "barbarian:follow",
+								"target": "self"
+							},
+							"interact_text": "Follow"
+						}
+					]
+				},
+				"minecraft:mark_variant": {
+					"value": 0
+				}
+			}
+		},
+		"events": {
+			"minecraft:entity_spawned": {
+				"set_property": {
+					"subo:armor_material": 0.0
+				},
+				"randomize": [
+					{
+						"weight": 50,
+						"add": {
+							"component_groups": [
+								"barbarian:skin_default",
+								"barbarian:follow_mode"
+							]
+						}
+					},
+					{
+						"weight": 50,
+						"add": {
+							"component_groups": [
+								"barbarian:skin_alt",
+								"barbarian:follow_mode"
+							]
+						}
+					}
+				]
+			},
+			"barbarian:stay": {
+				"remove": {
+					"component_groups": [
+						"barbarian:follow_mode"
+					]
+				},
+				"add": {
+					"component_groups": [
+						"barbarian:patrol_mode"
+					]
+				}
+			},
+			"barbarian:follow": {
+				"remove": {
+					"component_groups": [
+						"barbarian:patrol_mode"
+					]
+				},
+				"add": {
+					"component_groups": [
+						"barbarian:follow_mode"
+					]
+				}
+			}
+		}
+	}
+}

@@ -1,0 +1,22 @@
+{
+    "format_version": "1.21.0",
+    "minecraft:block": {
+        "description": {
+            "identifier": "subo:region_core"
+        },
+        "components": {
+            "minecraft:geometry": "minecraft:geometry.full_block",
+
+            "minecraft:material_instances": {
+                "*": {
+                    "texture": "region_core",
+                    "render_method": "alpha_test"
+                }
+            },
+
+            "minecraft:collision_box": false,
+            "minecraft:selection_box": false,
+            "minecraft:light_dampening": 0
+        }
+    }
+}

@@ -1,0 +1,63 @@
+{
+  "format_version": "1.20.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "subo:archer_fire",
+      "materials": {
+        "default": "entity_alphatest",
+        "armor": "entity_alphatest"
+      },
+      "textures": {
+        "default": "textures/entity/archer_fire",
+        "copper": "textures/entity/archer_copper",
+        "iron": "textures/entity/archer_iron",
+        "diamond": "textures/entity/archer_diamond",
+        "netherite": "textures/entity/archer_netherite",
+        "empty": "textures/misc/empty",
+        "bow_none": "textures/entity/archer_bow_none",
+        "bow_copper": "textures/entity/archer_bow_copper",
+        "bow_iron": "textures/entity/archer_bow_iron",
+        "bow_diamond": "textures/entity/archer_bow_diamond",
+        "bow_netherite": "textures/entity/archer_bow_netherite"
+      },
+      "geometry": {
+        "default": "geometry.archer"
+      },
+      "animations": {
+        "main": "controller.animation.archer.main",
+        "combat": "controller.animation.archer.combat",
+        "idle": "animation.subo.archer.idle",
+        "walk": "animation.subo.archer.walk",
+        "attack": "animation.subo.archer.attack"
+      },
+      "scripts": {
+        "pre_animation": [
+          "variable.is_attacking = query.property('subo:is_attacking');",
+          "variable.armor_material = query.property('subo:armor_material');",
+          "variable.weapon_material = query.property('subo:weapon_material');"
+        ],
+        "initialize": [
+          "variable.is_attacking = 0.0;",
+          "variable.armor_material = 0.0;",
+          "variable.weapon_material = 0.0;"
+        ],
+        "animate": [
+          {
+            "main": "1.0"
+          },
+          {
+            "combat": "1.0"
+          }
+        ]
+      },
+      "render_controllers": [
+        "controller.render.archer",
+        "controller.render.archer_armor",
+        "controller.render.archer_bow"
+      ],
+      "spawn_egg": {
+        "texture": "archer_egg"
+      }
+    }
+  }
+}

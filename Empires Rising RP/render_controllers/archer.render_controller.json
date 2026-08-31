@@ -1,0 +1,48 @@
+{
+  "format_version": "1.10.0",
+  "render_controllers": {
+    "controller.render.archer": {
+      "geometry": "Geometry.default",
+      "materials": [
+        { "*": "Material.default" },
+        { "armor_*": "Material.default" }
+      ],
+      "textures": [
+        "Texture.default"
+      ],
+      "part_visibility": [
+        { "*": "1" },
+        { "armor_*": "0" },
+        { "bow": "0" }  
+      ]
+    },
+
+    "controller.render.archer_armor": {
+      "geometry": "Geometry.default",
+      "materials": [
+        { "armor_*": "Material.default" }
+      ],
+      "textures": [
+        "query.property('subo:armor_material') == 1.0 ? Texture.copper : query.property('subo:armor_material') == 2.0 ? Texture.iron :query.property('subo:armor_material') == 3.0 ? Texture.diamond :query.property('subo:armor_material') == 4.0 ? Texture.netherite : Texture.empty"
+      ],
+      "part_visibility": [
+        { "*": "0" },
+        { "armor_*": "1" }
+      ]
+    },
+
+    "controller.render.archer_bow": {
+      "geometry": "Geometry.default",
+      "materials": [
+        { "bow": "Material.default" }
+      ],
+      "textures": [
+        "query.property('subo:weapon_material') == 0.0 ? Texture.bow_none : query.property('subo:weapon_material') == 1.0 ? Texture.bow_copper : query.property('subo:weapon_material') == 2.0 ? Texture.bow_iron : query.property('subo:weapon_material') == 3.0 ? Texture.bow_diamond : Texture.bow_netherite"
+      ],
+      "part_visibility": [
+        { "*": "0" },
+        { "bow": "1" }
+      ]
+    }
+  }
+}

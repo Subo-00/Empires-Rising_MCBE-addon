@@ -1,0 +1,31 @@
+{
+	"format_version": 2,
+	"header": {
+		"name": "Empires Rising",
+		"description": "Empires Rising Resource Pack",
+		"uuid": "e23ce1e7-a16d-6f43-3b65-269508d189b6",
+		"version": [2, 0, 0],
+		"min_engine_version": [1, 26, 11]
+	},
+	"metadata": {
+		"authors": ["Subo"],
+		"generated_with": {
+			"blockbench_block_wizard": ["1.6.1"],
+			"blockbench_entity_wizard": ["1.8.2"]
+		}
+	},
+	"modules": [
+		{
+			"description": "Empires Rising",
+			"type": "resources",
+			"uuid": "141560b7-9578-1800-8abf-01ce6701419c",
+			"version": [1, 0, 0]
+		}
+	],
+	"dependencies": [
+		{
+			"uuid": "e402d6a0-63ec-83bd-ba04-cc5fcb6d5d67",
+			"version": [1, 0, 0]
+		}
+	]
+}

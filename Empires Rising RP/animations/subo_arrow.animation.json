@@ -1,0 +1,28 @@
+{
+  "format_version": "1.8.0",
+  "animations": {
+    "animation.subo.arrow.move": {
+      "loop": true,
+      "bones": {
+        "body": {
+          "rotation": [
+            "variable.shake_power - query.target_x_rotation",
+            "-query.target_y_rotation",
+            0.0
+          ],
+          "scale": [0.7, 0.7, 0.9]
+        }
+      }
+    },
+    "animation.subo.arrow.trail": {
+      "loop": true,
+      "animation_length": 0.05,
+      "particle_effects": {
+        "0.0": {
+          "effect": "trail",
+          "locator": ""
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,58 @@
+{
+	"format_version": "1.21.130",
+	"minecraft:block": {
+		"description": {
+			"identifier": "subo:purifier",
+			"is_experimental": false,
+			"menu_category": {
+				"category": "construction"
+			},
+			"states": {
+				"subo:active": [false, true]
+			}
+		},
+		"components": {
+			"subo:purifier_block": {},
+			"minecraft:geometry": "geometry.purifier",
+			"minecraft:collision_box": {
+				"origin": [-8, 0, -8],
+				"size": [16, 16, 16]
+			},
+			"minecraft:selection_box": {
+				"origin": [-8, 0, -8],
+				"size": [16, 16, 16]
+			},
+			"minecraft:destructible_by_mining": { "seconds_to_destroy": 10 },
+			"minecraft:destructible_by_explosion": { "explosion_resistance": 80 },
+			"minecraft:light_emission": 5,
+			"tag:minecraft:is_pickaxe_item_destructible": {},
+			"minecraft:map_color": "#3a2a4a",
+			"minecraft:material_instances": {
+				"*":    { "texture": "purifier_side",   "render_method": "opaque" },
+				"down": { "texture": "purifier_bottom", "render_method": "opaque" }
+			}
+		},
+		"permutations": [
+			{
+				"condition": "q.block_state('subo:active') == false",
+				"components": {
+					"minecraft:material_instances": {
+						"*":    { "texture": "purifier_side",        "render_method": "opaque" },
+						"down": { "texture": "purifier_bottom",      "render_method": "opaque" },
+						"up":   { "texture": "purifier_top_idle",    "render_method": "opaque" }
+					}
+				}
+			},
+			{
+				"condition": "q.block_state('subo:active') == true",
+				"components": {
+					"minecraft:material_instances": {
+						"*":    { "texture": "purifier_side",        "render_method": "opaque" },
+						"down": { "texture": "purifier_bottom",      "render_method": "opaque" },
+						"up":   { "texture": "purifier_top_active",  "render_method": "opaque" }
+					}
+				}
+			}
+		]
+	}
+}

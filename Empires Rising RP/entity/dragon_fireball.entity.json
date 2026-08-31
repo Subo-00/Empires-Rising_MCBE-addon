@@ -1,0 +1,22 @@
+{
+    "format_version": "1.10.0",
+    "minecraft:client_entity": {
+        "description": {
+            "identifier": "subo:dragon_fireball",
+            "materials": { "default": "entity_emissive_alpha" },
+            "textures": { "default": "textures/entity/dragon_fireball" },
+            "geometry": { "default": "geometry.dragon_fireball" },
+            "animations": {
+                "spin": "animation.subo.dragon_fireball.spin"
+            },
+            "scripts": {
+                "animate": ["spin"]
+            },
+            "particle_effects": {
+                "flame": "subo:dragon_flame",
+                "smoke": "minecraft:lava_particle"
+            },
+            "render_controllers": ["controller.render.default"]
+        }
+    }
+}

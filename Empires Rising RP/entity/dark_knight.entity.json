@@ -1,0 +1,66 @@
+{
+  "format_version": "1.20.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "subo:dark_knight",
+      "materials": {
+        "default": "entity_emissive_alpha"
+      },
+      "textures": {
+        "default": "textures/entity/dark_knight"
+      },
+      "geometry": {
+        "default": "geometry.dark_knight"
+      },
+      "animations": {
+        "main": "controller.animation.dark_knight.main",
+        "attack": "controller.animation.dark_knight.attack",
+        "taunt_controller": "controller.animation.dark_knight.taunt",
+        "idle": "animation.subo.dark_knight.idle",
+        "walk": "animation.subo.dark_knight.walk",
+        "basic_attack": "animation.subo.dark_knight.basic_attack",
+        "basic_attack2": "animation.subo.dark_knight.basic_attack2",
+        "spin_attack": "animation.subo.dark_knight.spin_attack",
+        "heal": "animation.subo.dark_knight.heal",
+        "leap_attack": "animation.subo.dark_knight.leap_attack",
+        "taunt": "animation.subo.dark_knight.taunt",
+        "death": "animation.subo.dark_knight.death"
+      },
+      "scripts": {
+        "initialize": [
+          "variable.attack_state = 0.0;",
+          "variable.use_basic2 = true;"
+        ],
+        "pre_animation": [
+          "variable.attack_state = query.property('subo:attack_state');",
+          "variable.use_basic2 = query.property('subo:use_basic2');"
+        ],
+        "animate": [
+          {
+            "main": 1.0
+          },
+          {
+            "attack": 1.0
+          },
+          {
+            "taunt_controller": 1.0
+          }
+        ]
+      },
+      "render_controllers": [
+        "controller.render.dark_knight"
+      ],
+      "spawn_egg": {
+        "texture": "dark_knight_egg"
+      },
+      "sound_effects": {
+        "swing": "mob.dark_knight.swing",
+        "spin": "mob.dark_knight.spin",
+        "leap": "mob.dark_knight.leap",
+        "heal": "mob.dark_knight.heal",
+        "taunt": "mob.dark_knight.taunt",
+        "death": "mob.dark_knight.death"
+      }
+    }
+  }
+}

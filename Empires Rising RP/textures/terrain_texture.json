@@ -1,0 +1,77 @@
+{
+	"resource_pack_name": "empire_pack",
+	"texture_name": "atlas.terrain",
+	"padding": 8,
+	"num_mip_levels": 4,
+	"texture_data": {
+		"dragon_spawner_side": {
+			"textures": "textures/blocks/dragon_spawner_side"
+		},
+		"dragon_spawner_top": {
+			"textures": "textures/blocks/dragon_spawner_top"
+		},
+		"dragon_spawner_bottom": {
+			"textures": "textures/blocks/dragon_spawner_bottom"
+		},
+		"archer_spawner_side": {
+			"textures": "textures/blocks/archer_spawner_side"
+		},
+		"archer_spawner_top": {
+			"textures": "textures/blocks/archer_spawner_top"
+		},
+		"archer_spawner_bottom": {
+			"textures": "textures/blocks/archer_spawner_bottom"
+		},
+		"barbarian_spawner_side": {
+			"textures": "textures/blocks/barbarian_spawner_side"
+		},
+		"barbarian_spawner_top": {
+			"textures": "textures/blocks/barbarian_spawner_top"
+		},
+		"barbarian_spawner_bottom": {
+			"textures": "textures/blocks/barbarian_spawner_bottom"
+		},
+		"dragon_spawner": {
+			"textures": "textures/blocks/dragon_spawner"
+		},
+		"region_core": {
+			"textures": "textures/blocks/region_core"
+		},
+		"random_chest_1": {
+			"textures": "textures/blocks/random_chest_1"
+		},
+		"random_chest_2": {
+			"textures": "textures/blocks/random_chest_2"
+		},
+		"random_chest_3": {
+			"textures": "textures/blocks/random_chest_3"
+		},
+		"random_spawner_1": {
+			"textures": "textures/blocks/random_spawner_1"
+		},
+		"random_spawner_2": {
+			"textures": "textures/blocks/random_spawner_2"
+		},
+		"random_spawner_3": {
+			"textures": "textures/blocks/random_spawner_3"
+		},
+		"purifier_side": {
+			"textures": "textures/blocks/purifier_side"
+		},
+		"purifier_bottom": {
+			"textures": "textures/blocks/purifier_bottom"
+		},
+		"purifier_top_idle": {
+			"textures": "textures/blocks/purifier_top_idle"
+		},
+		"purifier_top_active": {
+			"textures": "textures/blocks/purifier_top_active"
+		},
+		"subo_portal": {
+			"textures": "textures/blocks/subo_portal"
+		},
+		"subo_portal_active": {
+			"textures": "textures/blocks/subo_portal_active"
+		}
+	}
+}

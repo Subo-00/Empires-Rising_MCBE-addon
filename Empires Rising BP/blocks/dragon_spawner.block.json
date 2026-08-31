@@ -1,0 +1,42 @@
+{
+	"format_version": "1.21.130",
+	"minecraft:block": {
+		"description": {
+			"identifier": "subo:dragon_spawner",
+			"is_experimental": false,
+			"menu_category": {
+				"category": "construction"
+			}
+		},
+		"components": {
+			"subo:dragon_block": {},
+			"minecraft:loot": "loot_tables/empty.json",
+			"minecraft:geometry": "minecraft:geometry.full_block",
+			"minecraft:material_instances": {
+				"*": {
+					"texture": "dragon_spawner_side",
+					"render_method": "alpha_test"
+				},
+				"up": {
+					"texture": "dragon_spawner_top",
+					"render_method": "alpha_test"
+				},
+				"down": {
+					"texture": "dragon_spawner_bottom",
+					"render_method": "alpha_test"
+				}
+			},
+			"minecraft:collision_box": true,
+			"minecraft:selection_box": true,
+			"minecraft:destructible_by_mining": {
+				"seconds_to_destroy": 10
+			},
+			"minecraft:destructible_by_explosion": {
+				"explosion_resistance": 80
+			},
+			"minecraft:light_emission": 3,
+			"tag:minecraft:is_pickaxe_item_destructible": {},
+			"minecraft:map_color": "#522c1c"
+		}
+	}
+}

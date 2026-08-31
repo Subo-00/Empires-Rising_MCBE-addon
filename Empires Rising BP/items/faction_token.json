@@ -1,0 +1,24 @@
+{
+	"format_version": "1.21.100",
+	"minecraft:item": {
+		"description": {
+			"identifier": "subo:faction_token",
+			"menu_category": {
+				"category": "items"
+			}
+		},
+		"components": {
+			"minecraft:max_stack_size": 1,
+			"minecraft:icon": "faction_token",
+			"minecraft:display_name": {
+				"value": "§eFaction Token"
+			},
+			"minecraft:glint": true,
+			"minecraft:lore": [
+				"§7Right-click to choose or switch your faction.",
+				"",
+				"§8You must first break all your placed spawners."
+			]
+		}
+	}
+}

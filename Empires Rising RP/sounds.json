@@ -1,0 +1,111 @@
+{
+	"entity_sounds": {
+		"entities": {
+			"subo:dark_knight": {
+				"volume": 1.0,
+				"pitch": [
+					0.9,
+					1.1
+				],
+				"events": {
+					"ambient": "mob.dark_knight.idle",
+					"hurt": "mob.dark_knight.hurt",
+					"death": "mob.dark_knight.death",
+					"step": {
+						"sound": "mob.dark_knight.step",
+						"volume": 0.8,
+						"pitch": [
+							0.9,
+							1.1
+						]
+					}
+				}
+			},
+			"subo:empty_soul": {
+				"volume": 0.85,
+				"pitch": [
+					0.85,
+					1.15
+				],
+				"events": {
+					"ambient": "mob.empty_soul.ambient",
+					"hurt": "mob.empty_soul.die",
+					"death": "mob.empty_soul.die"
+				}
+			},
+			"subo:dragon": {
+				"volume": 1.0,
+				"pitch": [
+					0.9,
+					1.1
+				],
+				"events": {
+					"ambient": "mob.dragon.idle",
+					"hurt": "mob.dragon.hurt",
+					"death": "mob.dragon.death",
+					"step": {
+						"sound": "mob.dragon.step",
+						"volume": 0.7,
+						"pitch": [
+							0.9,
+							1.1
+						]
+					}
+				}
+			},
+			"subo:barbarian": {
+				"events": {
+					"ambient": "mob.vindicator.idle",
+					"ambient.in.raid": {
+						"pitch": [
+							0.8,
+							1.2
+						],
+						"sound": "mob.vindicator.idle",
+						"volume": 3
+					},
+					"celebrate": "mob.vindicator.celebrate",
+					"death": "mob.vindicator.death",
+					"hurt": "mob.vindicator.hurt"
+				},
+				"pitch": [
+					0.8,
+					1.2
+				],
+				"volume": 1
+			},
+			"subo:lava_golem": {
+				"volume": 1.0,
+				"pitch": [
+					0.9,
+					1.1
+				],
+				"events": {
+					"ambient": "mob.lava_golem.idle",
+					"hurt": "mob.lava_golem.hurt",
+					"death": "mob.lava_golem.death",
+					"step": {
+						"sound": "mob.lava_golem.step",
+						"volume": 5,
+						"pitch": [
+							0.9,
+							1.1
+						]
+					}
+				}
+			},
+			"subo:fire_spirit": {
+				"volume": 0.8,
+				"pitch": [
+					1.1,
+					1.4
+				],
+				"events": {
+					"ambient": "mob.fire_spirit.idle",
+					"hurt": "mob.fire_spirit.hurt",
+					"death": "mob.fire_spirit.death"
+				}
+			}
+		}
+	}
+}

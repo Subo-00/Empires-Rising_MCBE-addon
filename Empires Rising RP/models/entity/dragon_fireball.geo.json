@@ -1,0 +1,29 @@
+{
+	"format_version": "1.12.0",
+	"minecraft:geometry": [
+		{
+			"description": {
+				"identifier": "geometry.dragon_fireball",
+				"texture_width": 64,
+				"texture_height": 64,
+				"visible_bounds_width": 3,
+				"visible_bounds_height": 2.5,
+				"visible_bounds_offset": [0, 0.75, 0]
+			},
+			"bones": [
+				{
+					"name": "bone",
+					"pivot": [0, 0, 0],
+					"cubes": [
+						{"origin": [-4, -4, -4], "size": [8, 8, 8], "uv": [0, 0]},
+						{"origin": [-4, -4, -4], "size": [8, 8, 8], "pivot": [0, 0, 0], "rotation": [0, -45, -45], "uv": [0, 16]},
+						{"origin": [-4, -4, -4], "size": [8, 8, 8], "pivot": [0, 0, 0], "rotation": [30.70133, 42.89109, 10.10743], "uv": [0, 32]}
+					],
+					"locators": {
+						"root": [0, 0, 0]
+					}
+				}
+			]
+		}
+	]
+}

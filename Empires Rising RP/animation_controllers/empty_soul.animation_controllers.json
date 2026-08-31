@@ -1,0 +1,27 @@
+{
+  "format_version": "1.10.0",
+  "animation_controllers": {
+    "controller.animation.empty_soul.state": {
+      "initial_state": "spawn",
+      "states": {
+        "spawn": {
+          "animations": [ "spawn" ],
+          "transitions": [
+            { "move":    "q.property('subo:anim_state') == 'move'" },
+            { "destroy": "q.property('subo:anim_state') == 'destroy'" },
+            { "die":     "q.property('subo:anim_state') == 'die'" }
+          ]
+        },
+        "move": {
+          "animations": [ "move" ],
+          "transitions": [
+            { "destroy": "q.property('subo:anim_state') == 'destroy'" },
+            { "die":     "q.property('subo:anim_state') == 'die'" }
+          ]
+        },
+        "destroy": { "animations": [ "destroy" ], "transitions": [] },
+        "die":     { "animations": [ "die" ],     "transitions": [] }
+      }
+    }
+  }
+}

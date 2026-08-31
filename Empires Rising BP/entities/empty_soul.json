@@ -1,0 +1,90 @@
+{
+    "format_version": "1.21.0",
+    "minecraft:entity": {
+        "description": {
+            "identifier": "subo:empty_soul",
+            "is_spawnable": false,
+            "is_summonable": true,
+            "properties": {
+                "subo:anim_state": {
+                    "type": "enum",
+                    "values": [
+                        "spawn",
+                        "move",
+                        "destroy",
+                        "die"
+                    ],
+                    "default": "spawn",
+                    "client_sync": true
+                }
+            }
+        },
+        "components": {
+            "minecraft:persistent": {},
+            "minecraft:type_family": {
+                "family": [
+                    "empty_soul"
+                ]
+            },
+            "minecraft:health": {
+                "value": 200,
+                "max": 200
+            },
+            "minecraft:physics": {
+                "has_gravity": false,
+                "has_collision": false
+            },
+            "minecraft:collision_box": {
+                "width": 0.6,
+                "height": 0.6
+            },
+            "minecraft:knockback_resistance": {
+                "value": 1
+            },
+            "minecraft:pushable": {
+                "is_pushable": false,
+                "is_pushable_by_piston": false
+            },
+            "minecraft:fire_immune": true,
+            "minecraft:damage_sensor": {
+                "triggers": [
+                    {
+                        "on_damage": {
+                            "filters": {
+                                "test": "has_tag",
+                                "operator": "equals",
+                                "value": "es_dead"
+                            }
+                        },
+                        "deals_damage": false
+                    },
+                    {
+                        "cause": "fall",
+                        "deals_damage": false
+                    },
+                    {
+                        "cause": "fire",
+                        "deals_damage": false
+                    },
+                    {
+                        "cause": "fire_tick",
+                        "deals_damage": false
+                    },
+                    {
+                        "cause": "lava",
+                        "deals_damage": false
+                    },
+                    {
+                        "cause": "drowning",
+                        "deals_damage": false
+                    },
+                    {
+                        "cause": "suffocation",
+                        "deals_damage": false
+                    }
+                ]
+            },
+            "minecraft:conditional_bandwidth_optimization": {}
+        }
+    }
+}

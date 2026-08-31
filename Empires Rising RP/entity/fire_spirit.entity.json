@@ -1,0 +1,48 @@
+{
+    "format_version": "1.20.0",
+    "minecraft:client_entity": {
+        "description": {
+            "identifier": "subo:fire_spirit",
+            "materials": {
+                "default": "entity_emissive_alpha"
+            },
+            "textures": {
+                "default": "textures/entity/fire_spirit"
+            },
+            "geometry": {
+                "default": "geometry.fire_spirit"
+            },
+            "animations": {
+                "main": "controller.animation.fire_spirit.main",
+                "leap_controller": "controller.animation.fire_spirit.leap",
+                "idle": "animation.subo.fire_spirit.idle",
+                "walk": "animation.subo.fire_spirit.walk",
+                "leap": "animation.subo.fire_spirit.leap",
+                "burn": "animation.subo.fire_spirit.burn"
+            },
+            "scripts": {
+                "animate": [
+                    {
+                        "main": "1.0"
+                    },
+                    {
+                        "leap_controller": "1.0"
+                    },
+                    {
+                        "burn": "1.0"
+                    }
+                ]
+            },
+            "render_controllers": [
+                "controller.render.fire_spirit"
+            ],
+            "spawn_egg": {
+                "texture": "fire_spirit_egg"
+            },
+            "sound_effects": {
+                "leap": "mob.fire_spirit.leap",
+                "explode": "mob.fire_spirit.explode"
+            }
+        }
+    }
+}

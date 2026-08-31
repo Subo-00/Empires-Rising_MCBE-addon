@@ -1,0 +1,32 @@
+{
+	"format_version": "1.10.0",
+	"render_controllers": {
+		"controller.render.barbarian": {
+			"geometry": "Geometry.default",
+			"materials": [
+				{ "*": "Material.default" },
+				{ "armor_*": "Material.default" }
+			],
+			"textures": [
+				"query.variant == 1 ? Texture.alt : Texture.default"
+			],
+			"part_visibility": [
+				{ "*": "1" },
+				{ "armor_*": "0" }
+			]
+		},
+		"controller.render.barbarian_armor": {
+			"geometry": "Geometry.default",
+			"materials": [
+				{ "armor_*": "Material.default" }
+			],
+			"textures": [
+				"query.property('subo:armor_material') == 1.0 ? Texture.copper : query.property('subo:armor_material') == 2.0 ? Texture.iron : query.property('subo:armor_material') == 3.0 ? Texture.diamond : query.property('subo:armor_material') == 4.0 ? Texture.netherite : Texture.empty"
+			],
+			"part_visibility": [
+				{ "*": "0" },
+				{ "armor_*": "1" }
+			]
+		}
+	}
+}

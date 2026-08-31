@@ -1,0 +1,82 @@
+{
+  "format_version": "1.10.0",
+  "animation_controllers": {
+    "controller.animation.lava_golem.main": {
+      "initial_state": "idle",
+      "states": {
+        "idle": {
+          "animations": ["idle"],
+          "transitions": [
+            { "walk": "query.modified_move_speed > 0.1" }
+          ]
+        },
+        "walk": {
+          "animations": ["walk"],
+          "transitions": [
+            { "idle": "query.modified_move_speed <= 0.1" }
+          ]
+        }
+      }
+    },
+    "controller.animation.lava_golem.attack": {
+      "initial_state": "none",
+      "states": {
+        "none": {
+          "transitions": [
+            { "slam": "query.property('subo:attack_state') == 1.0" },
+            { "spin": "query.property('subo:attack_state') == 2.0" },
+            { "spit": "query.property('subo:attack_state') == 3.0" }
+          ]
+        },
+        "slam": {
+          "animations": ["slam"],
+          "transitions": [
+            { "spin": "query.property('subo:attack_state') == 2.0" },
+            { "spit": "query.property('subo:attack_state') == 3.0" },
+            { "none": "query.property('subo:attack_state') == 0.0" }
+          ]
+        },
+        "spin": {
+            "animations": ["spin"],
+            "transitions": [
+                { "spin_recovery": "query.property('subo:attack_state') == 0.0" },
+                { "slam": "query.property('subo:attack_state') == 1.0" },
+                { "spit": "query.property('subo:attack_state') == 3.0" }
+            ]
+        },
+        "spin_recovery": {
+            "animations": ["spin_recovery"],
+            "transitions": [
+                { "none": "query.anim_time >= 0.5" },
+                { "slam": "query.property('subo:attack_state') == 1.0" },
+                { "spit": "query.property('subo:attack_state') == 3.0" }
+            ]
+        },
+        "spit": {
+          "animations": ["spit"],
+          "transitions": [
+            { "slam": "query.property('subo:attack_state') == 1.0" },
+            { "spin": "query.property('subo:attack_state') == 2.0" },
+            { "none": "query.property('subo:attack_state') == 0.0" }
+          ]
+        }
+      }
+    },
+    "controller.animation.lava_golem.taunt": {
+      "initial_state": "idle",
+      "states": {
+          "idle": {
+              "transitions": [
+                  { "taunting": "query.property('subo:is_taunting') == true" }
+              ]
+          },
+          "taunting": {
+              "animations": ["taunt"],
+              "transitions": [
+                  { "idle": "query.anim_time >= 2.0" }
+              ]
+          }
+      }
+  }
+  }
+}

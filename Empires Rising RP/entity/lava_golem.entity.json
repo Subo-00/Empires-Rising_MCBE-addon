@@ -1,0 +1,46 @@
+{
+  "format_version": "1.20.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "subo:lava_golem",
+      "materials": { "default": "entity_emissive_alpha" },
+      "textures": { "default": "textures/entity/lava_golem" },
+      "geometry": { "default": "geometry.lava_golem" },
+      "animations": {
+        "main":  "controller.animation.lava_golem.main",
+        "attack": "controller.animation.lava_golem.attack",
+        "taunt_controller": "controller.animation.lava_golem.taunt",
+        "idle":  "animation.subo.lava_golem.idle",
+        "walk":  "animation.subo.lava_golem.walk",
+        "slam":  "animation.subo.lava_golem.slam",
+        "spin":  "animation.subo.lava_golem.spin",
+        "spit":  "animation.subo.lava_golem.spit",
+        "taunt": "animation.subo.lava_golem.taunt",
+        "spin_recovery": "animation.subo.lava_golem.spin_recovery"
+      },
+      "scripts": {
+        "initialize": [
+          "variable.attack_state = 0.0;"
+        ],
+        "pre_animation": [
+          "variable.attack_state = query.property('subo:attack_state');"
+        ],
+        "animate": [
+          { "main": "1.0" },
+          { "attack": "1.0" },
+          { "taunt_controller": "1.0" }
+        ]
+      },
+      "render_controllers": [ "controller.render.lava_golem" ],
+      "spawn_egg": {
+        "texture": "lava_golem_egg"
+      },
+      "sound_effects": {
+        "slam":  "mob.lava_golem.slam",
+        "spin":  "mob.lava_golem.spin",
+        "spit":  "mob.lava_golem.spit",
+        "taunt": "mob.lava_golem.taunt"
+      }
+    }
+  }
+}

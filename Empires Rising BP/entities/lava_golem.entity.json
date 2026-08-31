@@ -1,0 +1,279 @@
+{
+    "format_version": "1.20.0",
+    "minecraft:entity": {
+        "description": {
+            "identifier": "subo:lava_golem",
+            "is_spawnable": true,
+            "is_summonable": true,
+            "properties": {
+                "subo:attack_state": {
+                    "type": "float",
+                    "range": [
+                        0.0,
+                        3.0
+                    ],
+                    "default": 0.0,
+                    "client_sync": true
+                },
+                "subo:is_taunting": {
+                    "type": "bool",
+                    "default": false,
+                    "client_sync": true
+                }
+            }
+        },
+        "components": {
+            "minecraft:type_family": {
+                "family": [
+                    "lava_golem",
+                    "monster"
+                ]
+            },
+            "minecraft:health": {
+                "value": 350,
+                "max": 350
+            },
+            "minecraft:movement": {
+                "value": 0.2
+            },
+            "minecraft:follow_range": {
+                "value": 40,
+                "max": 40
+            },
+            "minecraft:knockback_resistance": {
+                "value": 1
+            },
+            "minecraft:mob_effect_immunity": {
+                "mob_effects": [
+                    "poison"
+                ]
+            },
+            "minecraft:damage_sensor": {
+                "triggers": [
+                    {
+                        "on_damage": {
+                            "filters": {
+                                "test": "is_family",
+                                "subject": "other",
+                                "value": "monster"
+                            }
+                        },
+                        "deals_damage": "no"
+                    },
+                    {
+                        "cause": "magic",
+                        "deals_damage": "no"
+                    }
+                ]
+            },
+            "minecraft:fire_immune": {},
+            "minecraft:physics": {},
+            "minecraft:movement.basic": {},
+            "minecraft:jump.static": {},
+            "minecraft:navigation.walk": {
+                "can_walk": true,
+                "can_jump": true
+            },
+            "minecraft:collision_box": {
+                "width": 1.25,
+                "height": 2.4
+            },
+            "minecraft:scale": {
+                "value": 1.4
+            },
+            "minecraft:attack": {
+                "damage": 0
+            },
+            "minecraft:burns_in_daylight": false,
+            "minecraft:loot": {
+                "table": "loot_tables/entities/lava_golem.json"
+            },
+            "minecraft:experience_reward": {
+                "on_death": 150
+            },
+            "minecraft:behavior.float": {
+                "priority": 0
+            },
+            "minecraft:behavior.hurt_by_target": {
+                "priority": 1
+            },
+            "minecraft:behavior.nearest_attackable_target": {
+                "priority": 2,
+                "within_radius": 40,
+                "reselect_targets": true,
+                "must_see": true,
+                "entity_types": [
+                    {
+                        "filters": {
+                            "test": "is_family",
+                            "subject": "other",
+                            "value": "player"
+                        },
+                        "max_dist": 40
+                    },
+                    {
+                        "filters": {
+                            "test": "is_family",
+                            "subject": "other",
+                            "value": "subo_troop"
+                        },
+                        "max_dist": 40
+                    }
+                ]
+            },
+            "minecraft:behavior.melee_attack": {
+                "priority": 3,
+                "speed_multiplier": 1.0,
+                "attack_once": false,
+                "track_target": true,
+                "require_complete_path": false,
+                "reach_multiplier": 0.0,
+                "cooldown_time": 240
+            },
+            "minecraft:behavior.random_stroll": {
+                "priority": 8,
+                "speed_multiplier": 1,
+                "xz_dist": 8,
+                "y_dist": 3
+            },
+            "minecraft:behavior.look_at_target": {
+                "priority": 4,
+                "look_distance": 60,
+                "probability": 1.0
+            },
+            "minecraft:behavior.random_look_around": {
+                "priority": 10
+            }
+        },
+        "component_groups": {
+            "lava_golem:state_slam": {
+                "minecraft:timer": {
+                    "time": 1.2,
+                    "time_down_event": {
+                        "event": "lava_golem:end_slam",
+                        "target": "self"
+                    }
+                }
+            },
+            "lava_golem:state_spin": {
+                "minecraft:timer": {
+                    "time": 3.0,
+                    "time_down_event": {
+                        "event": "lava_golem:end_spin",
+                        "target": "self"
+                    }
+                }
+            },
+            "lava_golem:state_spit": {
+                "minecraft:timer": {
+                    "time": 1.8,
+                    "time_down_event": {
+                        "event": "lava_golem:end_spit",
+                        "target": "self"
+                    }
+                }
+            },
+            "lava_golem:taunt_timer": {
+                "minecraft:timer": {
+                    "time": 2.0,
+                    "time_down_event": {
+                        "event": "lava_golem:end_taunt",
+                        "target": "self"
+                    }
+                }
+            }
+        },
+        "events": {
+            "lava_golem:on_slam": {
+                "set_property": {
+                    "subo:attack_state": 1.0
+                },
+                "remove": {
+                    "component_groups": [
+                        "lava_golem:state_slam"
+                    ]
+                },
+                "add": {
+                    "component_groups": [
+                        "lava_golem:state_slam"
+                    ]
+                }
+            },
+            "lava_golem:end_slam": {
+                "set_property": {
+                    "subo:attack_state": 0.0
+                },
+                "remove": {
+                    "component_groups": [
+                        "lava_golem:state_slam"
+                    ]
+                }
+            },
+            "lava_golem:start_spin": {
+                "set_property": {
+                    "subo:attack_state": 2.0
+                },
+                "remove": {
+                    "component_groups": [
+                        "lava_golem:state_spin"
+                    ]
+                },
+                "add": {
+                    "component_groups": [
+                        "lava_golem:state_spin"
+                    ]
+                }
+            },
+            "lava_golem:end_spin": {
+                "set_property": {
+                    "subo:attack_state": 0.0
+                },
+                "remove": {
+                    "component_groups": [
+                        "lava_golem:state_spin"
+                    ]
+                }
+            },
+            "lava_golem:start_spit": {
+                "set_property": {
+                    "subo:attack_state": 3.0
+                },
+                "add": {
+                    "component_groups": [
+                        "lava_golem:state_spit"
+                    ]
+                }
+            },
+            "lava_golem:end_spit": {
+                "set_property": {
+                    "subo:attack_state": 0.0
+                },
+                "remove": {
+                    "component_groups": [
+                        "lava_golem:state_spit"
+                    ]
+                }
+            },
+            "lava_golem:start_taunt": {
+                "set_property": {
+                    "subo:is_taunting": true
+                },
+                "add": {
+                    "component_groups": [
+                        "lava_golem:taunt_timer"
+                    ]
+                }
+            },
+            "lava_golem:end_taunt": {
+                "set_property": {
+                    "subo:is_taunting": false
+                },
+                "remove": {
+                    "component_groups": [
+                        "lava_golem:taunt_timer"
+                    ]
+                }
+            }
+        }
+    }
+}

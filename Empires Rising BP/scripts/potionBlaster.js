@@ -1,0 +1,403 @@
+import { system, world, EquipmentSlot, EntityComponentTypes, ItemComponentTypes, MolangVariableMap } from "@minecraft/server";
+import { ActionFormData } from "@minecraft/server-ui";
+
+const ITEM_ID = "subo:potion_blaster";
+const PROJECTILE_ID = "subo:potion_blaster_projectile";
+const MAX_POTIONS = 64;
+const SPLASH_RADIUS = 4;
+
+// Base (tier I, normal duration) data for each potion. `hasStrong` = a "II" (strong_) variant
+// exists in vanilla, `hasLong` = an extended-duration (long_) variant exists in vanilla.
+const BASE_POTIONS = {
+    healing:         { name: "Healing",         effect: "instant_health", amplifier: 1, duration: 1,    hasStrong: true,  hasLong: false },
+    harming:         { name: "Harming",         effect: "instant_damage", amplifier: 1, duration: 1,    hasStrong: true,  hasLong: false },
+    poison:          { name: "Poison",          effect: "poison",         amplifier: 0, duration: 180,  hasStrong: true,  hasLong: true  },
+    regeneration:    { name: "Regeneration",    effect: "regeneration",   amplifier: 1, duration: 180,  hasStrong: true,  hasLong: true  },
+    strength:        { name: "Strength",        effect: "strength",       amplifier: 1, duration: 1800, hasStrong: true,  hasLong: true  },
+    swiftness:       { name: "Swiftness",       effect: "speed",          amplifier: 1, duration: 1800, hasStrong: true,  hasLong: true  },
+    slowness:        { name: "Slowness",        effect: "slowness",       amplifier: 1, duration: 1800, hasStrong: false, hasLong: true  },
+    fire_resistance: { name: "Fire Resistance", effect: "fire_resistance",amplifier: 0, duration: 1800, hasStrong: false, hasLong: true  },
+    weakness:        { name: "Weakness",        effect: "weakness",       amplifier: 0, duration: 1800, hasStrong: false, hasLong: true  },
+    night_vision:    { name: "Night Vision",    effect: "night_vision",   amplifier: 0, duration: 3600, hasStrong: false, hasLong: true  },
+    invisibility:    { name: "Invisibility",    effect: "invisibility",   amplifier: 0, duration: 1800, hasStrong: false, hasLong: true  },
+    leaping:         { name: "Leaping",         effect: "jump_boost",     amplifier: 1, duration: 1800, hasStrong: true,  hasLong: true  },
+};
+
+const BASE_COLORS = {
+    healing:         { r: 0.89, g: 0.15, b: 0.15 },
+    harming:         { r: 0.26, g: 0.04, b: 0.04 },
+    poison:          { r: 0.31, g: 0.58, b: 0.19 },
+    regeneration:    { r: 0.80, g: 0.36, b: 0.67 },
+    strength:        { r: 0.58, g: 0.14, b: 0.14 },
+    swiftness:       { r: 0.49, g: 0.69, b: 0.78 },
+    slowness:        { r: 0.35, g: 0.42, b: 0.51 },
+    fire_resistance: { r: 0.89, g: 0.60, b: 0.23 },
+    weakness:        { r: 0.28, g: 0.30, b: 0.28 },
+    night_vision:    { r: 0.12, g: 0.62, b: 0.65 },
+    invisibility:    { r: 0.50, g: 0.51, b: 0.57 },
+    leaping:         { r: 0.13, g: 1.00, b: 0.30 },
+};
+
+// Generate POTION_TYPES / POTION_COLORS with distinct keys for the "II" (strong_) and
+// extended (long_) variants, matching the raw ids Minecraft reports (e.g. "strong_poison",
+// "long_poison"), so each tier keeps its own amplifier/duration and can't get mixed up.
+const POTION_TYPES = {};
+const POTION_COLORS = {};
+
+for (const [key, base] of Object.entries(BASE_POTIONS)) {
+    POTION_TYPES[key] = { name: base.name, effect: base.effect, amplifier: base.amplifier, duration: base.duration };
+    POTION_COLORS[key] = BASE_COLORS[key];
+
+    if (base.hasStrong) {
+        POTION_TYPES[`strong_${key}`] = {
+            name: `${base.name} II`,
+            effect: base.effect,
+            amplifier: base.amplifier + 1,
+            duration: Math.max(1, Math.round(base.duration / 2)),
+        };
+        POTION_COLORS[`strong_${key}`] = BASE_COLORS[key];
+    }
+
+    if (base.hasLong) {
+        POTION_TYPES[`long_${key}`] = {
+            name: `${base.name} (Extended)`,
+            effect: base.effect,
+            amplifier: base.amplifier,
+            duration: Math.round(base.duration * 2.5),
+        };
+        POTION_COLORS[`long_${key}`] = BASE_COLORS[key];
+    }
+}
+
+POTION_TYPES.milk = { name: "Milk", clearEffects: true, radius: 5 };
+POTION_COLORS.milk = { r: 1.00, g: 1.00, b: 1.00 };
+
+const POTION_KEYS = Object.keys(POTION_TYPES);
+
+// ---------- LORE-BASED DATA STORAGE (no dynamic properties) ----------
+const LORE_TYPE_PREFIX = "§7Potion: §b";
+const LORE_COUNT_PREFIX = "§7Charges: §f";
+
+/** Reads { type, count } straight from the item's lore text. */
+function readPotionData(itemStack) {
+    const lore = itemStack.getLore();
+    if (!lore || lore.length < 2) return { type: null, count: 0 };
+
+    const typeLine = lore[0] ?? "";
+    const countLine = lore[1] ?? "";
+
+    const countMatch = countLine.match(/(\d+)\s*\/\s*\d+/);
+    const count = countMatch ? parseInt(countMatch[1], 10) : 0;
+
+    const typeName = typeLine.replace(LORE_TYPE_PREFIX, "").trim();
+    const type = POTION_KEYS.find((k) => POTION_TYPES[k].name === typeName) ?? null;
+
+    return { type, count };
+}
+
+/** Writes the potion type + count into the item's lore (this IS the storage). */
+function writePotionData(itemStack, type, count) {
+    if (!type || count <= 0) {
+        itemStack.setLore([]);
+        itemStack.nameTag = undefined;
+        return;
+    }
+    itemStack.setLore([
+        `${LORE_TYPE_PREFIX}${POTION_TYPES[type].name}`,
+        `${LORE_COUNT_PREFIX}${count}/${MAX_POTIONS}`,
+    ]);
+    itemStack.nameTag = "§rPotion Blaster";
+}
+// -----------------------------------------------------------------------
+
+// ---------- INVENTORY <-> POTION TYPE MATCHING ----------
+
+/** Returns the POTION_TYPES key this item stack represents, or null if it's not a usable potion/milk. */
+function getPotionKeyFromItemStack(stack) {
+    if (!stack) return null;
+
+    // Support both vanilla milk buckets and your custom milk potion item
+    if (stack.typeId === "minecraft:milk_bucket" || stack.typeId === "subo:milk_potion") {
+        return "milk";
+    }
+
+    if (stack.typeId !== "minecraft:splash_potion") return null;
+
+    try {
+        const potionComp = stack.getComponent(ItemComponentTypes.Potion);
+        if (!potionComp) {
+            return null;
+        }
+
+        const deliveryType = potionComp.potionDeliveryType?.id;
+
+        // In modern API versions splash potions report "ThrownSplash"
+        if (deliveryType !== "ThrownSplash" && deliveryType !== "splash") {
+            return null;
+        }
+
+        const rawId = potionComp.potionEffectType?.id ?? "";
+        // Strip namespace only ("minecraft:strong_poison" -> "strong_poison").
+        // Keep the strong_/long_ prefix so each tier is tracked as its own distinct type.
+        const key = rawId.startsWith("minecraft:") ? rawId.substring(10) : rawId;
+
+        return POTION_TYPES[key] ? key : null;
+    } catch (e) {
+        return null;
+    }
+}
+
+/** Scans the player's inventory and returns { [potionKey]: totalCount }. */
+function getInventoryPotionCounts(player) {
+    const inv = player.getComponent(EntityComponentTypes.Inventory);
+    const counts = {};
+    if (!inv || !inv.container) {
+        return counts;
+    }
+
+    const container = inv.container;
+
+    for (let i = 0; i < container.size; i++) {
+        const stack = container.getItem(i);
+        if (!stack) continue;
+        const key = getPotionKeyFromItemStack(stack);
+        if (key) counts[key] = (counts[key] ?? 0) + stack.amount;
+    }
+
+    return counts;
+}
+
+/** Removes up to `amountNeeded` matching potions/milk buckets from the player's inventory. Returns amount actually removed. */
+function removePotionsFromInventory(player, key, amountNeeded) {
+    const inv = player.getComponent(EntityComponentTypes.Inventory);
+    if (!inv || !inv.container) return 0;
+
+    const container = inv.container;
+    let remaining = amountNeeded;
+
+    for (let i = 0; i < container.size && remaining > 0; i++) {
+        const stack = container.getItem(i);
+        if (!stack) continue;
+        if (getPotionKeyFromItemStack(stack) !== key) continue;
+
+        const take = Math.min(stack.amount, remaining);
+        remaining -= take;
+
+        if (take >= stack.amount) {
+            container.setItem(i, undefined);
+        } else {
+            const newStack = stack.clone();
+            newStack.amount = stack.amount - take;
+            container.setItem(i, newStack);
+        }
+    }
+
+    return amountNeeded - remaining;
+}
+// -----------------------------------------------------------------------
+
+/** Tops off the quiver with `key` potions, consuming them from the player's inventory. */
+function fillQuiver(source, itemStack, equippable, key) {
+    const { type, count } = readPotionData(itemStack);
+    const currentCount = type === key ? count : 0;
+
+    const needed = MAX_POTIONS - currentCount;
+    if (needed <= 0) {
+        source.sendMessage("§7The Potion Blaster is already full.");
+        return;
+    }
+
+    const available = getInventoryPotionCounts(source)[key] ?? 0;
+    if (available <= 0) {
+        source.sendMessage(`§cYou don't have any ${POTION_TYPES[key].name} potions.`);
+        return;
+    }
+
+    const toTake = Math.min(needed, available);
+    const removed = removePotionsFromInventory(source, key, toTake);
+    if (removed <= 0) return;
+
+    const newCount = currentCount + removed;
+    writePotionData(itemStack, key, newCount);
+    equippable.setEquipment(EquipmentSlot.Mainhand, itemStack);
+
+    source.sendMessage(`§aPotion Blaster filled with ${removed}x ${POTION_TYPES[key].name} (${newCount}/${MAX_POTIONS}).`);
+}
+
+function openFillMenu(source, current) {
+    const { type: currentType, count: currentCount } = readPotionData(current);
+
+    // Already holding a type -> just top it up, no need to choose.
+    if (currentType && currentCount > 0) {
+        const equippable = source.getComponent(EntityComponentTypes.Equippable);
+        if (equippable) fillQuiver(source, current, equippable, currentType);
+        return;
+    }
+
+    const inventoryCounts = getInventoryPotionCounts(source);
+    const availableKeys = POTION_KEYS.filter((k) => (inventoryCounts[k] ?? 0) > 0);
+
+    if (availableKeys.length === 0) {
+        source.sendMessage("§cYou don't have any splash potions (or milk buckets) to fill the quiver with.");
+        return;
+    }
+
+    const form = new ActionFormData()
+        .title("Potion Blaster")
+        .body("Choose a potion type to fill the quiver with:");
+    for (const key of availableKeys) {
+        form.button(`${POTION_TYPES[key].name} (${inventoryCounts[key]} available)`);
+    }
+
+    form.show(source).then((response) => {
+        if (response.canceled || response.selection === undefined) return;
+
+        const equippable = source.getComponent(EntityComponentTypes.Equippable);
+        if (!equippable) return;
+        const freshCurrent = equippable.getEquipment(EquipmentSlot.Mainhand);
+        if (!freshCurrent || freshCurrent.typeId !== ITEM_ID) return;
+
+        const chosenKey = availableKeys[response.selection];
+        fillQuiver(source, freshCurrent, equippable, chosenKey);
+    });
+}
+
+/** Fires the blaster: consumes one charge, spawns the projectile, and plays the sound. */
+export function fireBlaster(player, itemStack) {
+    const { type, count } = readPotionData(itemStack);
+
+    if (!type || count <= 0) {
+        player.sendMessage("§7The Potion Blaster is empty. Sneak + Use to choose a potion type.");
+        return;
+    }
+
+    const newCount = count - 1;
+    writePotionData(itemStack, newCount > 0 ? type : null, newCount);
+
+    const equippable = player.getComponent(EntityComponentTypes.Equippable);
+    if (equippable) equippable.setEquipment(EquipmentSlot.Mainhand, itemStack);
+
+    const dimension = player.dimension;
+    const head = player.getHeadLocation();
+    const view = player.getViewDirection();
+    const spawnLoc = { x: head.x + view.x, y: head.y + view.y, z: head.z + view.z };
+
+    const projectile = dimension.spawnEntity(PROJECTILE_ID, spawnLoc);
+    projectile.addTag(`vq_${type}`); // carries the potion type without any dynamic property
+    const projComp = projectile.getComponent("minecraft:projectile");
+    if (projComp) projComp.shoot(view, { uncertainty: 1 });
+
+    dimension.playSound("random.bow", head);
+}
+
+system.beforeEvents.startup.subscribe(({ itemComponentRegistry }) => {
+    itemComponentRegistry.registerCustomComponent("subo:potion_blaster", {
+        onUse(event) {
+            const { source, itemStack } = event;
+            if (!source || !itemStack) return;
+
+            if (source.isSneaking) {
+                openFillMenu(source, itemStack);
+                return;
+            }
+
+            fireBlaster(source, itemStack);
+        },
+    });
+});
+
+function applySplashEffect(projectile) {
+    try {
+        // Prevent double-processing
+        if (projectile.hasTag("vq_resolved")) return;
+        projectile.addTag("vq_resolved");
+
+        const tag = projectile.getTags().find((t) => t.startsWith("vq_") && t !== "vq_resolved");
+        const type = tag ? tag.substring(3) : null;
+        const data = POTION_TYPES[type];
+
+        if (!data) {
+            projectile.remove();
+            return;
+        }
+
+        const location = projectile.location;
+        const dimension = projectile.dimension;
+        const radius = data.radius ?? SPLASH_RADIUS;
+
+        // Apply/remove effects in the splash radius
+        const nearby = dimension.getEntities({ location, maxDistance: radius });
+        for (const entity of nearby) {
+            try {
+                if (data.clearEffects) {
+                    for (const effect of entity.getEffects()) {
+                        entity.removeEffect(effect.typeId);
+                    }
+                } else {
+                    entity.addEffect(data.effect, data.duration, {
+                        amplifier: data.amplifier,
+                    });
+                }
+            } catch (error) {
+                /* entity does not support effects */
+            }
+        }
+
+        // Colored mobspell particles scattered across the splash area
+        const color = POTION_COLORS[type] ?? { r: 1, g: 1, b: 1 };
+        const molang = new MolangVariableMap();
+
+        try {
+            molang.setColorRGBA("variable.color", {
+                red: color.r,
+                green: color.g,
+                blue: color.b,
+                alpha: 1.0
+            });
+        } catch (error) {
+            /* color tinting not supported for this particle; use default */
+        }
+
+        for (let i = 0; i < 40; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const distance = Math.sqrt(Math.random()) * radius;
+
+            const particleLocation = {
+                x: location.x + Math.cos(angle) * distance,
+                y: location.y + 0.2 + Math.random() * 1.8,
+                z: location.z + Math.sin(angle) * distance
+            };
+
+            try {
+                dimension.spawnParticle("minecraft:mobspell_emitter", particleLocation, molang);
+            } catch (error) {
+                try {
+                    dimension.spawnParticle("minecraft:splash_spell_emitter", particleLocation);
+                } catch (fallbackError) {
+                    /* ignore particle errors */
+                }
+            }
+        }
+
+        // Sound: glass for potions, splash for milk
+        dimension.playSound(
+            data.clearEffects ? "random.splash" : "random.glass",
+            location
+        );
+
+        // Remove projectile manually since we removed remove_on_hit
+        projectile.remove();
+    } catch (error) {
+        /* projectile may already be invalid */
+    }
+}
+
+world.afterEvents.projectileHitEntity.subscribe((event) => {
+    if (event.projectile.typeId !== PROJECTILE_ID) return;
+    applySplashEffect(event.projectile);
+});
+
+world.afterEvents.projectileHitBlock.subscribe((event) => {
+    if (event.projectile.typeId !== PROJECTILE_ID) return;
+    applySplashEffect(event.projectile);
+});

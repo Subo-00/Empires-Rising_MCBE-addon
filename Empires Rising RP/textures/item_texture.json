@@ -1,0 +1,72 @@
+{
+  "resource_pack_name": "Empires Rising",
+  "texture_name": "atlas.items",
+  "texture_data": {
+    "barbarian_spawner": {
+      "textures": "textures/items/barbarian_spawner"
+    },
+    "archer_spawner": {
+      "textures": "textures/items/archer_spawner"
+    },
+    "dragon_attack": {
+      "textures": "textures/items/dragon_attack_item"
+    },
+    "barbarian_egg": {
+      "textures": "textures/items/barbarian_egg"
+    },
+    "archer_egg": {
+      "textures": "textures/items/archer_egg"
+    },
+    "lava_golem_egg": {
+      "textures": "textures/items/lava_golem_egg"
+    },
+    "fire_spirit_egg": {
+      "textures": "textures/items/fire_spirit_egg"
+    },
+    "dark_knight_egg": {
+      "textures": "textures/items/dark_knight_egg"
+    },
+    "red_dragon_egg": {
+      "textures": "textures/items/red_dragon_egg"
+    },
+    "corrupted_soul": {
+      "textures": "textures/items/corrupted_soul"
+    },
+    "pure_soul": {
+      "textures": "textures/items/pure_soul"
+    },
+    "rotten_heart": {
+      "textures": "textures/items/rotten_heart"
+    },
+    "pure_heart": {
+      "textures": "textures/items/pure_heart"
+    },
+    "soulless_body_egg": {
+      "textures": "textures/items/soulless_body_egg"
+    },
+    "dark_sword": {
+      "textures": "textures/items/dark_sword"
+    },
+    "magma_core": {
+      "textures": "textures/items/magma_core"
+    },
+    "void_shard": {
+      "textures": "textures/items/void_shard"
+    },
+    "portal": {
+      "textures": "textures/items/portal"
+    },
+    "faction_token": {
+      "textures": "textures/items/faction_token"
+    },
+    "milk_potion": {
+      "textures": "textures/items/milk_potion"
+    },
+    "potion_blaster": {
+      "textures": "textures/items/potion_blaster"
+    },
+"subo_trumpet": {
+			"textures": "textures/items/trumpet"
+		}
+  }
+}

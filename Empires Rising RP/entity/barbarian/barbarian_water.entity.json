@@ -1,0 +1,57 @@
+{
+	"format_version": "1.20.0",
+	"minecraft:client_entity": {
+		"description": {
+			"identifier": "subo:barbarian_water",
+			"materials": {
+				"default": "entity_alphatest",
+				"armor": "entity_alphatest"
+			},
+			"textures": {
+				"default": "textures/entity/barbarian_water",
+				"alt": "textures/entity/barbarian_water_alt",
+				"copper": "textures/entity/barbarian_copper",
+				"iron": "textures/entity/barbarian_iron",
+				"diamond": "textures/entity/barbarian_diamond",
+				"netherite": "textures/entity/barbarian_netherite",
+				"empty": "textures/misc/empty"
+			},
+			"geometry": {
+				"default": "geometry.barbarian"
+			},
+			"animations": {
+				"main": "controller.animation.barbarian.main",
+				"combat": "controller.animation.barbarian.combat",
+				"idle": "animation.subo.barbarian.idle",
+				"walk": "animation.subo.barbarian.walk",
+				"attack": "animation.subo.barbarian.attack",
+				"swing": "animation.subo.barbarian.swing"
+			},
+			"scripts": {
+				"pre_animation": [
+					"variable.is_attacking = query.property('subo:is_attacking');",
+					"variable.armor_material = query.property('subo:armor_material');"
+				],
+				"initialize": [
+					"variable.is_attacking = 0.0;",
+					"variable.armor_material = 0.0;"
+				],
+				"animate": [
+					{
+						"main": "1.0"
+					},
+					{
+						"combat": "1.0"
+					}
+				]
+			},
+			"render_controllers": [
+				"controller.render.barbarian",
+				"controller.render.barbarian_armor"
+			],
+			"spawn_egg": {
+				"texture": "barbarian_egg"
+			}
+		}
+	}
+}

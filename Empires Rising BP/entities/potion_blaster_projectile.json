@@ -1,0 +1,24 @@
+{
+  "format_version": "1.21.90",
+  "minecraft:entity": {
+    "description": {
+      "identifier": "subo:potion_blaster_projectile",
+      "is_spawnable": false,
+      "is_summonable": true,
+      "runtime_identifier": "minecraft:splash_potion"
+    },
+    "components": {
+      "minecraft:collision_box": { "width": 0.25, "height": 0.25 },
+      "minecraft:projectile": {
+        "power": 1.0,
+        "gravity": 0.05,
+        "hit_sound": "glass"
+      },
+      "minecraft:physics": {},
+      "minecraft:pushable": {
+        "is_pushable": false,
+        "is_pushable_by_piston": true
+      }
+    }
+  }
+}

@@ -1,0 +1,232 @@
+{
+    "format_version": "1.14.0",
+    "sound_definitions": {
+        "mob.empty_soul.ambient": {
+            "category": "hostile",
+            "sounds": [
+                "sounds/mob/empty_soul/ambient1",
+                "sounds/mob/empty_soul/ambient2",
+                "sounds/mob/empty_soul/ambient3"
+            ]
+        },
+        "mob.empty_soul.spawn": {
+            "category": "hostile",
+            "sounds": [
+                "sounds/mob/empty_soul/spawn"
+            ]
+        },
+        "mob.empty_soul.die": {
+            "category": "hostile",
+            "sounds": [
+                "sounds/mob/empty_soul/die1",
+                "sounds/mob/empty_soul/die2"
+            ]
+        },
+        "mob.dark_knight.idle": {
+            "category": "hostile",
+            "sounds": [
+                "sounds/mob/dark_knight/idle1",
+                "sounds/mob/dark_knight/idle2"
+            ]
+        },
+        "mob.dark_knight.hurt": {
+            "category": "hostile",
+            "sounds": [
+                "sounds/mob/dark_knight/hurt1",
+                "sounds/mob/dark_knight/hurt2",
+                "sounds/mob/dark_knight/hurt3"
+            ]
+        },
+        "mob.dark_knight.death": {
+            "category": "hostile",
+            "sounds": [
+                "sounds/mob/dark_knight/death"
+            ]
+        },
+        "mob.dark_knight.step": {
+            "category": "hostile",
+            "sounds": [
+                "sounds/mob/dark_knight/step1",
+                "sounds/mob/dark_knight/step2"
+            ]
+        },
+        "mob.dark_knight.taunt": {
+            "category": "hostile",
+            "sounds": [
+                "sounds/mob/dark_knight/taunt1",
+                "sounds/mob/dark_knight/taunt2"
+            ]
+        },
+        "mob.dark_knight.swing": {
+            "category": "hostile",
+            "sounds": [
+                "sounds/mob/dark_knight/swing1",
+                "sounds/mob/dark_knight/swing2"
+            ]
+        },
+        "mob.dark_knight.spin": {
+            "category": "hostile",
+            "sounds": [
+                "sounds/mob/dark_knight/spin1",
+                "sounds/mob/dark_knight/spin2"
+            ]
+        },
+        "mob.dark_knight.leap": {
+            "category": "hostile",
+            "sounds": [
+                "sounds/mob/dark_knight/leap"
+            ]
+        },
+        "mob.dark_knight.heal": {
+            "category": "hostile",
+            "sounds": [
+                "sounds/mob/dark_knight/heal"
+            ]
+        },
+        "subo.purifier.purify": {
+            "category": "block",
+            "sounds": [
+                "sounds/blocks/purify_loop"
+            ]
+        },
+        "subo.purifier.done": {
+            "category": "block",
+            "sounds": [
+                "sounds/blocks/purify_done"
+            ]
+        },
+        "mob.lava_golem.idle": {
+            "category": "neutral",
+            "sounds": [
+                "sounds/mob/lava_golem/idle1",
+                "sounds/mob/lava_golem/idle2",
+                "sounds/mob/lava_golem/idle3",
+                "sounds/mob/lava_golem/idle4",
+                "sounds/mob/lava_golem/idle5"
+            ]
+        },
+        "mob.lava_golem.hurt": {
+            "category": "neutral",
+            "sounds": [
+                "sounds/mob/lava_golem/hurt1",
+                "sounds/mob/lava_golem/hurt2",
+                "sounds/mob/lava_golem/hurt3"
+            ]
+        },
+        "mob.lava_golem.death": {
+            "category": "neutral",
+            "sounds": [
+                "sounds/mob/lava_golem/death"
+            ]
+        },
+        "mob.lava_golem.slam": {
+            "category": "neutral",
+            "sounds": [
+                "sounds/mob/lava_golem/slam"
+            ]
+        },
+        "mob.lava_golem.spin": {
+            "category": "neutral",
+            "sounds": [
+                "sounds/mob/lava_golem/spin"
+            ]
+        },
+        "mob.lava_golem.spit": {
+            "category": "neutral",
+            "sounds": [
+                "sounds/mob/lava_golem/spit"
+            ]
+        },
+        "mob.lava_golem.taunt": {
+            "category": "neutral",
+            "sounds": [
+                "sounds/mob/lava_golem/taunt"
+            ]
+        },
+        "mob.lava_golem.step": {
+            "category": "neutral",
+            "sounds": [
+                "sounds/mob/lava_golem/step1",
+                "sounds/mob/lava_golem/step2"
+            ]
+        },
+        "mob.fire_spirit.idle": {
+            "category": "neutral",
+            "sounds": [
+                "sounds/mob/fire_spirit/idle1",
+                "sounds/mob/fire_spirit/idle2"
+            ]
+        },
+        "mob.fire_spirit.hurt": {
+            "category": "neutral",
+            "sounds": [
+                "sounds/mob/fire_spirit/hurt"
+            ]
+        },
+        "mob.fire_spirit.death": {
+            "category": "neutral",
+            "sounds": [
+                "sounds/mob/fire_spirit/death"
+            ]
+        },
+        "mob.fire_spirit.leap": {
+            "category": "neutral",
+            "sounds": [
+                "sounds/mob/fire_spirit/leap"
+            ]
+        },
+        "mob.fire_spirit.explode": {
+            "category": "neutral",
+            "sounds": [
+                "sounds/mob/fire_spirit/explode"
+            ]
+        },
+        "mob.dragon.idle": {
+            "category": "neutral",
+            "sounds": [
+                "sounds/mob/dragon/idle1",
+                "sounds/mob/dragon/idle2",
+                "sounds/mob/dragon/idle3"
+            ]
+        },
+        "mob.dragon.hurt": {
+            "category": "neutral",
+            "sounds": [
+                "sounds/mob/dragon/hurt1",
+                "sounds/mob/dragon/hurt2"
+            ]
+        },
+        "mob.dragon.death": {
+            "category": "neutral",
+            "sounds": [
+                "sounds/mob/dragon/death"
+            ]
+        },
+        "mob.dragon.step": {
+            "category": "neutral",
+            "sounds": [
+                "sounds/mob/dragon/step1",
+                "sounds/mob/dragon/step2"
+            ]
+        },
+        "mob.dragon.flap": {
+            "category": "neutral",
+            "sounds": [
+                "sounds/mob/dragon/flap1",
+                "sounds/mob/dragon/flap2"
+            ]
+        },
+        "mob.dragon.bite": {
+            "category": "neutral",
+            "sounds": [
+                "sounds/mob/dragon/bite"
+            ]
+        },
+        "mob.dragon.spit": {
+            "category": "neutral",
+            "sounds": [
+                "sounds/mob/dragon/spit"
+            ]
+        }
+    }
+}

@@ -1,0 +1,12 @@
+{
+  "format_version": "1.19.80",
+  "minecraft:recipe_shapeless": {
+    "description": { "identifier": "subo:milk_potion_recipe" },
+    "tags": [ "crafting_table" ],
+    "ingredients": [
+      { "item": "minecraft:milk_bucket" },
+      { "item": "minecraft:glass_bottle", "count": 3 }
+    ],
+    "result": { "item": "subo:milk_potion", "count": 3 }
+  }
+}

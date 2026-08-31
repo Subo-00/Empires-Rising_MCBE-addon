@@ -1,0 +1,31 @@
+{
+  "format_version": "1.20.50",
+  "minecraft:recipe_shaped": {
+    "description": {
+      "identifier": "subo:portal"
+    },
+    "tags": ["crafting_table"],
+    "pattern": [
+      "SSS",
+      "SAS",
+      "SSS"
+    ],
+    "key": {
+      "S": {
+        "item": "subo:void_shard"
+      },
+      "A": {
+        "item": "minecraft:ender_pearl"
+      }
+    },
+    "result": {
+      "item": "subo:portal",
+      "count": 1
+    },
+    "unlock": [
+      {
+        "item": "subo:void_shard"
+      }
+    ]
+  }
+}

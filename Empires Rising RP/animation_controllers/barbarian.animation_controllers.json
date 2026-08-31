@@ -1,0 +1,50 @@
+{
+  "format_version": "1.10.0",
+  "animation_controllers": {
+
+    "controller.animation.barbarian.main": {
+      "initial_state": "idle",
+      "states": {
+        "idle": {
+          "animations": [ "idle" ],
+          "transitions": [
+            { "walk": "query.modified_move_speed > 0.1" }
+          ]
+        },
+        "walk": {
+          "animations": [ "walk" ],
+          "transitions": [
+            { "idle": "query.modified_move_speed <= 0.1" }
+          ]
+        }
+      }
+    },
+
+    "controller.animation.barbarian.combat": {
+      "initial_state": "default",
+      "states": {
+        "default": {
+          "transitions": [
+            { "swinging": "query.property('subo:is_attacking') == 1.0" },
+            { "chasing": "query.has_target" }
+          ]
+        },
+        "chasing": {
+          "animations": [ "attack" ],
+          "transitions": [
+            { "default": "!query.has_target" },
+            { "swinging": "query.property('subo:is_attacking') == 1.0" }
+          ]
+        },
+        "swinging": {
+          "animations": [ "swing" ],
+          "transitions": [
+            { "chasing": "query.property('subo:is_attacking') == 0.0 && query.has_target" },
+            { "default": "query.property('subo:is_attacking') == 0.0 && !query.has_target" }
+          ]
+        }
+      }
+    }
+
+  }
+}

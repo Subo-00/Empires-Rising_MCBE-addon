@@ -1,0 +1,30 @@
+{
+  "format_version": "1.21.0",
+  "minecraft:item": {
+    "description": {
+      "identifier": "subo:milk_potion",
+      "menu_category": { "category": "equipment" }
+    },
+    "components": {
+      "minecraft:max_stack_size": 16,
+      "minecraft:icon": "milk_potion",
+      "minecraft:display_name": { "value": "Milk Potion" },
+      "minecraft:hand_equipped": true,
+      "minecraft:throwable": {
+        "do_swing_animation": true,
+        "launch_power_scale": 1.0,
+        "max_launch_power": 1.0,
+        "min_draw_duration": 0,
+        "max_draw_duration": 0,
+        "scale_power_by_draw_duration": false
+      },
+      "minecraft:projectile": {
+        "projectile_entity": "subo:milk_potion_projectile"
+      },
+      "minecraft:cooldown": {
+        "category": "milk_potion",
+        "duration": 0.5
+      }
+    }
+  }
+}
