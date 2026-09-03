@@ -6,10 +6,10 @@ import { initEntityTicks } from "./entityTicks.js";
 import { resumeAllQueuedSpawners } from "./spawner//troopLogic.js";
 
 // Side-effect only modules (they register themselves)
-import "./config/specialMobDrops.js";
+import "./specialMobDrops.js";
 import "./items/milkPotion.js";
 import "./items/potionBlaster.js";
-import "./items/trumpet.js";
+import "./items/troopHorn.js";
 
 // -------------------------------------------------------
 // Bootstrap

@@ -1,11 +1,11 @@
 import { world, system, BlockPermutation, ItemStack } from "@minecraft/server";
 import { ModalFormData } from "@minecraft/server-ui";
 import { getStorageLocation, setTag, getTag } from "../spawner/spawnerLogic.js";
+import { ACTIVE_SECONDS, TROOP_RADIUS } from "../config/itemsConfig.js";
+
 
 const PORTAL_BLOCK = "subo:portal";
 const PORTAL_ENTITY = "subo:portal_entity";
-const ACTIVE_SECONDS = 6;
-const TROOP_RADIUS = 20;
 
 // Used for decoding dynamic property data 
 const DIM_CODES = { "minecraft:overworld": 0, "minecraft:nether": 1, "minecraft:the_end": 2 };

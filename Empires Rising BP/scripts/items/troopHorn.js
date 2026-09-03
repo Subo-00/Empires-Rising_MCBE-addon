@@ -1,11 +1,5 @@
 import { world, system } from "@minecraft/server";
-
-// How long (in ticks) counts as a "short" press.
-// 1.5 s use_duration = 30 ticks. Anything released before ~12 ticks = Follow.
-const SHORT_PRESS_TICKS = 12;
-
-// Radius in which troops hear the trumpet
-const RADIUS = 100;
+import { SHORT_PRESS_TICKS, RADIUS } from "../config/itemsConfig.js";
 
 function isTroop(typeId) {
     return typeof typeId === "string" && (

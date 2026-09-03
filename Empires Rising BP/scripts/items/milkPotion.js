@@ -1,7 +1,6 @@
 import { world, system, EntityDamageCause, MolangVariableMap } from "@minecraft/server";
+import { MILK_PROJECTILE_ID, SPLASH_RADIUS } from "../config/itemsConfig.js";
 
-const MILK_PROJECTILE_ID = "subo:milk_potion_projectile";
-const SPLASH_RADIUS = 5;
 
 function clearEffectsAndSpawnParticles(dimension, location) {
     const nearby = dimension.getEntities({

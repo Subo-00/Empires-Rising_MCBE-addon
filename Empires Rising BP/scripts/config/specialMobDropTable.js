@@ -1,7 +1,5 @@
-import { world, ItemStack } from "@minecraft/server";
-
-// -------- Drop configuration --------
-const DROP_TABLE = {
+// -------- Special Mob Drop Configuration --------
+export const DROP_TABLE = {
     // ── Common undead / basic hostiles ──────────────────────────────
     "minecraft:zombie": { corrupted_soul: 0.15, rotten_heart: 0.005 },
     "minecraft:husk": { corrupted_soul: 0.16, rotten_heart: 0.006 },
@@ -39,44 +37,3 @@ const DROP_TABLE = {
     // Fallback for any other hostile mob
     "default": { corrupted_soul: 0.01, rotten_heart: 0.001 }
 };
-
-const ITEM_IDS = {
-    corrupted_soul: "subo:corrupted_soul",
-    rotten_heart: "subo:rotten_heart"
-};
-
-/**
- * @param {import("@minecraft/server").Entity} entity
- * @param {number} [multiplier=1]  – 2 when killed by a player, 1 otherwise
- */
-function rollDrops(entity, multiplier = 1) {
-    const typeId = entity.typeId;
-    const table = DROP_TABLE[typeId] ?? DROP_TABLE["default"];
-    const loc = entity.location;
-    const dim = entity.dimension;
-
-    for (const key in table) {
-        const chance = table[key] * multiplier;   // 2× when player kill
-        if (Math.random() < chance) {
-            const itemId = ITEM_IDS[key];
-            if (!itemId) continue;
-            dim.spawnItem(new ItemStack(itemId, 1), loc);
-        }
-    }
-}
-
-world.afterEvents.entityDie.subscribe((ev) => {
-    const dead = ev.deadEntity;
-    const damager = ev.damageSource?.damagingEntity;
-
-    // Only when killed by another entity
-    if (!damager) return;
-
-    const families = dead.getComponent("minecraft:type_family");
-    if (!families || !families.hasTypeFamily("monster")) return;
-
-    // 2× drop chance if the killer is a player
-    const multiplier = damager.typeId === "minecraft:player" ? 2 : 0.8;
-
-    rollDrops(dead, multiplier);
-});
