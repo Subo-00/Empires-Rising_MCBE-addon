@@ -1,7 +1,7 @@
 import { world, system, BlockPermutation, ItemStack } from "@minecraft/server";
 import { ModalFormData } from "@minecraft/server-ui";
-import { getStorageLocation, setTag, getTag } from "../spawner/spawnerLogic.js";
 import { ACTIVE_SECONDS, TROOP_RADIUS } from "../config/itemsConfig.js";
+import { getStorageLocation, setTag, getTag, isBarbarian, isArcher, isDragon, isTroop } from "../spawner/spawnerHelpers.js";
 
 
 const PORTAL_BLOCK = "subo:portal";
@@ -12,19 +12,6 @@ const DIM_CODES = { "minecraft:overworld": 0, "minecraft:nether": 1, "minecraft:
 const DIM_NAMES = ["minecraft:overworld", "minecraft:nether", "minecraft:the_end"];
 const FACING_CODES = { north: 0, south: 1, west: 2, east: 3 };
 const FACING_NAMES = ["north", "south", "west", "east"];
-
-function isBarbarian(typeId) {
-    return typeof typeId === "string" && typeId.startsWith("subo:barbarian_");
-}
-function isArcher(typeId) {
-    return typeof typeId === "string" && typeId.startsWith("subo:archer_");
-}
-function isDragon(typeId) {
-    return typeof typeId === "string" && typeId.startsWith("subo:dragon_");
-}
-function isTroop(typeId) {
-    return isBarbarian(typeId) || isArcher(typeId) || isDragon(typeId);
-}
 
 // On load: any portal that was left visually open is forced closed
 system.runTimeout(() => {

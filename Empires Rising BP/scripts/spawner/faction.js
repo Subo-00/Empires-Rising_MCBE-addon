@@ -1,8 +1,7 @@
 import { world, system } from "@minecraft/server";
 import { ActionFormData } from "@minecraft/server-ui";
-
-const FACTION_NAMES = { 1: "Fire", 2: "Water", 3: "Void" };
-const FACTION_COLORS = { 1: "§c", 2: "§9", 3: "§5" };
+import { FACTION_NAMES, FACTION_COLORS, FACTION_MAP } from "../config/spawnerConfig.js";
+import { removeOneItem } from "./spawnerHelpers.js";
 
 // Make sure our objectives exists
 system.runTimeout(() => {
@@ -43,27 +42,6 @@ world.afterEvents.itemUse.subscribe((ev) => {
         });
     });
 });
-
-/**
- * Removes exactly 1 of the given item from the player's inventory
- */
-function removeOneItem(player, typeId) {
-    const inv = player.getComponent("minecraft:inventory")?.container;
-    if (!inv) return;
-
-    for (let i = 0; i < inv.size; i++) {
-        const item = inv.getItem(i);
-        if (item && item.typeId === typeId) {
-            if (item.amount > 1) {
-                item.amount -= 1;
-                inv.setItem(i, item);
-            } else {
-                inv.setItem(i, undefined);
-            }
-            return;
-        }
-    }
-}
 
 function getPlayerSpawners(player) {
     try {
@@ -120,8 +98,7 @@ export function setPlayerFaction(player, id) {
         }
 
         // Add the new faction tag
-        const factionMap = { 1: "fire", 2: "water", 3: "void" };
-        const faction = factionMap[id];
+        const faction = FACTION_MAP[id];
         if (faction) {
             player.addTag(`faction:${faction}`);
         }

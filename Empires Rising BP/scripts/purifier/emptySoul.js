@@ -1,5 +1,5 @@
 import { world, system, ItemStack } from "@minecraft/server";
-import { setTag, getTag } from "../spawner/spawnerLogic.js";
+import { setTag, getTag } from "../spawner/spawnerHelpers.js";
 import {
     PURIFIER_BLOCK,
     EMPTY_SOUL_SPAWN_EVERY, MAX_EMPTY_SOULS_PER_PURIFIER,

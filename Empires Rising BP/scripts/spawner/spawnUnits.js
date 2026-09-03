@@ -1,5 +1,6 @@
 import { world, system } from "@minecraft/server";
-import { getTag, getStorageLocation, DRAGON_HP_PER_LEVEL } from "../spawner/spawnerLogic.js";
+import { DRAGON_HP_PER_LEVEL, FACTION_MAP } from "../config/spawnerConfig.js"; 
+import { getTag, getStorageLocation } from "./spawnerHelpers.js";
 import { getPlayerFaction } from "./faction.js";
 
 
@@ -19,8 +20,7 @@ export function spawnUnit(spawner) {
         return null;
     }
 
-    const factionMap = { 1: "fire", 2: "water", 3: "void" };
-    const faction = factionMap[factionId];
+    const faction = FACTION_MAP[factionId];
 
     let entityType = `subo:barbarian_${faction}`;
     let eventName = "barbarian:follow";

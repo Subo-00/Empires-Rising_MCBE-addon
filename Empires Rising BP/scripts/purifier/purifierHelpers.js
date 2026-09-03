@@ -1,5 +1,5 @@
 import { system, ItemStack } from "@minecraft/server";
-import { getStorageLocation, setTag, getTag } from "../spawner/spawnerLogic.js";
+import { getStorageLocation, setTag, getTag } from "../spawner/spawnerHelpers.js";
 import { PURIFIER_ENTITY, MAX_STACK, INPUTS } from "../config/purifierConfig.js";
 
 export function trySetProp(entity, name, value) {

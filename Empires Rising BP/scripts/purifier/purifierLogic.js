@@ -1,6 +1,6 @@
 import { world, system, ItemStack } from "@minecraft/server";
 import { ModalFormData } from "@minecraft/server-ui";
-import { getStorageLocation, setTag, getTag } from "../spawner/spawnerLogic.js";
+import { getStorageLocation, setTag, getTag } from "../spawner/spawnerHelpers.js";
 import { spawnEmptySoul, killLinkedEmptySoulsDelayed, EMPTY_SOUL_SPAWN_EVERY, startEmptySoulTicker } from "./emptySoul.js";
 import {
 	PURIFIER_BLOCK, PURIFIER_ENTITY,

@@ -1,27 +1,11 @@
 import { world, system } from "@minecraft/server";
 import { spawnUnit } from "./spawnUnits.js";
-import { setTag, getTag, decrementSpawnerAlive } from "../spawner/spawnerLogic.js";
-
-const SPAWN_DELAY_TICKS = 40; // same as your old interval
+import { setTag, getTag, isBarbarian, isArcher, isDragon, isTroop } from "./spawnerHelpers.js";
+import { SPAWN_DELAY_TICKS } from "../config/spawnerConfig.js";
+import { decrementSpawnerAlive } from "./spawnerLogic.js";
 
 // In-memory guard – prevents multiple concurrent chains for the same spawner
 const currentlyProcessing = new Set();
-
-function isBarbarian(typeId) {
-    return typeof typeId === "string" && typeId.startsWith("subo:barbarian_");
-}
-
-function isArcher(typeId) {
-    return typeof typeId === "string" && typeId.startsWith("subo:archer_");
-}
-
-function isDragon(typeId) {
-    return typeof typeId === "string" && typeId.startsWith("subo:dragon_");
-}
-
-function isTroop(typeId) {
-    return isBarbarian(typeId) || isArcher(typeId) || isDragon(typeId);
-}
 
 function getTroopName(typeId) {
     if (isBarbarian(typeId)) return "Barbarian";

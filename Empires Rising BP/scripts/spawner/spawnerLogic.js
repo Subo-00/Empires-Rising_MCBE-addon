@@ -2,89 +2,21 @@ import { world, system, ItemStack } from "@minecraft/server";
 import { ActionFormData, ModalFormData } from "@minecraft/server-ui";
 import { processSpawnerQueue } from "./troopLogic.js";
 import { promptFactionJoin, getPlayerFaction, addPlayerSpawners } from "./faction.js";
+import {
+    DRAGON_BASE_HP, DRAGON_HP_PER_LEVEL, DRAGON_MAX_LEVEL,
+    SPAWN_COSTS, CAP_CONFIG, TIERS, TIER_COLORS, STAT_COLORS, COST_ITEMS,
+    INTERACT_COOLDOWN_MS, SPAWNER_ENTITY, SPAWNER_BLOCK_IDS
+} from "../config/spawnerConfig.js";
 
-
-// =========================
-// CONFIG — tweak these to balance gameplay
-// =========================
-
-/** Dragon base HP and HP gained per level */
-const DRAGON_BASE_HP = 20;
-export const DRAGON_HP_PER_LEVEL = 10;
-
-// =========================
-// CONFIG — specific balancing
-// =========================
-
-/** Spawning costs per unit type */
-const SPAWN_COSTS = {
-    barbarian: { item: "subo:pure_soul", amount: 10 },
-    archer: { item: "subo:pure_soul", amount: 12 },
-    dragon: { item: "subo:pure_heart", amount: 1 }
-};
-
-/** Cap limits and upgrade info */
-const CAP_CONFIG = {
-    barbarian: { start: 2, max: 5, upgradeItem: "subo:pure_heart", upgradePrice: 1, jump: 1 },
-    archer: { start: 2, max: 5, upgradeItem: "subo:pure_heart", upgradePrice: 1, jump: 1 },
-    dragon: { start: 1, max: 1, upgradeItem: null, upgradePrice: 0, jump: 0 }
-};
-
-/** Max level a dragon can reach */
-const DRAGON_MAX_LEVEL = 5;
-
-
-// =========================
-// ENTITY / BLOCK IDs
-// =========================
-
-const SPAWNER_ENTITY = "subo:spawner_entity";
-
-/** All block typeIds that count as spawner blocks */
-const SPAWNER_BLOCK_IDS = [
-    "subo:barbarian_spawner",
-    "subo:archer_spawner",
-    "subo:dragon_spawner"
-];
-
-// =========================
-// TIERS & COLORS
-// =========================
-
-/** Upgrade tiers in order — order matters for sequential upgrade checks */
-const TIERS = ["Copper", "Iron", "Diamond", "Netherite"];
-
-/** Minecraft color codes for each tier (used in UI and lore) */
-const TIER_COLORS = {
-    None: "§8",
-    Copper: "§6",
-    Iron: "§f",
-    Diamond: "§b",
-    Netherite: "§5"
-};
-
-/** Color codes for each stat label in menus */
-const STAT_COLORS = {
-    owner: "§e",
-    armor: "§d",
-    weapon: "§c",
-    cap: "§b"
-};
-
-/** Block item required to purchase each tier upgrade */
-const COST_ITEMS = {
-    Copper: "minecraft:copper_block",
-    Iron: "minecraft:iron_block",
-    Diamond: "minecraft:diamond_block",
-    Netherite: "minecraft:netherite_block"
-};
+import {
+    hasItem, removeItem, setTag, getTag,
+    blockCenter, getStorageLocation, stripColors, generateId, canUpgrade,
+    getAllDimensions
+} from "./spawnerHelpers.js";
 
 // =========================
 // LOGIC
 // =========================
-
-/** Interaction cooldown in milliseconds (prevents double-open) */
-const INTERACT_COOLDOWN_MS = 300;
 
 /** Per-player cooldown map to prevent rapid double-interactions */
 const interactCooldown = new Map();
@@ -308,7 +240,7 @@ function openUpgradeMenu(player, entity, stat) {
             const targetTier = selectedTier[res.selection];
             const currentTier = getTag(entity, stat + ":", "None");
 
-            if (!canUpgrade(currentTier, targetTier)) {
+            if (!canUpgrade(currentTier, targetTier, TIERS)) {
                 player.sendMessage("§cYou can only upgrade to a higher tier!");
                 return;
             }
@@ -461,112 +393,11 @@ export function placeSpawner(ev, unitType = "barbarian") {
 
 
 // =========================
-// Helpers
+// Local Helpers
 // =========================
-
-// Any higher tier is allowed (None → any, Copper → Diamond/Netherite, etc.)
-function canUpgrade(current, next) {
-    const currentIndex = TIERS.indexOf(current); // -1 for "None"
-    const nextIndex = TIERS.indexOf(next);
-    return nextIndex > currentIndex;
-}
-
-function hasItem(player, itemId, amount = 1) {
-    const inv = player.getComponent("minecraft:inventory")?.container;
-    if (!inv) return false;
-
-    let total = 0;
-    for (let i = 0; i < inv.size; i++) {
-        const item = inv.getItem(i);
-        if (item && item.typeId === itemId) {
-            total += item.amount;
-            if (total >= amount) return true;
-        }
-    }
-    return false;
-}
-
-function removeItem(player, itemId, amount = 1) {
-    const inv = player.getComponent("minecraft:inventory")?.container;
-    if (!inv) return false;
-
-    // Count total available across all slots
-    let total = 0;
-    for (let i = 0; i < inv.size; i++) {
-        const item = inv.getItem(i);
-        if (item && item.typeId === itemId) {
-            total += item.amount;
-        }
-    }
-    if (total < amount) return false;
-
-    // Remove from multiple stacks if needed
-    let remaining = amount;
-    for (let i = 0; i < inv.size; i++) {
-        const item = inv.getItem(i);
-        if (!item || item.typeId !== itemId) continue;
-
-        if (item.amount <= remaining) {
-            remaining -= item.amount;
-            inv.setItem(i, undefined);
-        } else {
-            item.amount -= remaining;
-            inv.setItem(i, item);
-            remaining = 0;
-        }
-        if (remaining <= 0) break;
-    }
-    return true;
-}
 
 function upgradeStat(entity, stat, tier) {
     setTag(entity, stat + ":", tier);
-}
-
-function blockCenter(block) {
-    return {
-        x: block.location.x + 0.5,
-        y: block.location.y + 0.5,
-        z: block.location.z + 0.5
-    };
-}
-
-// Returns the Y-offset storage position for a spawner entity.
-// Eg. overworld: -64 to 320, midpoint = 128. Offset = 190 (safe in all cases).
-// If block is above midpoint → store below; if at/below → store above.
-// We use an offset so it never gets accidentally destroyed (by the Warden)
-export function getStorageLocation(block) {
-    const center = blockCenter(block);
-    const dimId = block.dimension?.id ?? "minecraft:overworld";
-
-    let offsetY;
-
-    if (dimId === "minecraft:nether") {
-        // Safe range in Nether is roughly 5 → 120
-        // Prefer above the portal if there's room, otherwise below
-        if (center.y < 60) {
-            offsetY = Math.min(center.y + 40, 115);   // go up, but stay under roof
-        } else {
-            offsetY = Math.max(center.y - 40, 10);    // go down
-        }
-    } else if (dimId === "minecraft:the_end") {
-        // End is 0–255, but islands are low
-        offsetY = center.y > 80 ? center.y - 60 : center.y + 60;
-        offsetY = Math.max(10, Math.min(offsetY, 240));
-    } else {
-        // Overworld
-        const STORAGE_Y_MIDPOINT = 128; // Y midpoint used to decide which direction to offset the storage entity
-        const STORAGE_Y_OFFSET = 192;
-        offsetY = center.y > STORAGE_Y_MIDPOINT
-            ? center.y - STORAGE_Y_OFFSET
-            : center.y + STORAGE_Y_OFFSET;
-    }
-
-    return { x: center.x, y: offsetY, z: center.z };
-}
-
-function stripColors(text) {
-    return text.replace(/§./g, "");
 }
 
 function parseLore(lore) {
@@ -619,29 +450,9 @@ function createLore(data) {
     return lines;
 }
 
-function generateId() {
-    return Math.random().toString(36).substring(2, 10);
-}
-
 // =========================
 // TAG SYSTEM
 // =========================
-
-export function setTag(entity, prefix, value) {
-    for (const tag of entity.getTags()) {
-        if (tag.startsWith(prefix)) {
-            entity.removeTag(tag);
-        }
-    }
-    entity.addTag(`${prefix}${value}`);
-}
-
-export function getTag(entity, prefix, fallback) {
-    const tag = entity.getTags().find(t => t.startsWith(prefix));
-    if (!tag) return fallback;
-
-    return tag.split(":")[1];
-}
 
 function getSpawnerEntity(dimension, block) {
     const entities = dimension.getEntities({
@@ -732,14 +543,6 @@ function addToDecrementQueue(id, amount = 1) {
 
 function clearFromDecrementQueue(id) {
     setQueueScore(DECREMENT_QUEUE_OBJECTIVE, id, 0);
-}
-
-function getAllDimensions() {
-    return [
-        world.getDimension("overworld"),
-        world.getDimension("nether"),
-        world.getDimension("the_end")
-    ];
 }
 
 function findSpawnerEntityById(id) {
