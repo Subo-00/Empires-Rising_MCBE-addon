@@ -1,6 +1,6 @@
 import { world, system } from "@minecraft/server";
 import { spawnUnit } from "./spawnUnits.js";
-import { setTag, getTag, decrementSpawnerAlive } from "./spawnerLogic.js";
+import { setTag, getTag, decrementSpawnerAlive } from "../spawner/spawnerLogic.js";
 
 const SPAWN_DELAY_TICKS = 40; // same as your old interval
 

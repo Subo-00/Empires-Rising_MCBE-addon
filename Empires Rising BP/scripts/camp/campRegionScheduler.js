@@ -1,9 +1,6 @@
-import { processRegion, getRegionOrigin, REGION_SIZE } from "./campRegionProcessor.js";
-
-
-// How many regions outward from the player's current region to scan.
-// 1 = a 3x3 region grid centered on the player, = 9 regions per player.
-const REGION_SCAN_RADIUS = 1;
+import { processRegion } from "./campRegionProcessor.js";
+import { getRegionOrigin } from "./helpers/regionMath.js";
+import { REGION_SCAN_RADIUS, REGION_SIZE } from "../config/camp/configCamp.js";
 
 
 

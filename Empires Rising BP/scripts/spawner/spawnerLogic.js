@@ -12,8 +12,6 @@ import { promptFactionJoin, getPlayerFaction, addPlayerSpawners } from "./factio
 const DRAGON_BASE_HP = 20;
 export const DRAGON_HP_PER_LEVEL = 10;
 
-
-
 // =========================
 // CONFIG — specific balancing
 // =========================

@@ -1,5 +1,5 @@
 import { system, world, ItemStack } from "@minecraft/server";
-import { fireBlaster } from "./potionBlaster.js";
+import { fireBlaster } from "../items/potionBlaster.js";
 
 // ─── State Maps (keyed by dragon.id or player.id) ─────────────────────────
 const biteCooldown = new Map();          // AI bite ready-at tick
@@ -27,9 +27,9 @@ const MAX_HSPEED = 2.0;                    // max horizontal speed while ridden
 const MAX_VSPEED = 0.8;                    // upward speed while holding jump
 const MAX_IMPULSE = 0.8;                   // max impulse applied per tick toward desired velocity
 
-const COMBAT_FLY_HEIGHT = 6;
-const COMBAT_FLY_RADIUS = 8;
-const COMBAT_LAND_DELAY = 40;   // 2 seconds
+const COMBAT_FLY_HEIGHT = 6;               // height of combat fly zone
+const COMBAT_FLY_RADIUS = 8;               // radius of combat fly zone
+const COMBAT_LAND_DELAY = 40;              // how long (in ticks) to wait after combat before landing 
 
 // ─── Level / Cooldown Helpers ─────────────────────────────────────────────
 

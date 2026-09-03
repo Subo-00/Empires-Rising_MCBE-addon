@@ -1,6 +1,6 @@
 import { world, system, BlockPermutation, ItemStack } from "@minecraft/server";
 import { ModalFormData } from "@minecraft/server-ui";
-import { getStorageLocation, setTag, getTag } from "./spawnerLogic.js";
+import { getStorageLocation, setTag, getTag } from "../spawner/spawnerLogic.js";
 
 const PORTAL_BLOCK = "subo:portal";
 const PORTAL_ENTITY = "subo:portal_entity";

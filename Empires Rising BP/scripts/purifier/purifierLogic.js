@@ -1,7 +1,7 @@
 import { world, system, ItemStack } from "@minecraft/server";
 import { ModalFormData } from "@minecraft/server-ui";
-import { getStorageLocation, setTag, getTag } from "./spawnerLogic.js";
-import { spawnEmptySoul, killLinkedEmptySoulsDelayed, EMPTY_SOUL_SPAWN_EVERY } from "./emptySoulLogic.js";
+import { getStorageLocation, setTag, getTag } from "../spawner/spawnerLogic.js";
+import { spawnEmptySoul, killLinkedEmptySoulsDelayed, EMPTY_SOUL_SPAWN_EVERY } from "./emptySoul.js";
 
 // ---- Config -----------------------------------------------------------------
 const PURIFIER_BLOCK = "subo:purifier";

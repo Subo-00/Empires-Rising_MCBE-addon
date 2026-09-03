@@ -1,5 +1,5 @@
 import { world, system } from "@minecraft/server";
-import { getTag, getStorageLocation, DRAGON_HP_PER_LEVEL } from "./spawnerLogic.js";
+import { getTag, getStorageLocation, DRAGON_HP_PER_LEVEL } from "../spawner/spawnerLogic.js";
 import { getPlayerFaction } from "./faction.js";
 
 

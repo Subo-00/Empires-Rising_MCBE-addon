@@ -1,5 +1,5 @@
 import { world, system, ItemStack } from "@minecraft/server";
-import { setTag, getTag, getStorageLocation } from "./spawnerLogic.js";
+import { setTag, getTag, getStorageLocation } from "../spawner/spawnerLogic.js";
 
 // ---- Empty soul config ------------------------------------------------------
 const PURIFIER_BLOCK = "subo:purifier";
