@@ -3,7 +3,7 @@ import { buildCamp } from "./campBuilder.js";
 import {
     nextTick,
     now,
-} from "./helpers/helpers.js";
+} from "./helpers/smallHelpers.js";
 
 import {
     getRegionCenterBlock,

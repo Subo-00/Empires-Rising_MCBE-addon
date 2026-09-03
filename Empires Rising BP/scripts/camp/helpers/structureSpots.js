@@ -10,7 +10,7 @@ import {
     getStructureSpotMetrics,
     isInsideSafeArea,
     getInteriorBounds,
-} from "./helpers.js";
+} from "./smallHelpers.js";
 import { REQUIRED_STRUCTURES, EXTRA_POOL_CANDIDATES, EXTRA_STRUCTURE_ATTEMPTS } from "../../config/camp/styleSystem.js";
 
 

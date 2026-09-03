@@ -9,7 +9,7 @@ import {
     MAX_TICKING_AREAS,
     MAX_TA_SLOTS_PER_BUILD,
 } from "../../config/camp/configCamp.js";
-import { nextTick, int, clampY } from "./helpers.js";
+import { nextTick, int, clampY } from "./smallHelpers.js";
 import { trackArea, untrackArea, makeTickingAreaName, getActiveAreaCount } from "./tickingAreaTracker.js";
 import { CAMP_SIZES } from "../../config/camp/styleSystem.js";
 

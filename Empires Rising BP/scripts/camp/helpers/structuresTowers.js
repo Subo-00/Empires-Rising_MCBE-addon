@@ -22,7 +22,7 @@ import {
     fillAroundStructure,
     structureCornersHaveSupport,
     dist2D,
-} from "./helpers.js";
+} from "./smallHelpers.js";
 import {
     isAirType,
     isLiquidType,

@@ -8,7 +8,7 @@ import {
     clampY,
     budgetYield,
     nextTick,
-} from "./helpers.js";
+} from "./smallHelpers.js";
 import {
     placeSupportPlatform,
 } from "./supportsPlatforms.js";

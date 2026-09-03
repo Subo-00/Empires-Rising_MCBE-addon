@@ -6,7 +6,7 @@ import {
     clampY,
     budgetYield,
     placePillarDown,
-} from "./helpers.js";
+} from "./smallHelpers.js";
 
 
 // Fills only the 4 vertical side-faces of a box (not the solid interior),

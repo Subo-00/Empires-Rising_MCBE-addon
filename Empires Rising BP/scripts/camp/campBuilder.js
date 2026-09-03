@@ -21,7 +21,7 @@ import {
     isVillageNearby,
     clearDropsInArea,
     structureCornersHaveSupport
-} from "./helpers/helpers.js";
+} from "./helpers/smallHelpers.js";
 
 import {
     waitForBuildSlot,

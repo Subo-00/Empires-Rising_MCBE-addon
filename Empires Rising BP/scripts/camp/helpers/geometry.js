@@ -7,7 +7,7 @@ import {
     int,
     key2,
     makeOdd,
-} from "./helpers.js";
+} from "./smallHelpers.js";
 
 
 export function bresenhamLine(x0, z0, x1, z1) {

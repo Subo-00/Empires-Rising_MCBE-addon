@@ -1,6 +1,6 @@
 import {
     now,
-} from "./helpers.js";
+} from "./smallHelpers.js";
 import {
     isLiquidType,
 } from "./blockHelpers.js";

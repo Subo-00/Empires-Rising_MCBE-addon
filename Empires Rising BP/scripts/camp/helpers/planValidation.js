@@ -9,7 +9,7 @@ import {
     clampY,
     key2,
     structureCornersHaveSupport,
-} from "./helpers.js";
+} from "./smallHelpers.js";
 import { isLiquidType, getBlockSafe, shouldIgnoreForTerrainTop } from "./blockHelpers.js";
 import { CAMP_SHAPES } from "../../config/camp/styleSystem.js";
 import { generateWallPoints, generateRectangleWall } from "./geometry.js";

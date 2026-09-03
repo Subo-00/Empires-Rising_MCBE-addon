@@ -1,38 +1,22 @@
 import { world, system, ItemStack } from "@minecraft/server";
 import { ModalFormData } from "@minecraft/server-ui";
 import { getStorageLocation, setTag, getTag } from "../spawner/spawnerLogic.js";
-import { spawnEmptySoul, killLinkedEmptySoulsDelayed, EMPTY_SOUL_SPAWN_EVERY } from "./emptySoul.js";
-
-// ---- Config -----------------------------------------------------------------
-const PURIFIER_BLOCK = "subo:purifier";
-const PURIFIER_ENTITY = "subo:purifier_entity";
-
-const UNDEAD_SPAWN_EVERY = 100;  // ticks between undead spawns
-const MAX_UNDEAD_PER_PURIFIER = 60;
-const MAX_UNDEAD_SPAWN_DIST = 35; // how far from the purifier undead monsters can spawn 
-const MIN_PURIFY_TICKS = 1200;  // 60 seconds minimum runtime
-const SKY_CHECK_INTERVAL = 20; // ticks (1s), checked in processPurifier
-const TICKS_PER_ITEM = 20;      // 1s per item weight -> more items = longer purify
-const MAX_STACK = 64;
-const UNDEAD = ["minecraft:zombie", "minecraft:husk", "minecraft:skeleton"];
-
-// Each input -> output. `key` is a short tag-safe id used for storage. Higher weight = longer purification.
-const INPUTS = [
-	{ id: "subo:corrupted_soul", out: "subo:pure_soul", key: "cin", label: "Corrupted Soul", weight: 10 },
-	{ id: "subo:rotten_heart", out: "subo:pure_heart", key: "hin", label: "Rotten heart", weight: 60 }
-];
-
-// Minecraft day is 24000 ticks. Night starts at tick 13000, dawn at 23000.
-// (using world.getTimeOfDay() which returns 0-23999)
-const NIGHT_START = 13000;
-const DAWN_START = 23000;
+import { spawnEmptySoul, killLinkedEmptySoulsDelayed, EMPTY_SOUL_SPAWN_EVERY, startEmptySoulTicker } from "./emptySoul.js";
+import {
+	PURIFIER_BLOCK, PURIFIER_ENTITY,
+	UNDEAD_SPAWN_EVERY, MAX_UNDEAD_PER_PURIFIER, MAX_UNDEAD_SPAWN_DIST,
+	MIN_PURIFY_TICKS, SKY_CHECK_INTERVAL, TICKS_PER_ITEM, MAX_STACK,
+	UNDEAD, NIGHT_START, DAWN_START, INPUTS
+} from "../config/purifierConfig.js";
+import {
+	trySetState, getNum, clamp, topOf, ensureId,
+	isPurifying, clearState, getPurifierEntityAt, dropItems,
+	killLinkedUndeadDelayed
+} from "./purifierHelpers.js";
 
 // Per-player form-open guard (prevents double-open from held-item + interact firing twice)
 const formOpenPlayers = new Set();
 
-// =============================================================================
-// Placement -> spawn persistence entity
-// =============================================================================
 // =============================================================================
 // Placement -> spawn persistence entity (Overworld only)
 // =============================================================================
@@ -211,19 +195,44 @@ function startPurify(dim, block, entity, toPurify, totalTicks) {
 	setTag(entity, "remaining:", total);
 
 	trySetState(block, true);
+
+	activePurifierCount++;
+	startPurifierTicker();
+	startEmptySoulTicker();          // in case souls are about to spawn
+
 	dim.playSound("subo.purifier.purify", loc);
 }
 
 // =============================================================================
-// Global driver tick (survives reloads, one loop for all purifiers)
+// Global driver – only runs while at least one purifier is purifying
 // =============================================================================
-// Global driver tick
-system.runInterval(() => {
-	const dim = world.getDimension("minecraft:overworld");
-	let ents;
-	try { ents = dim.getEntities({ type: PURIFIER_ENTITY }); } catch (e) { return; }
-	for (const e of ents) processPurifier(dim, e);
-}, 5);
+let purifierRunId = null;
+let activePurifierCount = 0;
+
+function startPurifierTicker() {
+	if (purifierRunId !== null) return;
+	purifierRunId = system.runInterval(() => {
+		const dim = world.getDimension("minecraft:overworld");
+		let ents;
+		try { ents = dim.getEntities({ type: PURIFIER_ENTITY }); }
+		catch (e) { return; }
+
+		let anyActive = false;
+		for (const e of ents) {
+			if (isPurifying(e)) {
+				anyActive = true;
+				processPurifier(dim, e);
+			}
+		}
+		if (!anyActive) stopPurifierTicker();
+	}, 5);
+}
+
+function stopPurifierTicker() {
+	if (purifierRunId === null) return;
+	system.clearRun(purifierRunId);
+	purifierRunId = null;
+}
 
 // processPurifier — decrement remaining each interval tick
 function processPurifier(dim, entity) {
@@ -267,6 +276,10 @@ function processPurifier(dim, entity) {
 			if (b) trySetState(b, false);
 			killLinkedUndeadDelayed(dim, entity);
 			killLinkedEmptySoulsDelayed(dim, entity);
+			activePurifierCount = Math.max(0, activePurifierCount - 1);
+			if (activePurifierCount === 0) {
+				stopPurifierTicker();
+			}
 			clearState(entity);
 			return;
 		}
@@ -301,6 +314,10 @@ function finishPurify(dim, loc, entity) {
 	// kill undead linked to this purifier
 	killLinkedUndeadDelayed(dim, entity);
 	killLinkedEmptySoulsDelayed(dim, entity);
+	activePurifierCount = Math.max(0, activePurifierCount - 1);
+	if (activePurifierCount === 0) {
+		stopPurifierTicker();
+	}
 }
 
 // =============================================================================
@@ -337,6 +354,10 @@ export function handlePurifierBreak(dim, loc) {
 
 	killLinkedUndeadDelayed(dim, entity);
 	killLinkedEmptySoulsDelayed(dim, entity);
+	activePurifierCount = Math.max(0, activePurifierCount - 1);
+	if (activePurifierCount === 0) {
+		stopPurifierTicker();
+	}
 	entity.remove();
 }
 
@@ -400,7 +421,7 @@ function spawnUndead(dim, loc, entity) {
 		const MAX_ATTEMPTS = 2;
 
 		for (const [dx, dz] of offsets) {
-			
+
 			if (attempts >= MAX_ATTEMPTS) break;
 
 			const cx = pBlockX + dx;
@@ -415,7 +436,7 @@ function spawnUndead(dim, loc, entity) {
 					spawnLoc = candidate;
 					break;
 				}
-				
+
 			}
 
 			if (spawnLoc) break;
@@ -444,14 +465,14 @@ function spawnUndead(dim, loc, entity) {
 function isValidSpawnSpot(dim, loc, playerBlockY) {
 	const feetY = Math.floor(loc.y);
 	if (Math.abs(feetY - playerBlockY) > 1) return false;
-	
+
 
 	const below = dim.getBlock({ x: Math.floor(loc.x), y: feetY - 1, z: Math.floor(loc.z) });
 	const feet = dim.getBlock({ x: Math.floor(loc.x), y: feetY, z: Math.floor(loc.z) });
 	const head = dim.getBlock({ x: Math.floor(loc.x), y: feetY + 1, z: Math.floor(loc.z) });
 
 	if (!below || !feet || !head) return false;
-	
+
 
 	// Must stand on something solid
 	if (!below.isLiquidBlocking("Water")) return false;
@@ -460,25 +481,6 @@ function isValidSpawnSpot(dim, loc, playerBlockY) {
 	// (air / plants / etc. — anything that is neither solid nor a liquid)
 	if (feet.isLiquidBlocking("Water") || head.isLiquidBlocking("Water")) return false;
 	return true;
-}
-
-function killLinkedUndeadDelayed(dim, entity, delayTicks = 600) {
-	const id = getTag(entity, "id:", null);
-	if (!id) return;
-	system.runTimeout(() => {
-		for (const e of dim.getEntities({ tags: ["purifier_undead:" + id] })) {
-			e.kill();
-		}
-	}, delayTicks);
-}
-
-function ensureId(entity) {
-	let id = getTag(entity, "id:", null);
-	if (!id) {
-		id = Math.random().toString(36).substring(2, 10);
-		setTag(entity, "id:", id);
-	}
-	return id;
 }
 
 // =============================================================================
@@ -505,36 +507,8 @@ function blockLoc(entity) {
 	return { x: Number(x), y: Number(y), z: Number(z) };
 }
 
-function topOf(loc) {
-	return { x: loc.x + 0.5, y: loc.y + 1.0, z: loc.z + 0.5 };
-}
-
-function getNum(entity, prefix, fallback) {
-	const v = getTag(entity, prefix, null);
-	return v === null ? fallback : Number(v);
-}
-
-function clamp(v, lo, hi) {
-	return Math.max(lo, Math.min(hi, v));
-}
-
-function trySetState(block, value) {
-	try {
-		block.setPermutation(block.permutation.withState("subo:active", value));
-	} catch (e) { }
-}
-
 function getPurifierEntity(dim, block) {
 	return getPurifierEntityAt(dim, block.location);
-}
-
-function getPurifierEntityAt(dim, loc) {
-	const ents = dim.getEntities({
-		type: PURIFIER_ENTITY,
-		location: getStorageLocation({ location: loc }),
-		maxDistance: 0.5
-	});
-	return ents[0];
 }
 
 // Count how many of itemId the player has
@@ -567,14 +541,4 @@ function removeItemAmount(player, itemId, amount) {
 		}
 	}
 	return amount - left;
-}
-
-// Drop `count` of typeId at loc, splitting into stacks of MAX_STACK
-function dropItems(dim, loc, typeId, count) {
-	let left = count;
-	while (left > 0) {
-		const n = Math.min(MAX_STACK, left);
-		dim.spawnItem(new ItemStack(typeId, n), loc);
-		left -= n;
-	}
 }

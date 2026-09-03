@@ -7,7 +7,7 @@ import {
     clampY,
     key2,
     placePillarDown,
-} from "./helpers.js";
+} from "./smallHelpers.js";
 import {
     getPlanHalfExtents,
 } from "./geometry.js";

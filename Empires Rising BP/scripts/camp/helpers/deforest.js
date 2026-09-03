@@ -6,7 +6,7 @@ import {
 import {
     clampY,
     budgetYield,
-} from "./helpers.js";
+} from "./smallHelpers.js";
 import {
     getPlanHalfExtents,
 } from "./geometry.js";

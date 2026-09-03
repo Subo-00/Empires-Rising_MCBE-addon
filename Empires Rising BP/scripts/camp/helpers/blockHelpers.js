@@ -2,7 +2,7 @@ import {
     int,
     clampY,
     budgetYield,
-} from "./helpers.js";
+} from "./smallHelpers.js";
 
 
 export function isAirType(typeId) {

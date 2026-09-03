@@ -1,42 +1,46 @@
 import { world, system, ItemStack } from "@minecraft/server";
-import { setTag, getTag, getStorageLocation } from "../spawner/spawnerLogic.js";
-
-// ---- Empty soul config ------------------------------------------------------
-const PURIFIER_BLOCK = "subo:purifier";
-const PURIFIER_ENTITY = "subo:purifier_entity";
-
-const EMPTY_SOUL_SPAWN_EVERY = 100;           // ticks between spawns
-const MAX_EMPTY_SOULS_PER_PURIFIER = 5;
-const EMPTY_SOUL_MIN_SPAWN_DIST = 15;          // min 3D distance from purifier
-const EMPTY_SOUL_MAX_SPAWN_DIST = 20;         // max 3D distance from purifier
-const  Y_SPAWN_OFFSET = 10;                  // + 10 to get it even higher
-
-const EMPTY_SOUL_MIN_SPEED = 0.04;               // blocks/tick when far away
-const EMPTY_SOUL_MAX_SPEED = 0.085;             // blocks/tick when right on top of it
-const EMPTY_SOUL_REACH_DIST = 0.05;            // distance at which it destroys the purifier
-const EMPTY_SOUL_SPAWN_ANIM_TICKS = 20;       // how long it holds still doing the spawn anim
-
-const VOID_SHARD_DROP_CHANCE = 0.15;          // 15% chance to drop subo:void_shard on death
+import { setTag, getTag } from "../spawner/spawnerLogic.js";
+import {
+    PURIFIER_BLOCK,
+    EMPTY_SOUL_SPAWN_EVERY, MAX_EMPTY_SOULS_PER_PURIFIER,
+    EMPTY_SOUL_MIN_SPAWN_DIST, EMPTY_SOUL_MAX_SPAWN_DIST, Y_SPAWN_OFFSET,
+    EMPTY_SOUL_MIN_SPEED, EMPTY_SOUL_MAX_SPEED, EMPTY_SOUL_REACH_DIST,
+    EMPTY_SOUL_SPAWN_ANIM_TICKS, VOID_SHARD_DROP_CHANCE, INPUTS
+} from "../config/purifierConfig.js";
+import {
+    trySetProp, getNum, clamp, topOf, ensureId, isPurifying,
+    clearState, getPurifierEntityAt, dropItems, killLinkedUndeadDelayed
+} from "./purifierHelpers.js";
 
 // Re-exported so processPurifier can schedule spawns on the same cadence
 export { EMPTY_SOUL_SPAWN_EVERY };
 
-// INPUTS needed by purifierDestroyedBySoul for partial drops
-const INPUTS = [
-    { id: "subo:corrupted_soul", out: "subo:pure_soul", key: "cin", label: "Corrupted Soul", weight: 1 },
-    { id: "subo:rotten_heart", out: "subo:pure_heart", key: "hin", label: "Rotten heart", weight: 64 }
-];
+// =============================================================================
+// Empty soul homing driver – only runs while there are active empty souls
+// =============================================================================
+let emptySoulRunId = null;
 
-// =============================================================================
-// Empty soul homing driver (runs every tick for smooth movement)
-// =============================================================================
-system.runInterval(() => {
-    const dim = world.getDimension("minecraft:overworld");
-    let souls;
-    try { souls = dim.getEntities({ type: "subo:empty_soul" }); }
-    catch (e) { return; }
-    for (const s of souls) tickEmptySoul(dim, s);
-}, 1);
+export function startEmptySoulTicker() {
+    if (emptySoulRunId !== null) return;
+    emptySoulRunId = system.runInterval(() => {
+        const dim = world.getDimension("minecraft:overworld");
+        let souls;
+        try { souls = dim.getEntities({ type: "subo:empty_soul" }); }
+        catch (e) { return; }
+
+        if (souls.length === 0) {
+            stopEmptySoulTicker();
+            return;
+        }
+        for (const s of souls) tickEmptySoul(dim, s);
+    }, 1);
+}
+
+export function stopEmptySoulTicker() {
+    if (emptySoulRunId === null) return;
+    system.clearRun(emptySoulRunId);
+    emptySoulRunId = null;
+}
 
 function tickEmptySoul(dim, soul) {
     if (!soul.isValid) return;
@@ -226,7 +230,7 @@ export function spawnEmptySoul(dim, loc, entity) {
 
     const spawnLoc = {
         x: loc.x + 0.5 + Math.cos(theta) * horiz,
-        y: loc.y + Y_SPAWN_OFFSET + vert,                
+        y: loc.y + Y_SPAWN_OFFSET + vert,
         z: loc.z + 0.5 + Math.sin(theta) * horiz
     };
 
@@ -247,6 +251,7 @@ export function spawnEmptySoul(dim, loc, entity) {
                 z: spawnLoc.z + (Math.random() - 0.5) * 1.3
             });
         }
+        startEmptySoulTicker();
 
     } catch { }
 }
@@ -262,78 +267,10 @@ export function killLinkedEmptySoulsDelayed(dim, entity, delayTicks = 0) {
                 e.remove();
             }
         }
-    }, delayTicks);
-}
-
-// =============================================================================
-// Shared helpers (kept here so this file is self-contained)
-// =============================================================================
-function trySetProp(entity, name, value) {
-    try {
-        if (entity.getProperty(name) !== value) entity.setProperty(name, value);
-    } catch { }
-}
-
-function getNum(entity, prefix, fallback) {
-    const v = getTag(entity, prefix, null);
-    return v === null ? fallback : Number(v);
-}
-
-function clamp(v, lo, hi) {
-    return Math.max(lo, Math.min(hi, v));
-}
-
-function topOf(loc) {
-    return { x: loc.x + 0.5, y: loc.y + 1.0, z: loc.z + 0.5 };
-}
-
-function ensureId(entity) {
-    let id = getTag(entity, "id:", null);
-    if (!id) {
-        id = Math.random().toString(36).substring(2, 10);
-        setTag(entity, "id:", id);
-    }
-    return id;
-}
-
-function isPurifying(entity) {
-    return getNum(entity, "remaining:", 0) > 0;
-}
-
-function clearState(entity) {
-    const prefixes = ["remaining:", "total:", "bx:", "by:", "bz:", "cin:", "hin:"];
-    for (const tag of entity.getTags()) {
-        if (prefixes.some(p => tag.startsWith(p))) {
-            entity.removeTag(tag);
-        }
-    }
-}
-
-function getPurifierEntityAt(dim, loc) {
-    const ents = dim.getEntities({
-        type: PURIFIER_ENTITY,
-        location: getStorageLocation({ location: loc }),
-        maxDistance: 0.5
-    });
-    return ents[0];
-}
-
-function dropItems(dim, loc, typeId, count) {
-    const MAX_STACK = 64;
-    let left = count;
-    while (left > 0) {
-        const n = Math.min(MAX_STACK, left);
-        dim.spawnItem(new ItemStack(typeId, n), loc);
-        left -= n;
-    }
-}
-
-function killLinkedUndeadDelayed(dim, entity, delayTicks = 600) {
-    const id = getTag(entity, "id:", null);
-    if (!id) return;
-    system.runTimeout(() => {
-        for (const e of dim.getEntities({ tags: ["purifier_undead:" + id] })) {
-            e.kill();
-        }
+        // If no empty souls remain anywhere, stop the ticker
+        try {
+            const remaining = dim.getEntities({ type: "subo:empty_soul" });
+            if (remaining.length === 0) stopEmptySoulTicker();
+        } catch { }
     }, delayTicks);
 }
