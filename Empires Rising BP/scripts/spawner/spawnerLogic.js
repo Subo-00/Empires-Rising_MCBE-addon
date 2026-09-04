@@ -67,8 +67,8 @@ export function handleSpawnerInteraction(ev) {
     } else {
         form.button(`${STAT_COLORS.armor}Upgrade Armor`);
         form.button(`${STAT_COLORS.weapon}Upgrade Weapon`);
+        form.button(`${STAT_COLORS.cap}Upgrade Cap`);
     }
-    form.button(`${STAT_COLORS.cap}Upgrade Cap`);
 
     system.run(() => {
         form.show(player).then((res) => {
@@ -85,7 +85,6 @@ export function handleSpawnerInteraction(ev) {
                 openSpawnMenu(player, entity);
             } else if (isDragon) {
                 if (res.selection === 1) openDragonLevelMenu(player, entity);
-                if (res.selection === 2) openUpgradeMenu(player, entity, "cap");
             } else {
                 if (res.selection === 1) openUpgradeMenu(player, entity, "armor");
                 if (res.selection === 2) openUpgradeMenu(player, entity, "weapon");
@@ -111,8 +110,29 @@ function openSpawnMenu(player, entity) {
 
     const isArcher = unitType === "archer";
     const isDragon = unitType === "dragon";
-    const label = isDragon ? "§aSpawn Dragons" : isArcher ? "§aSpawn Archers" : "§aSpawn Barbarians";
-    const unitName = isDragon ? "dragons" : isArcher ? "archers" : "barbarians";
+
+    // Dragons always have cap 1 → just spawn one, no amount menu
+    if (isDragon) {
+        const totalCost = costData.amount;
+
+        if (!removeItem(player, costData.item, totalCost)) {
+            const itemName = costData.item.split(":")[1].replace("_", " ");
+            player.sendMessage(`§cYou need ${totalCost} ${itemName}!`);
+            return;
+        }
+
+        const currentQueue = Number(getTag(entity, "queue:", 0));
+        setTag(entity, "queue:", currentQueue + 1);
+        player.sendMessage("§aQueued 1 dragon!");
+        player.sendMessage("§5Craft a §dDragon Staff §5to command the dragon's attacks!");
+
+        processSpawnerQueue(entity);
+        return;
+    }
+
+    // Normal amount menu for barbarians / archers
+    const label = isArcher ? "§aSpawn Archers" : "§aSpawn Barbarians";
+    const unitName = isArcher ? "archers" : "barbarians";
 
     const form = new ModalFormData()
         .title(label)
@@ -246,7 +266,7 @@ function openUpgradeMenu(player, entity, stat) {
             }
 
             const currentIndex = TIERS.indexOf(currentTier); // -1 for None
-            const targetIndex  = TIERS.indexOf(targetTier);
+            const targetIndex = TIERS.indexOf(targetTier);
 
             // Collect every tier that must be paid (current+1 … target)
             const requiredTiers = TIERS.slice(currentIndex + 1, targetIndex + 1);
@@ -480,7 +500,7 @@ function getSpawnerEntity(dimension, block) {
 
 const KILL_QUEUE_OBJECTIVE = "subo_kill_q";
 const DECREMENT_QUEUE_OBJECTIVE = "subo_dec_q";
-const CLEANUP_INTERVAL_TICKS = 100; // ~5 seconds
+const CLEANUP_INTERVAL_TICKS = 100; // ~5 seconds  
 
 function ensureObjective(objectiveId, displayName) {
     let objective = world.scoreboard.getObjective(objectiveId);

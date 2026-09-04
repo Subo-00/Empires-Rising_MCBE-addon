@@ -9,6 +9,8 @@ export const SPIT_COOLDOWN_TICKS = 120;
 export const BITE_RANGE          = 2;
 export const SPIT_RANGE          = 40;
 
+export const FIREBALL_SPEED = 1.8;   // blocks per tick
+
 export const FOLLOW_LEASH  = 6;
 export const MAX_HSPEED    = 2.0;
 export const MAX_VSPEED    = 0.8;

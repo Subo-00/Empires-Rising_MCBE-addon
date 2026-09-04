@@ -8,8 +8,8 @@
     "archer_spawner": {
       "textures": "textures/items/archer_spawner"
     },
-    "dragon_attack": {
-      "textures": "textures/items/dragon_attack_item"
+    "dragon_staff": {
+      "textures": "textures/items/dragon_staff"
     },
     "barbarian_egg": {
       "textures": "textures/items/barbarian_egg"

@@ -37,7 +37,7 @@
             "minecraft:projectile": {
                 "power": 1.6,
                 "gravity": 0.0,
-                "inertia": 1.0,
+                "inertia": 0.99,
                 "uncertainty_base": 0.02,
                 "uncertainty_multiplier": 0,
                 "hit_sound": "explode",

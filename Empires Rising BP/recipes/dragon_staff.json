@@ -1,0 +1,29 @@
+{
+    "format_version": "1.20.0",
+    "minecraft:recipe_shaped": {
+        "description": {
+            "identifier": "subo:dragon_staff"
+        },
+        "tags": [ "crafting_table" ],
+        "pattern": [
+            "BFB",
+            " S ",
+            " S "
+        ],
+        "key": {
+            "F": {
+                "item": "minecraft:fire_charge"
+            },
+            "B": {
+                "item": "minecraft:blaze_rod"
+            },
+            "S": {
+                "item": "minecraft:stick"
+            }
+        },
+        "result": {
+            "item": "subo:dragon_staff",
+            "count": 1
+        }
+    }
+}

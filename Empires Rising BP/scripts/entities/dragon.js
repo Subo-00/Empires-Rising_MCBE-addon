@@ -6,7 +6,7 @@ import {
     BITE_COOLDOWN_TICKS, SPIT_COOLDOWN_TICKS, BITE_RANGE, SPIT_RANGE,
     FOLLOW_LEASH, MAX_HSPEED, MAX_VSPEED, MAX_IMPULSE,
     COMBAT_FLY_HEIGHT, COMBAT_FLY_RADIUS, COMBAT_LAND_DELAY,
-    scaleCooldown
+    scaleCooldown, FIREBALL_SPEED
 } from "../config/entities/dragonConfig.js";
 import {
     distSq3D, clamp, hasLineOfSight
@@ -183,23 +183,7 @@ function clearDragonData(dragonId) {
         .forEach(m => m.delete(dragonId));
 }
 
-// ─── Item & Attack Helpers ────────────────────────────────────────────────
-
-/** Give the special "dragon_attack" item used to trigger rider attacks. */
-function giveDragonAttackItem(player) {
-    player.getComponent("minecraft:inventory").container.addItem(new ItemStack("subo:dragon_attack", 1));
-}
-
-/** Remove the special attack item on dismount. */
-function removeDragonAttackItem(player) {
-    const container = player.getComponent("minecraft:inventory").container;
-    for (let i = 0; i < container.size; i++) {
-        if (container.getItem(i)?.typeId === "subo:dragon_attack") {
-            container.setItem(i, undefined);
-            break;
-        }
-    }
-}
+// ─── Attack Helpers ────────────────────────────────────────────────
 
 /** Small AOE explosion when a fireball hits something. Skips the dragon's faction. */
 function spawnFireballExplosion(dimension, location, factionTag) {
@@ -269,7 +253,11 @@ function shootFireballAt(dragon, tLoc) {
         };
         const aimLen = Math.sqrt(aim.x ** 2 + aim.y ** 2 + aim.z ** 2) || 1;
 
-        proj.shoot({ x: aim.x / aimLen, y: aim.y / aimLen, z: aim.z / aimLen });
+        proj.shoot({
+            x: (aim.x / aimLen) * FIREBALL_SPEED,
+            y: (aim.y / aimLen) * FIREBALL_SPEED,
+            z: (aim.z / aimLen) * FIREBALL_SPEED
+        });
     } catch (e) {
         console.warn(`Fireball error: ${e}`);
     }
@@ -401,7 +389,6 @@ world.beforeEvents.playerInteractWithEntity.subscribe(ev => {
     system.runTimeout(() => {
         if (!dragon.isValid || !player.isValid) return;
         dragon.getComponent("minecraft:rideable")?.addRider(player);
-        giveDragonAttackItem(player);
         setDragonRider(dragon.id, player);
         dragon.triggerEvent("dragon:start_flying");
         dismountedInAir.delete(dragon.id);
@@ -410,7 +397,7 @@ world.beforeEvents.playerInteractWithEntity.subscribe(ev => {
 
 // Use the special item while riding → fireball (preferred) or bite
 world.afterEvents.itemUse.subscribe(ev => {
-    if (ev.itemStack?.typeId !== "subo:dragon_attack") return;
+    if (ev.itemStack?.typeId !== "subo:dragon_staff") return;
     const player = ev.source;
     const dragon = player.getComponent("minecraft:riding")?.entityRidingOn;
     if (!dragon || !dragon.isValid || !isDragon(dragon.typeId)) return;
@@ -422,6 +409,25 @@ world.afterEvents.itemUse.subscribe(ev => {
     if (now >= (riderFireballCooldown.get(pid) ?? 0)) {
         riderFireballCooldown.set(pid, now + getRiderFireballCooldown(dragon));
         riderShootFireball(dragon, player);
+
+        // Damage durability only when a fireball is fired (skip in creative)
+        if (player.getGameMode() !== "creative") {
+            const equippable = player.getComponent("minecraft:equippable");
+            const slot = equippable?.getEquipmentSlot("Mainhand");
+            if (slot?.hasItem()) {
+                const item = slot.getItem();
+                const durability = item?.getComponent("minecraft:durability");
+                if (durability) {
+                    if (durability.damage >= durability.maxDurability) {
+                        slot.setItem(undefined);
+                        player.playSound("random.break");
+                    } else {
+                        durability.damage++;
+                        slot.setItem(item);
+                    }
+                }
+            }
+        }
     } else if (now >= (riderBiteCooldown.get(pid) ?? 0)) {
         riderBiteAttack(dragon, player, now);
     }
@@ -509,7 +515,6 @@ export function dragonTick() {
         if (hadRider && !currentRider) {
             const dismountPlayer = getDragonRider(dragon);
             if (dismountPlayer) {
-                removeDragonAttackItem(dismountPlayer);
                 riderFireballCooldown.delete(dismountPlayer.id);
                 riderBiteCooldown.delete(dismountPlayer.id);
 
