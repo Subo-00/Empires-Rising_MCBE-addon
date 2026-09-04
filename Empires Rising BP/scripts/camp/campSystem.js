@@ -6,7 +6,7 @@ import { setupScoreboard, cleanupScoreboard } from "./helpers/tickingAreaTracker
 const SCAN_INTERVAL_TICKS = 40;
 
 // How often the worker tries to pick the next queued region.
-const WORKER_INTERVAL_TICKS = 5;
+const WORKER_INTERVAL_TICKS = 20;
 
 export function initCampSystem() {
     // Scoreboard + cleanup on world load

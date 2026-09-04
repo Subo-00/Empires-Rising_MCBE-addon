@@ -13,6 +13,15 @@ const DIM_NAMES = ["minecraft:overworld", "minecraft:nether", "minecraft:the_end
 const FACING_CODES = { north: 0, south: 1, west: 2, east: 3 };
 const FACING_NAMES = ["north", "south", "west", "east"];
 
+// Active portals: Map<"dim:x:y:z", { dest, expireTick, activator }>
+const activePortals = new Map();
+let portalTickId = null;
+
+// Break dedupe:
+// key = "dimension|lowerX|lowerY|lowerZ"
+const pendingPortalBreaks = new Map();
+const suppressedPortalBreaks = new Set();
+
 // On load: any portal that was left visually open is forced closed
 system.runTimeout(() => {
     for (const dimId of ["minecraft:overworld", "minecraft:nether", "minecraft:the_end"]) {
@@ -386,14 +395,6 @@ function openPortalConnectForm(player, blockLoc, dimId) {
     });
 }
 
-// Active portals: Map<"dim:x:y:z", { dest, expireTick, activator }>
-const activePortals = new Map();
-
-// Break dedupe:
-// key = "dimension|lowerX|lowerY|lowerZ"
-const pendingPortalBreaks = new Map();
-const suppressedPortalBreaks = new Set();
-
 function cloneBlockLoc(loc) {
     return {
         x: Math.floor(loc.x),
@@ -566,6 +567,8 @@ function activatePortal(block, dest, activator, bringPortal = false) {
     // Activate BOTH halves
     setActive(lower, true);
 
+    ensurePortalTicker();  // Start the portal ticker
+
     const entity = getPortalEntity(lower);
     if (entity) {
         setTag(entity, "activeUntil:", expire);   // expire already computed above
@@ -580,23 +583,59 @@ function activatePortal(block, dest, activator, bringPortal = false) {
     });
 }
 
-// ===== Tick loop: teleport anyone standing in an active portal =====
-system.runInterval(() => {
-    const now = system.currentTick;
+// ===== Teleport anyone standing in an active portal =====
+function ensurePortalTicker() {
+    if (portalTickId !== null) return;          // already running
 
-    // --- 1. clean up any portal entities whose time has expired
-    //     (works even after the chunk was unloaded and later reloaded)
-    for (const dimId of ["minecraft:overworld", "minecraft:nether", "minecraft:the_end"]) {
-        let ents;
-        try { ents = world.getDimension(dimId).getEntities({ type: PORTAL_ENTITY }); }
-        catch { continue; }
+    portalTickId = system.runInterval(() => {
+        const now = system.currentTick;
 
-        for (const e of ents) {
-            const until = getTag(e, "activeUntil:", null);
-            if (until === null) continue;
+        // --- 1. clean up any portal entities whose time has expired
+        //     (works even after the chunk was unloaded and later reloaded)
+        for (const dimId of ["minecraft:overworld", "minecraft:nether", "minecraft:the_end"]) {
+            let ents;
+            try { ents = world.getDimension(dimId).getEntities({ type: PORTAL_ENTITY }); }
+            catch { continue; }
 
-            if (now >= Number(until)) {
-                // force visual off
+            for (const e of ents) {
+                const until = getTag(e, "activeUntil:", null);
+                if (until === null) continue;
+
+                if (now >= Number(until)) {
+                    // force visual off
+                    const loc = {
+                        x: Number(getTag(e, "x:", 0)),
+                        y: Number(getTag(e, "y:", 0)),
+                        z: Number(getTag(e, "z:", 0))
+                    };
+                    try {
+                        const lower = world.getDimension(dimId).getBlock(loc);
+                        if (lower?.typeId === PORTAL_BLOCK) setActive(lower, false);
+                    } catch { }
+
+                    // clear the tag robustly
+                    for (const t of [...e.getTags()]) {
+                        if (t.startsWith("activeUntil:")) e.removeTag(t);
+                    }
+
+                    // also drop from the in-memory map if it is still there
+                    const key = `${dimId}|${Math.floor(loc.x)}|${Math.floor(loc.y)}|${Math.floor(loc.z)}`;
+                    activePortals.delete(key);
+                }
+            }
+        }
+
+        // --- 1b. any portal that is still visually active but has NO activeUntil tag
+        //         (chunk was unloaded while the timer expired) → force closed
+        for (const dimId of ["minecraft:overworld", "minecraft:nether", "minecraft:the_end"]) {
+            let ents;
+            try { ents = world.getDimension(dimId).getEntities({ type: PORTAL_ENTITY }); }
+            catch { continue; }
+
+            for (const e of ents) {
+                // still has a live timer? leave it alone
+                if (getTag(e, "activeUntil:", null) !== null) continue;
+
                 const loc = {
                     x: Number(getTag(e, "x:", 0)),
                     y: Number(getTag(e, "y:", 0)),
@@ -604,213 +643,186 @@ system.runInterval(() => {
                 };
                 try {
                     const lower = world.getDimension(dimId).getBlock(loc);
-                    if (lower?.typeId === PORTAL_BLOCK) setActive(lower, false);
+                    if (lower?.typeId === PORTAL_BLOCK &&
+                        lower.permutation.getState("subo:active") === true) {
+                        setActive(lower, false);
+                    }
                 } catch { }
-
-                // clear the tag robustly
-                for (const t of [...e.getTags()]) {
-                    if (t.startsWith("activeUntil:")) e.removeTag(t);
-                }
-
-                // also drop from the in-memory map if it is still there
-                const key = `${dimId}|${Math.floor(loc.x)}|${Math.floor(loc.y)}|${Math.floor(loc.z)}`;
-                activePortals.delete(key);
             }
         }
-    }
 
-    // --- 1b. any portal that is still visually active but has NO activeUntil tag
-    //         (chunk was unloaded while the timer expired) → force closed
-    for (const dimId of ["minecraft:overworld", "minecraft:nether", "minecraft:the_end"]) {
-        let ents;
-        try { ents = world.getDimension(dimId).getEntities({ type: PORTAL_ENTITY }); }
-        catch { continue; }
+        // --- 2. normal teleport logic for currently loaded active portals
+        for (const [key, data] of activePortals) {
+            if (now >= data.expireTick) {
+                // best-effort visual + tag cleanup (only works if chunk is still loaded)
+                try {
+                    const parts = key.split("|");
+                    const d = world.getDimension(parts[0]);
+                    const lower = d.getBlock({ x: +parts[1], y: +parts[2], z: +parts[3] });
 
-        for (const e of ents) {
-            // still has a live timer? leave it alone
-            if (getTag(e, "activeUntil:", null) !== null) continue;
+                    if (lower?.typeId === PORTAL_BLOCK) {
+                        setActive(lower, false);
+                    }
 
-            const loc = {
-                x: Number(getTag(e, "x:", 0)),
-                y: Number(getTag(e, "y:", 0)),
-                z: Number(getTag(e, "z:", 0))
-            };
-            try {
-                const lower = world.getDimension(dimId).getBlock(loc);
-                if (lower?.typeId === PORTAL_BLOCK &&
-                    lower.permutation.getState("subo:active") === true) {
-                    setActive(lower, false);
-                }
-            } catch { }
-        }
-    }
-
-    // --- 2. normal teleport logic for currently loaded active portals
-    for (const [key, data] of activePortals) {
-        if (now >= data.expireTick) {
-            // best-effort visual + tag cleanup (only works if chunk is still loaded)
-            try {
-                const parts = key.split("|");
-                const d = world.getDimension(parts[0]);
-                const lower = d.getBlock({ x: +parts[1], y: +parts[2], z: +parts[3] });
-
-                if (lower?.typeId === PORTAL_BLOCK) {
-                    setActive(lower, false);
-                }
-
-                if (lower) {
-                    const ent = getPortalEntity(lower);
-                    if (ent) {
-                        for (const t of [...ent.getTags()]) {
-                            if (t.startsWith("activeUntil:")) ent.removeTag(t);
+                    if (lower) {
+                        const ent = getPortalEntity(lower);
+                        if (ent) {
+                            for (const t of [...ent.getTags()]) {
+                                if (t.startsWith("activeUntil:")) ent.removeTag(t);
+                            }
                         }
                     }
-                }
-            } catch { }
-
-            activePortals.delete(key);
-            continue;
-        }
-
-        const parts = key.split("|");
-        const dimId = parts[0];
-        const sx = parts[1], sy = parts[2], sz = parts[3];
-        const dim = world.getDimension(dimId);
-        const portalLoc = { x: +sx + 0.5, y: +sy, z: +sz + 0.5 };
-
-        const players = dim.getPlayers({ location: portalLoc, maxDistance: 0.5 });
-
-        for (const player of players) {
-            const destDim = world.getDimension(data.dest.dim);
-            const destLoc = {
-                x: data.dest.x + 0.5,
-                y: data.dest.y,
-                z: data.dest.z + 0.5
-            };
-
-            let needDropPortal = false;
-
-            if (data.bringPortal && player.name === data.activatorName) {
-                const lower = dim.getBlock({ x: +sx, y: +sy, z: +sz });
-                const found = lower ? findPortalAt(lower) : null;
-                if (found) {
-                    const all = loadPortalRegistry();
-                    if (all[found.owner]) {
-                        all[found.owner] = all[found.owner].filter(arr => arr[0] !== found.portal.id);
-                        if (all[found.owner].length === 0) delete all[found.owner];
-                        savePortalRegistry(all);
-                    }
-                    if (found.entity) removePortalEntity(found.entity);
-                }
-
-                try {
-                    removePortalBlocksNoDrop(dim, {
-                        x: +sx,
-                        y: +sy,
-                        z: +sz
-                    });
                 } catch { }
 
-                if (tryGivePortalItem(player)) {
-                    player.sendMessage("§aPortal collected into your inventory.");
-                } else {
-                    needDropPortal = true;
-                }
                 activePortals.delete(key);
+                continue;
             }
 
-            const isOverworldOnly = dimId === "minecraft:overworld" && data.dest.dim === "minecraft:overworld";
+            const parts = key.split("|");
+            const dimId = parts[0];
+            const sx = parts[1], sy = parts[2], sz = parts[3];
+            const dim = world.getDimension(dimId);
+            const portalLoc = { x: +sx + 0.5, y: +sy, z: +sz + 0.5 };
 
-            const troopsToBring = [];
-            const troopsToStrip = [];
+            const players = dim.getPlayers({ location: portalLoc, maxDistance: 0.5 });
 
-            const nearby = dim.getEntities({
-                location: portalLoc,
-                maxDistance: TROOP_RADIUS
-            });
+            for (const player of players) {
+                const destDim = world.getDimension(data.dest.dim);
+                const destLoc = {
+                    x: data.dest.x + 0.5,
+                    y: data.dest.y,
+                    z: data.dest.z + 0.5
+                };
 
-            for (const ent of nearby) {
-                if (!isTroop(ent.typeId)) continue;
+                let needDropPortal = false;
 
-                const ownerTag = ent.getTags().find(t => t.startsWith("owner:"));
-                if (!ownerTag || ownerTag !== `owner:${player.name}`) continue;
-
-                // Only currently following troops
-                const mark = ent.getComponent("minecraft:mark_variant");
-                if (!mark || mark.value !== 1) continue;
-
-                if (isOverworldOnly) {
-                    troopsToBring.push(ent);
-                } else {
-                    troopsToStrip.push(ent);
-                }
-            }
-
-            // Cross-dimension: force stay + mark them so we can restore later
-            for (const ent of troopsToStrip) {
-                const events = getStayFollowEvents(ent.typeId);
-                if (events) {
-                    try { ent.triggerEvent(events.stay); } catch { }
-                }
-                try { ent.addTag("subo:resume_follow"); } catch { }
-            }
-
-            // Small delay so the stay event has time to apply
-            system.runTimeout(() => {
-                // Teleport the player
-                try {
-                    player.teleport(destLoc, { dimension: destDim });
-                    player.sendMessage(`§bTeleported to "${data.dest.name}"`);
-
-                    if (needDropPortal) {
-                        system.runTimeout(() => {
-                            try {
-                                player.dimension.spawnItem(new ItemStack("subo:portal", 1), player.location);
-                                player.sendMessage("§eInventory full – portal dropped at your feet.");
-                            } catch { }
-                        }, 10);
+                if (data.bringPortal && player.name === data.activatorName) {
+                    const lower = dim.getBlock({ x: +sx, y: +sy, z: +sz });
+                    const found = lower ? findPortalAt(lower) : null;
+                    if (found) {
+                        const all = loadPortalRegistry();
+                        if (all[found.owner]) {
+                            all[found.owner] = all[found.owner].filter(arr => arr[0] !== found.portal.id);
+                            if (all[found.owner].length === 0) delete all[found.owner];
+                            savePortalRegistry(all);
+                        }
+                        if (found.entity) removePortalEntity(found.entity);
                     }
-                } catch { }
-
-                // Bring troops (Overworld → Overworld only)
-                for (const ent of troopsToBring) {
-                    if (!ent.isValid) continue;
-
-                    const targetLoc = {
-                        x: destLoc.x + (Math.random() - 0.5) * 1.5,
-                        y: destLoc.y,
-                        z: destLoc.z + (Math.random() - 0.5) * 1.5
-                    };
 
                     try {
-                        ent.teleport(targetLoc, { dimension: destDim });
+                        removePortalBlocksNoDrop(dim, {
+                            x: +sx,
+                            y: +sy,
+                            z: +sz
+                        });
                     } catch { }
+
+                    if (tryGivePortalItem(player)) {
+                        player.sendMessage("§aPortal collected into your inventory.");
+                    } else {
+                        needDropPortal = true;
+                    }
+                    activePortals.delete(key);
                 }
 
-                // Restore any nearby troops that were previously forced into stay mode
-                const toRestore = destDim.getEntities({
-                    location: destLoc,
+                const isOverworldOnly = dimId === "minecraft:overworld" && data.dest.dim === "minecraft:overworld";
+
+                const troopsToBring = [];
+                const troopsToStrip = [];
+
+                const nearby = dim.getEntities({
+                    location: portalLoc,
                     maxDistance: TROOP_RADIUS
                 });
 
-                for (const ent of toRestore) {
+                for (const ent of nearby) {
                     if (!isTroop(ent.typeId)) continue;
-                    if (!ent.hasTag("subo:resume_follow")) continue;
 
                     const ownerTag = ent.getTags().find(t => t.startsWith("owner:"));
                     if (!ownerTag || ownerTag !== `owner:${player.name}`) continue;
 
+                    // Only currently following troops
+                    const mark = ent.getComponent("minecraft:mark_variant");
+                    if (!mark || mark.value !== 1) continue;
+
+                    if (isOverworldOnly) {
+                        troopsToBring.push(ent);
+                    } else {
+                        troopsToStrip.push(ent);
+                    }
+                }
+
+                // Cross-dimension: force stay + mark them so we can restore later
+                for (const ent of troopsToStrip) {
                     const events = getStayFollowEvents(ent.typeId);
                     if (events) {
-                        try { ent.triggerEvent(events.follow); } catch { }
+                        try { ent.triggerEvent(events.stay); } catch { }
                     }
-                    try { ent.removeTag("subo:resume_follow"); } catch { }
+                    try { ent.addTag("subo:resume_follow"); } catch { }
                 }
-            }, 2);
 
+                // Small delay so the stay event has time to apply
+                system.runTimeout(() => {
+                    // Teleport the player
+                    try {
+                        player.teleport(destLoc, { dimension: destDim });
+                        player.sendMessage(`§bTeleported to "${data.dest.name}"`);
+
+                        if (needDropPortal) {
+                            system.runTimeout(() => {
+                                try {
+                                    player.dimension.spawnItem(new ItemStack("subo:portal", 1), player.location);
+                                    player.sendMessage("§eInventory full – portal dropped at your feet.");
+                                } catch { }
+                            }, 10);
+                        }
+                    } catch { }
+
+                    // Bring troops (Overworld → Overworld only)
+                    for (const ent of troopsToBring) {
+                        if (!ent.isValid) continue;
+
+                        const targetLoc = {
+                            x: destLoc.x + (Math.random() - 0.5) * 1.5,
+                            y: destLoc.y,
+                            z: destLoc.z + (Math.random() - 0.5) * 1.5
+                        };
+
+                        try {
+                            ent.teleport(targetLoc, { dimension: destDim });
+                        } catch { }
+                    }
+
+                    // Restore any nearby troops that were previously forced into stay mode
+                    const toRestore = destDim.getEntities({
+                        location: destLoc,
+                        maxDistance: TROOP_RADIUS
+                    });
+
+                    for (const ent of toRestore) {
+                        if (!isTroop(ent.typeId)) continue;
+                        if (!ent.hasTag("subo:resume_follow")) continue;
+
+                        const ownerTag = ent.getTags().find(t => t.startsWith("owner:"));
+                        if (!ownerTag || ownerTag !== `owner:${player.name}`) continue;
+
+                        const events = getStayFollowEvents(ent.typeId);
+                        if (events) {
+                            try { ent.triggerEvent(events.follow); } catch { }
+                        }
+                        try { ent.removeTag("subo:resume_follow"); } catch { }
+                    }
+                }, 2);
+
+            }
         }
-    }
-}, 5);
+
+        if (activePortals.size === 0) {
+            system.clearRun(portalTickId);
+            portalTickId = null;
+        }
+    }, 5);
+}
 
 function getStayFollowEvents(typeId) {
     if (isBarbarian(typeId)) return { stay: "barbarian:stay", follow: "barbarian:follow" };

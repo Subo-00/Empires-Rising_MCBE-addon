@@ -120,7 +120,7 @@ function startHealingParticles(knight) {
 
     system.runTimeout(() => {
         stopHealingParticles(knightId);
-    }, 40);
+    }, 10);
 }
 
 function stopHealingParticles(knightId) {
