@@ -46,35 +46,46 @@ const POTION_KEYS = Object.keys(POTION_TYPES);
 const LORE_TYPE_PREFIX = "§7Potion: §b";
 const LORE_COUNT_PREFIX = "§7Charges: §f";
 
-/** Reads { type, count } straight from the item's lore text. */
+/** Reads { type, count } from nameTag + lore. */
 function readPotionData(itemStack) {
+    // Count is still stored in lore
     const lore = itemStack.getLore();
-    if (!lore || lore.length < 2) return { type: null, count: 0 };
+    let count = 0;
+    if (lore && lore.length > 0) {
+        const countMatch = (lore[0] ?? "").match(/(\d+)\s*\/\s*\d+/);
+        count = countMatch ? parseInt(countMatch[1], 10) : 0;
+    }
 
-    const typeLine = lore[0] ?? "";
-    const countLine = lore[1] ?? "";
+    // Type is now stored in the nameTag
+    const nameTag = itemStack.nameTag ?? "";
+    let type = null;
 
-    const countMatch = countLine.match(/(\d+)\s*\/\s*\d+/);
-    const count = countMatch ? parseInt(countMatch[1], 10) : 0;
-
-    const typeName = typeLine.replace(LORE_TYPE_PREFIX, "").trim();
-    const type = POTION_KEYS.find((k) => POTION_TYPES[k].name === typeName) ?? null;
+    // Expected format: "§rPotion Blaster\n§bMilk"  (or Healing II, etc.)
+    const lines = nameTag.split("\n");
+    if (lines.length >= 2) {
+        // strip colour codes then match against known potion names
+        const typeName = lines[1].replace(/§./g, "").trim();
+        type = POTION_KEYS.find((k) => POTION_TYPES[k].name === typeName) ?? null;
+    }
 
     return { type, count };
 }
 
-/** Writes the potion type + count into the item's lore (this IS the storage). */
+/** Writes the potion type + count into the item's lore / nameTag. */
 function writePotionData(itemStack, type, count) {
     if (!type || count <= 0) {
         itemStack.setLore([]);
-        itemStack.nameTag = undefined;
+        itemStack.nameTag = undefined;          // empty → just "Potion Blaster"
         return;
     }
+
+    // Lore only shows the charge count (no type → no double display)
     itemStack.setLore([
-        `${LORE_TYPE_PREFIX}${POTION_TYPES[type].name}`,
         `${LORE_COUNT_PREFIX}${count}/${MAX_POTIONS}`,
     ]);
-    itemStack.nameTag = "§rPotion Blaster";
+
+    // Type lives only in the name so it is visible in the hotbar
+    itemStack.nameTag = `§rPotion Blaster\n§b${POTION_TYPES[type].name}`;
 }
 // -----------------------------------------------------------------------
 
@@ -164,8 +175,8 @@ function removePotionsFromInventory(player, key, amountNeeded) {
 }
 // -----------------------------------------------------------------------
 
-/** Tops off the quiver with `key` potions, consuming them from the player's inventory. */
-function fillQuiver(source, itemStack, equippable, key) {
+/** Tops off the Potion BLaster with `key` potions, consuming them from the player's inventory. */
+function fillPotionBLaster(source, itemStack, equippable, key) {
     const { type, count } = readPotionData(itemStack);
     const currentCount = type === key ? count : 0;
 
@@ -189,6 +200,20 @@ function fillQuiver(source, itemStack, equippable, key) {
     writePotionData(itemStack, key, newCount);
     equippable.setEquipment(EquipmentSlot.Mainhand, itemStack);
 
+    // Feedback when loading
+    const dim = source.dimension;
+    const loc = source.location;
+    dim.playSound("random.pop", loc, { pitch: 1.2, volume: 0.8 });
+    for (let i = 0; i < 8; i++) {
+        try {
+            dim.spawnParticle("minecraft:basic_crit_particle", {
+                x: loc.x + (Math.random() - 0.5) * 0.6,
+                y: loc.y + 1.2 + Math.random() * 0.4,
+                z: loc.z + (Math.random() - 0.5) * 0.6
+            });
+        } catch { }
+    }
+
     source.sendMessage(`§aPotion Blaster filled with ${removed}x ${POTION_TYPES[key].name} (${newCount}/${MAX_POTIONS}).`);
 }
 
@@ -198,7 +223,7 @@ function openFillMenu(source, current) {
     // Already holding a type -> just top it up, no need to choose.
     if (currentType && currentCount > 0) {
         const equippable = source.getComponent(EntityComponentTypes.Equippable);
-        if (equippable) fillQuiver(source, current, equippable, currentType);
+        if (equippable) fillPotionBLaster(source, current, equippable, currentType);
         return;
     }
 
@@ -206,13 +231,13 @@ function openFillMenu(source, current) {
     const availableKeys = POTION_KEYS.filter((k) => (inventoryCounts[k] ?? 0) > 0);
 
     if (availableKeys.length === 0) {
-        source.sendMessage("§cYou don't have any splash potions (or milk buckets) to fill the quiver with.");
+        source.sendMessage("§cYou don't have any splash potions (or milk buckets) to fill the Potion BLaster with.");
         return;
     }
 
     const form = new ActionFormData()
         .title("Potion Blaster")
-        .body("Choose a potion type to fill the quiver with:");
+        .body("Choose a potion type to fill the Potion BLaster with:");
     for (const key of availableKeys) {
         form.button(`${POTION_TYPES[key].name} (${inventoryCounts[key]} available)`);
     }
@@ -226,7 +251,7 @@ function openFillMenu(source, current) {
         if (!freshCurrent || freshCurrent.typeId !== ITEM_ID) return;
 
         const chosenKey = availableKeys[response.selection];
-        fillQuiver(source, freshCurrent, equippable, chosenKey);
+        fillPotionBLaster(source, freshCurrent, equippable, chosenKey);
     });
 }
 
@@ -241,6 +266,22 @@ export function fireBlaster(player, itemStack) {
 
     const newCount = count - 1;
     writePotionData(itemStack, newCount > 0 ? type : null, newCount);
+
+        // Feedback when the blaster becomes empty
+    if (newCount <= 0) {
+        const dim = player.dimension;
+        const loc = player.location;
+        dim.playSound("random.fizz", loc, { pitch: 1.4, volume: 0.7 });
+        for (let i = 0; i < 10; i++) {
+            try {
+                dim.spawnParticle("minecraft:basic_smoke_particle", {
+                    x: loc.x + (Math.random() - 0.5) * 0.5,
+                    y: loc.y + 1.3 + Math.random() * 0.3,
+                    z: loc.z + (Math.random() - 0.5) * 0.5
+                });
+            } catch {}
+        }
+    }
 
     const equippable = player.getComponent(EntityComponentTypes.Equippable);
     if (equippable) equippable.setEquipment(EquipmentSlot.Mainhand, itemStack);

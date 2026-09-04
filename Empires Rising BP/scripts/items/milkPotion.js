@@ -16,6 +16,10 @@ function clearEffectsAndSpawnParticles(dimension, location) {
         } catch {}
     }
 
+    // Glass break sound (like a real potion)
+    dimension.playSound("random.glass", location, { pitch: 1.0, volume: 1.0 });
+
+    // White potion particles (closest to milk)
     const particleMolang = new MolangVariableMap();
     try {
         particleMolang.setColorRGBA("variable.color", {
@@ -23,6 +27,7 @@ function clearEffectsAndSpawnParticles(dimension, location) {
         });
     } catch {}
 
+    // Main splash cloud
     for (let i = 0; i < 40; i++) {
         const angle = Math.random() * Math.PI * 2;
         const distance = Math.sqrt(Math.random()) * SPLASH_RADIUS;
@@ -40,6 +45,17 @@ function clearEffectsAndSpawnParticles(dimension, location) {
                 dimension.spawnParticle("minecraft:splash_spell_emitter", particleLocation);
             } catch {}
         }
+    }
+
+    // Extra particles right where the potion landed
+    for (let i = 0; i < 12; i++) {
+        try {
+            dimension.spawnParticle("minecraft:mobspell_emitter", {
+                x: location.x + (Math.random() - 0.5) * 1.2,
+                y: location.y + 0.3 + Math.random() * 0.8,
+                z: location.z + (Math.random() - 0.5) * 1.2
+            }, particleMolang);
+        } catch {}
     }
 }
 
