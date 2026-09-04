@@ -1,4 +1,14 @@
 import { system, world } from "@minecraft/server";
+import {
+    BASIC_COOLDOWN_TICKS, SPIN_COOLDOWN_TICKS, LEAP_COOLDOWN_TICKS,
+    HEAL_COOLDOWN_TICKS, BLINK_COOLDOWN_TICKS,
+    BASIC_RANGE, SPIN_RANGE, LEAP_MAX_RANGE, DETECTION_RANGE,
+    BASIC_DAMAGE, SPIN_DAMAGE, LAST_HIT_TIMEOUT
+} from "../config/entities/darkKnightConfig.js";
+import {
+    distanceBetween, hasLineOfSight,
+    isSimpleValidTarget, getNearbyTargets, getNearestTarget
+} from "./entityHelpers.js";
 
 const basicCooldown = new Map();
 const spinCooldown = new Map();
@@ -6,26 +16,10 @@ const leapCooldown = new Map();
 const healCooldown = new Map();
 const blinkCooldown = new Map();
 
-const BASIC_COOLDOWN_TICKS = 20;
-const SPIN_COOLDOWN_TICKS = 50;
-const LEAP_COOLDOWN_TICKS = 80;
-const HEAL_COOLDOWN_TICKS = 180;
-const BLINK_COOLDOWN_TICKS = 300;
-
-const BASIC_RANGE = 2.3;
-const SPIN_RANGE = 2.3;
-const LEAP_MAX_RANGE = 10;
-const DETECTION_RANGE = 45;
-
-const BASIC_DAMAGE = 10;
-const SPIN_DAMAGE = 10;
-
 const hasTaunted = new Set();
 const knightTargets = new Map();   // knightId → { entity, tick }
 const activeHealers = new Map();   // knightId → intervalId
 const useBasic2Map = new Map();   // knightId → boolean (was a global before)
-
-const LAST_HIT_TIMEOUT = 80; // ~4 seconds – how long the last attacker stays priority
 
 // ────────────────────────────────────────────────
 // Events
@@ -56,34 +50,11 @@ world.afterEvents.entityDie.subscribe((event) => {
 });
 
 // ────────────────────────────────────────────────
-// Helpers
+// Local Helpers
 // ────────────────────────────────────────────────
-function isValidTarget(entity) {
-    if (!entity?.isValid) return false;
 
-    if (entity.typeId === "minecraft:player") {
-        const mode = entity.getGameMode();
-        return mode !== "Creative" && mode !== "Spectator";
-    }
-
-    const family = entity.getComponent("minecraft:type_family");
-    return family?.hasTypeFamily("subo_troop") ?? false;
-}
-
-function getNearbyTargets(knight, maxDistance, requireLos = false) {
-    return knight.dimension.getEntities({
-        location: knight.location,
-        maxDistance: maxDistance
-    }).filter(e => {
-        if (e.id === knight.id || !isValidTarget(e)) return false;
-        if (requireLos && !hasLineOfSight(knight, e)) return false;
-        return true;
-    });
-}
-
-// Only check LOS when actually selecting a target
-function getNearestTarget(knight, maxDistance) {
-    // Prefer last attacker (with LOS check)
+function getPriorityTarget(knight, maxDistance) {
+    // Prefer last attacker (with LOS)
     const entry = knightTargets.get(knight.id);
     if (entry?.entity?.isValid &&
         (system.currentTick - entry.tick) < LAST_HIT_TIMEOUT &&
@@ -91,82 +62,19 @@ function getNearestTarget(knight, maxDistance) {
         return entry.entity;
     }
 
-    const targets = getNearbyTargets(knight, maxDistance); // no LOS here yet
+    // Fall back to shared nearest (LOS checked on the 3 closest)
+    const targets = getNearbyTargets(knight, maxDistance, isSimpleValidTarget);
     if (targets.length === 0) return null;
 
-    // Sort by distance first, then check LOS only on the closest few
-    targets.sort((a, b) => {
-        const da = distanceBetween(a.location, knight.location);
-        const db = distanceBetween(b.location, knight.location);
-        return da - db;
-    });
+    targets.sort((a, b) =>
+        distanceBetween(a.location, knight.location) -
+        distanceBetween(b.location, knight.location)
+    );
 
-    // Check the 3 closest candidates only
     for (let i = 0; i < Math.min(3, targets.length); i++) {
-        if (hasLineOfSight(knight, targets[i])) {
-            return targets[i];
-        }
+        if (hasLineOfSight(knight, targets[i])) return targets[i];
     }
-
     return null;
-}
-
-/**
- * Returns true if there is a clear line of sight between two entities.
- * Uses a raycast from the knight’s approximate eye height to the target’s body.
- */
-function hasLineOfSight(fromEntity, toEntity) {
-    if (!fromEntity?.isValid || !toEntity?.isValid) return false;
-
-    // Approximate eye / head height of the Dark Knight (adjust if your model is taller/shorter)
-    const from = {
-        x: fromEntity.location.x,
-        y: fromEntity.location.y + 1.7,
-        z: fromEntity.location.z
-    };
-
-    // Aim roughly at the target’s chest / center
-    const to = {
-        x: toEntity.location.x,
-        y: toEntity.location.y + 1.0,
-        z: toEntity.location.z
-    };
-
-    const dx = to.x - from.x;
-    const dy = to.y - from.y;
-    const dz = to.z - from.z;
-    const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
-
-    if (distance < 0.5) return true; // extremely close → always allow
-
-    const direction = {
-        x: dx / distance,
-        y: dy / distance,
-        z: dz / distance
-    };
-
-    // getBlockFromRay uses Manhattan distance for maxDistance → give it a safe buffer
-    const manhattan = Math.abs(dx) + Math.abs(dy) + Math.abs(dz);
-
-    try {
-        const hit = fromEntity.dimension.getBlockFromRay(from, direction, {
-            maxDistance: Math.max(manhattan, distance) + 0.5, // enough to reach the target
-            includeLiquidBlocks: false,
-            includePassableBlocks: false   // ignore vines, flowers, etc.
-        });
-
-        // No solid block was hit → clear line of sight
-        return hit === undefined;
-    } catch {
-        return false;
-    }
-}
-
-function distanceBetween(loc1, loc2) {
-    const dx = loc1.x - loc2.x;
-    const dy = loc1.y - loc2.y;
-    const dz = loc1.z - loc2.z;
-    return Math.sqrt(dx * dx + dy * dy + dz * dz);
 }
 
 function resetAttackState(knight, ticks) {
@@ -256,7 +164,7 @@ export function darkKnightTick() {
             const attackState = knight.getProperty("subo:attack_state") ?? 0;
             if (attackState !== 0) continue; // still busy with an attack
 
-            const target = getNearestTarget(knight, DETECTION_RANGE);
+            const target = getPriorityTarget(knight, DETECTION_RANGE);
             if (!target) continue;
 
             const knightId = knight.id;
@@ -291,7 +199,7 @@ export function darkKnightTick() {
                 spinCooldown.set(knightId, currentTick + SPIN_COOLDOWN_TICKS);
                 resetAttackState(knight, 12);
 
-                const nearby = getNearbyTargets(knight, SPIN_RANGE);
+                const nearby = getNearbyTargets(knight, SPIN_RANGE, isSimpleValidTarget);
                 const entry = knightTargets.get(knightId);
                 const spinTargets = [...nearby];
 
@@ -331,7 +239,7 @@ export function darkKnightTick() {
                 basicCooldown.set(knightId, currentTick + BASIC_COOLDOWN_TICKS);
                 resetAttackState(knight, 15);
 
-                const nearby = getNearbyTargets(knight, BASIC_RANGE + 2);
+                const nearby = getNearbyTargets(knight, BASIC_RANGE + 2, isSimpleValidTarget);
                 const entry = knightTargets.get(knightId);
                 let basicTargets = [...nearby];
 

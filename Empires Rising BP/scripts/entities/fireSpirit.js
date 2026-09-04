@@ -1,18 +1,11 @@
 import { system, world } from "@minecraft/server";
+import {
+    LEAP_RANGE, DETECTION_RANGE, HIT_DISTANCE,
+    LEAP_TIMEOUT_MS, EXPLOSION_DAMAGE, FIRE_SECONDS
+} from "../config/entities/fireSpiritConfig.js";
+import { isSimpleValidTarget, distSq3D } from "./entityHelpers.js";
 
-const LEAP_RANGE = 3.0;           // Slightly increased for reliability
-const DETECTION_RANGE = 24;
 const leapedSpirits = new Map();  // Now stores {targetId, launchTime}
-
-function isValidTarget(entity) {
-    if (!entity?.isValid) return false;
-    if (entity.typeId === "minecraft:player") {
-        const mode = entity.getGameMode();
-        return mode !== "creative" && mode !== "spectator";
-    }
-    const family = entity.getComponent("minecraft:type_family");
-    return family?.hasTypeFamily("subo_troop") ?? false;
-}
 
 function getNearestTarget(spirit) {
     const entities = spirit.dimension.getEntities({
@@ -25,13 +18,9 @@ function getNearestTarget(spirit) {
     let bestDistSq = Infinity;
 
     for (const e of entities) {
-        if (e.id === spirit.id || !isValidTarget(e)) continue;
+        if (e.id === spirit.id || !isSimpleValidTarget(e)) continue;
 
-        const dx = e.location.x - spirit.location.x;
-        const dy = e.location.y - spirit.location.y;
-        const dz = e.location.z - spirit.location.z;
-        const distSq = dx*dx + dy*dy + dz*dz;
-
+        const distSq = distSq3D(spirit.location, e.location);
         if (distSq < bestDistSq) {
             bestDistSq = distSq;
             nearest = e;
@@ -88,14 +77,14 @@ export function fireSpiritTick() {
                     const dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
 
                     // Hit detected
-                    if (dist < 1.8) {   // Adjust based on your collision box
+                    if (dist < HIT_DISTANCE) {  
                         triggerExplosion(spirit, target);
                         continue;
                     }
                 }
 
                 // Safety timeout (max 2 seconds in air)
-                if (Date.now() - data.launchTime > 2000) {
+                if (Date.now() - data.launchTime > LEAP_TIMEOUT_MS) {
                     triggerExplosion(spirit);
                 }
                 continue;
@@ -153,11 +142,11 @@ function triggerExplosion(spirit, target = null) {
     // Damage target if we actually hit
     if (target?.isValid) {
         try {
-            target.applyDamage(7, {
+            target.applyDamage(EXPLOSION_DAMAGE, {
                 cause: "entityExplosion",
                 damagingEntity: spirit
             });
-            target.setOnFire(3, true);
+            target.setOnFire(FIRE_SECONDS, true);
         } catch {}
     }
 

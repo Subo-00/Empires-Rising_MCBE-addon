@@ -1,5 +1,16 @@
 import { system, world, ItemStack } from "@minecraft/server";
 import { fireBlaster } from "../items/potionBlaster.js";
+import {
+    RIDER_FIREBALL_COOLDOWN_TICKS, RIDER_BITE_COOLDOWN_TICKS,
+    RIDER_BITE_AOE_RANGE, RIDER_BITE_MAX_TARGETS, RIDER_FIREBALL_REACH,
+    BITE_COOLDOWN_TICKS, SPIT_COOLDOWN_TICKS, BITE_RANGE, SPIT_RANGE,
+    FOLLOW_LEASH, MAX_HSPEED, MAX_VSPEED, MAX_IMPULSE,
+    COMBAT_FLY_HEIGHT, COMBAT_FLY_RADIUS, COMBAT_LAND_DELAY,
+    scaleCooldown
+} from "../config/entities/dragonConfig.js";
+import {
+    distSq3D, clamp, hasLineOfSight
+} from "./entityHelpers.js";
 
 // ─── State Maps (keyed by dragon.id or player.id) ─────────────────────────
 const biteCooldown = new Map();          // AI bite ready-at tick
@@ -12,25 +23,6 @@ const dismountedInAir = new Map();       // dragonId → playerId (shadow-fall m
 const dragonRider = new Map();           // dragonId → playerId (last known rider)
 const combatFlyUntil = new Map();   // dragonId → tick when we should land
 
-// ─── Constants ────────────────────────────────────────────────────────────
-const RIDER_FIREBALL_COOLDOWN_TICKS = 100; // base rider fireball cooldown (scaled by level)
-const RIDER_BITE_COOLDOWN_TICKS = 50;      // base rider bite cooldown (scaled by level)
-const RIDER_BITE_AOE_RANGE = 4;            // bite hit radius around dragon
-const RIDER_BITE_MAX_TARGETS = 3;          // max entities hit by one rider bite
-const RIDER_FIREBALL_REACH = 64;           // max raycast distance for aimed fireball
-const BITE_COOLDOWN_TICKS = 60;            // base AI bite cooldown (scaled by level)
-const SPIT_COOLDOWN_TICKS = 120;           // base AI fireball cooldown (scaled by level)
-const BITE_RANGE = 2;                      // max distance for AI bite
-const SPIT_RANGE = 40;                     // max distance for AI fireball
-const FOLLOW_LEASH = 6;                    // if owner farther than this, AI stops attacking
-const MAX_HSPEED = 2.0;                    // max horizontal speed while ridden
-const MAX_VSPEED = 0.8;                    // upward speed while holding jump
-const MAX_IMPULSE = 0.8;                   // max impulse applied per tick toward desired velocity
-
-const COMBAT_FLY_HEIGHT = 6;               // height of combat fly zone
-const COMBAT_FLY_RADIUS = 8;               // radius of combat fly zone
-const COMBAT_LAND_DELAY = 40;              // how long (in ticks) to wait after combat before landing 
-
 // ─── Level / Cooldown Helpers ─────────────────────────────────────────────
 
 /** Read level tag written by spawnUnits.js (defaults to 1). */
@@ -38,15 +30,6 @@ function getDragonLevel(dragon) {
     if (!dragon?.isValid) return 1;
     const tag = dragon.getTags().find(t => t.startsWith("level:"));
     return tag ? Math.max(1, Number(tag.slice(6)) || 1) : 1;
-}
-
-/**
- * Higher level → shorter cooldown.
- * Level 1 = 100% of base, Level 5 ≈ 40% of base. Never below 1 tick.
- */
-function scaleCooldown(baseTicks, level) {
-    const factor = Math.max(0.4, 1 - (level - 1) * 0.15);
-    return Math.max(1, Math.floor(baseTicks * factor));
 }
 
 function getBiteCooldown(dragon) {
@@ -87,16 +70,6 @@ function forceGroundedVelocity(dragon) {
             z: -v.z * 0.3
         });
     }
-}
-
-/** Squared 3-D distance (avoids expensive sqrt when only comparing). */
-function distSq3D(a, b) {
-    const dx = a.x - b.x, dy = a.y - b.y, dz = a.z - b.z;
-    return dx * dx + dy * dy + dz * dz;
-}
-
-function clamp(v, min, max) {
-    return Math.max(min, Math.min(max, v));
 }
 
 /** Smoothly push velocity toward a desired value without overshooting. */
@@ -169,22 +142,6 @@ function isValidTarget(entity, dragon) {
         typeFamily?.hasTypeFamily("monster") ||
         typeFamily?.hasTypeFamily("subo_troop")
     ) ?? false;
-}
-
-/** True if nothing solid blocks the ray from dragon mouth to target. */
-function hasLineOfSight(dragon, target) {
-    const from = { x: dragon.location.x, y: dragon.location.y + 1.8, z: dragon.location.z };
-    const to = { x: target.location.x, y: target.location.y + 1.0, z: target.location.z };
-    const dx = to.x - from.x, dy = to.y - from.y, dz = to.z - from.z;
-    const d = Math.sqrt(dx * dx + dy * dy + dz * dz);
-    if (d < 0.001) return true;
-
-    const hit = dragon.dimension.getBlockFromRay(from, { x: dx / d, y: dy / d, z: dz / d }, {
-        maxDistance: d,
-        includePassableBlocks: false,
-        includeLiquidBlocks: false
-    });
-    return !hit; // no block hit → clear LOS
 }
 
 /** Closest valid target that the dragon can currently see. */

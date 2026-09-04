@@ -1,20 +1,16 @@
 import { system, world } from "@minecraft/server";
+import {
+    SPIN_COOLDOWN_TICKS, SPIT_COOLDOWN_TICKS, SLAM_COOLDOWN_TICKS,
+    SLAM_RANGE, SPIN_RANGE, SPIT_RANGE, DETECTION_RANGE,
+    SLAM_DMG, SPIN_DMG
+} from "../config/entities/lavaGolemConfig.js";
+import {
+    isSimpleValidTarget, getNearbyTargets, distSq3D
+} from "./entityHelpers.js";
 
 const spinCooldown = new Map();
 const spitCooldown = new Map();
 const slamCooldown = new Map();
-
-const SPIN_COOLDOWN_TICKS = 12 * 20;
-const SPIT_COOLDOWN_TICKS = 9 * 20;
-const SLAM_COOLDOWN_TICKS = 25;
-
-const SLAM_RANGE = 4; // melee range
-const SPIN_RANGE = 4;
-const SPIT_RANGE = 20;
-const DETECTION_RANGE = 20;
-
-const SLAM_DMG = 12;
-const SPIN_DMG = 4;
 
 // Track which golem already taunted 
 const hasTaunted = new Set();
@@ -41,57 +37,22 @@ world.afterEvents.entityDie.subscribe((event) => {
     }
 });
 
-function isValidTarget(entity) {
-    if (!entity?.isValid) return false;
-
-    if (entity.typeId === "minecraft:player") {
-        // Filter out creative (and spectator) mode players
-        const mode = entity.getGameMode();
-        return mode !== "Creative" && mode !== "Spectator";
-    }
-
-    const family = entity.getComponent("minecraft:type_family");
-    if (!family) return false;
-
-    return family.hasTypeFamily("subo_troop");
-}
-
-function getNearbyTargets(golem, maxDistance) {
-    const entities = golem.dimension.getEntities({
-        location: golem.location,
-        maxDistance
-    });
-
-    return entities.filter((e) => e.id !== golem.id && isValidTarget(e));
-}
-
-function getNearestTarget(golem, maxDistance) {
-    // Check if the golem was hurt by someone — prioritize them
+function getPriorityTarget(golem, maxDistance) {
     const lastHit = golemTargets.get(golem.id);
+    if (lastHit?.isValid) return lastHit;
 
-    if (lastHit?.isValid) {
-        return lastHit;
-    }
-
-    // Fall back to nearest valid target
-    const targets = getNearbyTargets(golem, maxDistance);
+    const targets = getNearbyTargets(golem, maxDistance, isSimpleValidTarget);
     if (targets.length === 0) return null;
 
     let nearest = null;
     let bestDistSq = Infinity;
-
-    for (const target of targets) {
-        const dx = target.location.x - golem.location.x;
-        const dy = target.location.y - golem.location.y;
-        const dz = target.location.z - golem.location.z;
-        const distSq = dx * dx + dy * dy + dz * dz;
-
-        if (distSq < bestDistSq) {
-            bestDistSq = distSq;
-            nearest = target;
+    for (const t of targets) {
+        const dSq = distSq3D(golem.location, t.location);
+        if (dSq < bestDistSq) {
+            bestDistSq = dSq;
+            nearest = t;
         }
     }
-
     return nearest;
 }
 
@@ -113,18 +74,15 @@ export function lavaGolemTick() {
             const attackState = golem.getProperty("subo:attack_state");
             if (attackState !== 0) {
                 if (attackState === 2) {
-                    const nearby = getNearbyTargets(golem, SPIN_RANGE);
+                    const nearby = getNearbyTargets(golem, SPIN_RANGE, isSimpleValidTarget);
 
                     // Include golemTargets entity even if outside getNearbyTargets filter
                     const lastHit = golemTargets.get(golem.id);
                     const spinTargets = [...nearby];
                     if (lastHit?.isValid && !spinTargets.some(e => e.id === lastHit.id)) {
-                        
-                        const dx = lastHit.location.x - golem.location.x;
-                        const dy = lastHit.location.y - golem.location.y;
-                        const dz = lastHit.location.z - golem.location.z;
-                        const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
-                        if (dist <= SPIN_RANGE) spinTargets.push(lastHit); // still enforce range
+                        if (distSq3D(lastHit.location, golem.location) <= SPIN_RANGE * SPIN_RANGE) {
+                            spinTargets.push(lastHit);
+                        }
                     }
 
                     for (const target of spinTargets) {
@@ -146,9 +104,9 @@ export function lavaGolemTick() {
                 continue;
             }
 
-            const target = getNearestTarget(golem, DETECTION_RANGE);
+            const target = getPriorityTarget(golem, DETECTION_RANGE);
             if (!target) continue;
-            
+
             const golemId = golem.id;
 
             // Taunt
@@ -174,15 +132,13 @@ export function lavaGolemTick() {
             }
 
             if (dist <= SLAM_RANGE && currentTick >= nextSlam) {
-                const nearby = getNearbyTargets(golem, SLAM_RANGE);
+                const nearby = getNearbyTargets(golem, SLAM_RANGE, isSimpleValidTarget);
 
                 const lastHit = golemTargets.get(golemId);
                 if (lastHit?.isValid && !nearby.some(e => e.id === lastHit.id)) {
-                    const dx = lastHit.location.x - golem.location.x;
-                    const dy = lastHit.location.y - golem.location.y;
-                    const dz = lastHit.location.z - golem.location.z;
-                    const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
-                    if (dist <= SLAM_RANGE) nearby.push(lastHit);
+                    if (distSq3D(lastHit.location, golem.location) <= SLAM_RANGE * SLAM_RANGE) {
+                        nearby.push(lastHit);
+                    }
                 }
 
                 // Damage 3 nearest targets

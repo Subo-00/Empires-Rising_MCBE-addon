@@ -1,5 +1,6 @@
 /** Dragon base HP and HP gained per level */
-export const DRAGON_BASE_HP = 20;
+export const DRAGON_BASE_HP = 20;  // should match minecraft:health value in the entity's JSON file
+
 export const DRAGON_HP_PER_LEVEL = 10;
 
 /** Max level a dragon can reach */
