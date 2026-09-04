@@ -11,6 +11,7 @@ import {
     trySetProp, getNum, clamp, topOf, ensureId, isPurifying,
     clearState, getPurifierEntityAt, dropItems, killLinkedUndeadDelayed
 } from "./purifierHelpers.js";
+import { notifyPurifierStopped } from "./purifierLogic.js";
 
 // Re-exported so processPurifier can schedule spawns on the same cadence
 export { EMPTY_SOUL_SPAWN_EVERY };
@@ -171,14 +172,22 @@ function tryDropVoidShard(dim, loc) {
 function purifierDestroyedBySoul(dim, loc) {
     const block = dim.getBlock(loc);
     if (block && block.typeId === PURIFIER_BLOCK) {
-        try { dim.spawnParticle("subo:purify_particle", topOf(loc)); } catch { }
-        dim.playSound("random.explode", loc, {
-            volume: 0.5, pitch: 0.6
-        });
+        // === New feedback (same spirit as player-break) ===
+        dim.playSound("random.fizz", loc, { pitch: 0.8, volume: 1.0 });
+        dim.playSound("random.break", loc, { pitch: 1.1, volume: 0.9 });
+        dim.playSound("random.explode", loc, { volume: 0.5, pitch: 0.6 });
+        dim.playSound("mob.empty_soul.spawn", loc, { volume: 1.5, pitch: 0.8 });
 
-        dim.playSound("mob.empty_soul.spawn", loc, {
-            volume: 1.5, pitch: 0.8
-        });
+        const center = { x: loc.x + 0.5, y: loc.y + 0.8, z: loc.z + 0.5 };
+        for (let i = 0; i < 18; i++) {
+            try {
+                dim.spawnParticle("minecraft:explosion_particle", {
+                    x: center.x + (Math.random() - 0.5) * 1.4,
+                    y: center.y + Math.random() * 1.0,
+                    z: center.z + (Math.random() - 0.5) * 1.4
+                });
+            } catch { }
+        }
 
         // Drop partial items before destroying the block
         const entity = getPurifierEntityAt(dim, loc);
@@ -191,11 +200,11 @@ function purifierDestroyedBySoul(dim, loc) {
                 const amount = getNum(entity, inp.key + ":", 0);
                 if (amount <= 0) continue;
                 const purified = Math.floor(amount * fraction);
-                const remaining = amount - purified;
+                const remainingItems = amount - purified;
                 if (purified > 0) dropItems(dim, dropAt, inp.out, purified);
                 // unpurified: 50% survival (same as player-break penalty)
                 let survived = 0;
-                for (let i = 0; i < remaining; i++) if (Math.random() < 0.5) survived++;
+                for (let i = 0; i < remainingItems; i++) if (Math.random() < 0.5) survived++;
                 if (survived > 0) dropItems(dim, dropAt, inp.id, survived);
             }
         }
@@ -205,6 +214,8 @@ function purifierDestroyedBySoul(dim, loc) {
 
     const entity = getPurifierEntityAt(dim, loc);
     if (entity) {
+        notifyPurifierStopped();
+
         killLinkedUndeadDelayed(dim, entity, 0);
         killLinkedEmptySoulsDelayed(dim, entity, 0);
         clearState(entity);

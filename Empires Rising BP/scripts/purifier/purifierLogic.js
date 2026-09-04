@@ -209,6 +209,14 @@ function startPurify(dim, block, entity, toPurify, totalTicks) {
 let purifierRunId = null;
 let activePurifierCount = 0;
 
+/** Call whenever a purification session ends (finish, break while purifying, sky fail, soul destroy, block gone). */
+export function notifyPurifierStopped() {
+	activePurifierCount = Math.max(0, activePurifierCount - 1);
+	if (activePurifierCount === 0) {
+		stopPurifierTicker();
+	}
+}
+
 function startPurifierTicker() {
 	if (purifierRunId !== null) return;
 	purifierRunId = system.runInterval(() => {
@@ -249,6 +257,7 @@ function processPurifier(dim, entity) {
 	if (block.typeId !== PURIFIER_BLOCK) {
 		// Block genuinely destroyed (e.g. exploded, soul reached it)
 		clearState(entity);
+		notifyPurifierStopped();
 		return;
 	}
 
@@ -276,10 +285,7 @@ function processPurifier(dim, entity) {
 			if (b) trySetState(b, false);
 			killLinkedUndeadDelayed(dim, entity);
 			killLinkedEmptySoulsDelayed(dim, entity);
-			activePurifierCount = Math.max(0, activePurifierCount - 1);
-			if (activePurifierCount === 0) {
-				stopPurifierTicker();
-			}
+			notifyPurifierStopped();
 			clearState(entity);
 			return;
 		}
@@ -314,10 +320,7 @@ function finishPurify(dim, loc, entity) {
 	// kill undead linked to this purifier
 	killLinkedUndeadDelayed(dim, entity);
 	killLinkedEmptySoulsDelayed(dim, entity);
-	activePurifierCount = Math.max(0, activePurifierCount - 1);
-	if (activePurifierCount === 0) {
-		stopPurifierTicker();
-	}
+	notifyPurifierStopped();
 }
 
 // =============================================================================
@@ -338,26 +341,39 @@ export function handlePurifierBreak(dim, loc) {
 			if (amount <= 0) continue;
 
 			const purified = Math.floor(amount * fraction);
-			const remaining = amount - purified;
+			const remainingItems = amount - purified;
 
 			// purified portion -> output
 			if (purified > 0) dropItems(dim, dropAt, inp.out, purified);
 
 			// unpurified portion -> each has 50% chance to survive as raw input
 			let survived = 0;
-			for (let i = 0; i < remaining; i++) if (Math.random() < 0.5) survived++;
+			for (let i = 0; i < remainingItems; i++) if (Math.random() < 0.5) survived++;
 			if (survived > 0) dropItems(dim, dropAt, inp.id, survived);
 		}
 
-		dim.playSound("random.fizz", loc);
+		// Broken while purifying – clear feedback
+		dim.playSound("random.fizz", loc, { pitch: 0.8, volume: 1.0 });
+		dim.playSound("random.break", loc, { pitch: 1.1, volume: 0.9 });
+		dim.playSound("random.explode", loc, { pitch: 1.1, volume: 0.9 });
+
+		const center = { x: loc.x + 0.5, y: loc.y + 0.8, z: loc.z + 0.5 };
+
+		for (let i = 0; i < 16; i++) {
+			try {
+				dim.spawnParticle("minecraft:explosion_particle", {
+					x: center.x + (Math.random() - 0.5) * 1.4,
+					y: center.y + Math.random() * 1.0,
+					z: center.z + (Math.random() - 0.5) * 1.4
+				});
+			} catch {}
+		}
+
+		notifyPurifierStopped();
 	}
 
 	killLinkedUndeadDelayed(dim, entity);
 	killLinkedEmptySoulsDelayed(dim, entity);
-	activePurifierCount = Math.max(0, activePurifierCount - 1);
-	if (activePurifierCount === 0) {
-		stopPurifierTicker();
-	}
 	entity.remove();
 }
 
