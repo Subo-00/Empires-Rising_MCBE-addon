@@ -194,7 +194,7 @@ function spawnFireballExplosion(dimension, location, factionTag) {
     try {
         dimension.getEntities({ location, maxDistance: 4 }).forEach(entity => {
             if (!entity?.isValid) return;
-            if (entity.typeId === "subo:dragon_fireball") return;
+            if (entity.typeId === "subo:dragon_fireball" || entity.typeId === "minecraft:item") return;
 
             // Fire/water/void allies are immune to this dragon's fireball.
             const entityFaction = getFactionTag(entity);
