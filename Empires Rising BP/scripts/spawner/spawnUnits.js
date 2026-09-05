@@ -1,5 +1,5 @@
 import { world, system } from "@minecraft/server";
-import { DRAGON_HP_PER_LEVEL, FACTION_MAP } from "../config/spawnerConfig.js"; 
+import { DRAGON_HP_PER_LEVEL, FACTION_MAP } from "../config/spawnerConfig.js";
 import { getTag, getStorageLocation } from "./spawnerHelpers.js";
 import { getPlayerFaction } from "./faction.js";
 
@@ -55,6 +55,19 @@ export function spawnUnit(spawner) {
 
     // Equip gear
     equipUnit(unit, spawner, spawnerType);
+
+    // Play “pop” sound when the troop appears.
+    try {
+        const loc = unit.location;
+        dim.playSound("random.pop", loc, { volume: 0.8, pitch: 1.2 });
+        for (let i = 0; i < 6; i++) {
+            dim.spawnParticle("minecraft:basic_smoke_particle", {
+                x: loc.x + (Math.random() - 0.5) * 0.8,
+                y: loc.y + 0.5 + Math.random() * 0.6,
+                z: loc.z + (Math.random() - 0.5) * 0.8
+            });
+        }
+    } catch { }
 
     return unit;
 }

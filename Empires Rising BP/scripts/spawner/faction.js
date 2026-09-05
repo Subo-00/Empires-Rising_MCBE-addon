@@ -79,6 +79,12 @@ export function setPlayerFaction(player, id) {
     try {
         const current = getPlayerFaction(player);
 
+        // Already in this faction
+        if (current === id) {
+            player.sendMessage("§cYou are already in this faction!");
+            return false;
+        }
+
         // Only block if the player is already in a faction AND still has spawners
         if (current !== 0 && getPlayerSpawners(player) > 0) {
             player.sendMessage("§cYou must destroy all your spawners before changing the faction!");
@@ -104,6 +110,13 @@ export function setPlayerFaction(player, id) {
         }
 
         player.sendMessage(`${FACTION_COLORS[id]}You joined the ${FACTION_NAMES[id]} faction!`);
+
+        // Feedback (sound + particles)
+        const factionName = FACTION_MAP[id]; // "fire" | "water" | "void"
+        if (factionName) {
+            playFactionJoinFeedback(player, factionName);
+        }
+
         return true;
     } catch (e) {
         console.warn("setPlayerFaction error:", e);
@@ -125,4 +138,61 @@ export function promptFactionJoin(player) {
         setPlayerFaction(player, id);
         return id;
     });
+}
+
+/** Call this right after the player successfully joins a faction */
+export function playFactionJoinFeedback(player, factionName) {
+    // factionName should be "fire" | "water" | "void" (lowercase)
+    const dim = player.dimension;
+    const loc = player.location;
+
+    const configs = {
+        fire: {
+            sound: "fire.ignite",
+            particle: "minecraft:basic_flame_particle",
+            extraParticle: "minecraft:lava_particle",
+            pitch: 1.0
+        },
+        water: {
+            sound: "bucket.fill_water",
+            particle: "minecraft:cauldron_splash_particle",
+            extraParticle: "minecraft:water_drip_particle",
+            pitch: 1.1
+        },
+        void: {
+            sound: "portal.portal",
+            particle: "minecraft:basic_portal_particle",
+            extraParticle: "minecraft:endrod",
+            pitch: 0.85
+        }
+    };
+
+    const cfg = configs[factionName] ?? {
+        sound: "random.levelup",
+        particle: "minecraft:villager_happy",
+        extraParticle: "minecraft:endrod",
+        pitch: 1.0
+    };
+
+    try {
+        dim.playSound(cfg.sound, loc, { volume: 1.2, pitch: cfg.pitch });
+        // ring of particles around the player
+        for (let i = 0; i < 20; i++) {
+            const angle = (i / 20) * Math.PI * 2;
+            const r = 1.2;
+            dim.spawnParticle(cfg.particle, {
+                x: loc.x + Math.cos(angle) * r,
+                y: loc.y + 0.8 + Math.sin(i) * 0.3,
+                z: loc.z + Math.sin(angle) * r
+            });
+        }
+        // a few extra accent particles
+        for (let i = 0; i < 8; i++) {
+            dim.spawnParticle(cfg.extraParticle, {
+                x: loc.x + (Math.random() - 0.5) * 1.5,
+                y: loc.y + 1.0 + Math.random() * 0.8,
+                z: loc.z + (Math.random() - 0.5) * 1.5
+            });
+        }
+    } catch { }
 }

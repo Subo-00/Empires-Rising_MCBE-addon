@@ -5,7 +5,9 @@ import { promptFactionJoin, getPlayerFaction, addPlayerSpawners } from "./factio
 import {
     DRAGON_BASE_HP, DRAGON_HP_PER_LEVEL, DRAGON_MAX_LEVEL,
     SPAWN_COSTS, CAP_CONFIG, TIERS, TIER_COLORS, STAT_COLORS, COST_ITEMS,
-    INTERACT_COOLDOWN_MS, SPAWNER_ENTITY, SPAWNER_BLOCK_IDS
+    INTERACT_COOLDOWN_MS, SPAWNER_ENTITY, SPAWNER_BLOCK_IDS,
+    playArmorUpgradeFeedback, playWeaponUpgradeFeedback,
+    playCapUpgradeFeedback, playDragonLevelFeedback, playSpawnOrderFeedback
 } from "../config/spawnerConfig.js";
 
 import {
@@ -78,23 +80,25 @@ export function handleSpawnerInteraction(ev) {
                 const faction = getPlayerFaction(player);
                 if (faction === 0) {
                     promptFactionJoin(player).then(f => {
-                        if (f > 0) openSpawnMenu(player, entity);
+                        if (f > 0) openSpawnMenu(player, entity, block);
                     });
                     return;
                 }
-                openSpawnMenu(player, entity);
+                openSpawnMenu(player, entity, block);
             } else if (isDragon) {
-                if (res.selection === 1) openDragonLevelMenu(player, entity);
+                if (res.selection === 1) openDragonLevelMenu(player, entity, block);
             } else {
-                if (res.selection === 1) openUpgradeMenu(player, entity, "armor");
-                if (res.selection === 2) openUpgradeMenu(player, entity, "weapon");
-                if (res.selection === 3) openUpgradeMenu(player, entity, "cap");
+                if (res.selection === 1) openUpgradeMenu(player, entity, "armor", block);
+                if (res.selection === 2) openUpgradeMenu(player, entity, "weapon", block);
+                if (res.selection === 3) openUpgradeMenu(player, entity, "cap", block);
             }
         });
     });
 }
 
-function openSpawnMenu(player, entity) {
+function openSpawnMenu(player, entity, block) {
+    const fxLoc = blockCenter(block);
+
     const unitType = getTag(entity, "type:", "barbarian");
     const costData = SPAWN_COSTS[unitType];
 
@@ -155,11 +159,13 @@ function openSpawnMenu(player, entity) {
         player.sendMessage(`§aQueued ${amount} ${unitName}!`);
 
         processSpawnerQueue(entity);
+        playSpawnOrderFeedback(player.dimension, fxLoc);
     });
 }
 
-function openDragonLevelMenu(player, entity) {
+function openDragonLevelMenu(player, entity, block) {
     const currentLevel = Number(getTag(entity, "level:", 1));
+    const fxLoc = blockCenter(block);
 
     if (currentLevel >= DRAGON_MAX_LEVEL) {
         player.sendMessage("§5Dragon is already at max level!");
@@ -173,6 +179,7 @@ function openDragonLevelMenu(player, entity) {
 
     // Cooldown factor used by dragon.js (Level 1 = 100%, Level 5 ≈ 40%)
     const cooldownPercent = Math.round(Math.max(40, 100 - (nextLevel - 1) * 15));
+
 
     const form = new ActionFormData()
         .title("§5Upgrade Dragon Level")
@@ -202,14 +209,17 @@ function openDragonLevelMenu(player, entity) {
                 `§5Dragon upgraded to Level §f${nextLevel}§5! ` +
                 `HP: §c${nextHp} §5| Attack Speed: §a${cooldownPercent}%`
             );
+
+            playDragonLevelFeedback(player.dimension, fxLoc);
         });
     });
 }
 
-function openUpgradeMenu(player, entity, stat) {
+function openUpgradeMenu(player, entity, stat, block) {
     const unitType = getTag(entity, "type:", "barbarian");
     const config = CAP_CONFIG[unitType];
     const currentCap = Number(getTag(entity, "cap:", config.start));
+    const fxLoc = blockCenter(block);
 
     const form = new ActionFormData().title(`§eUpgrade ${stat}`);
 
@@ -251,7 +261,10 @@ function openUpgradeMenu(player, entity, stat) {
                 const newCap = currentCap + config.jump;
                 setTag(entity, "cap:", newCap);
                 player.sendMessage(`§aUnit cap increased to §f${newCap}!`);
-                openUpgradeMenu(player, entity, stat);
+
+                playCapUpgradeFeedback(player.dimension, fxLoc);
+
+                openUpgradeMenu(player, entity, stat, block);
                 return;
             }
 
@@ -290,6 +303,12 @@ function openUpgradeMenu(player, entity, stat) {
             player.sendMessage(
                 `§aUpgraded ${STAT_COLORS[stat]}${stat} §ato ${TIER_COLORS[targetTier]}${targetTier}!`
             );
+
+            if (stat === "armor") {
+                playArmorUpgradeFeedback(player.dimension, fxLoc, targetTier);
+            } else if (stat === "weapon") {
+                playWeaponUpgradeFeedback(player.dimension, fxLoc, targetTier);
+            }
             // form closes – no reopen
         });
     });
