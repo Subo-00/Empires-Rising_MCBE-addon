@@ -206,7 +206,7 @@ function fillPotionBLaster(source, itemStack, equippable, key) {
     dim.playSound("random.pop", loc, { pitch: 1.2, volume: 0.8 });
     for (let i = 0; i < 8; i++) {
         try {
-            dim.spawnParticle("minecraft:basic_crit_particle", {
+            dim.spawnParticle("minecraft:rain_splash_particle", {
                 x: loc.x + (Math.random() - 0.5) * 0.6,
                 y: loc.y + 1.2 + Math.random() * 0.4,
                 z: loc.z + (Math.random() - 0.5) * 0.6
