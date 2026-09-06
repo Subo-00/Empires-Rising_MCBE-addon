@@ -67,6 +67,15 @@
     },
 "subo_trumpet": {
 			"textures": "textures/items/trumpet"
-		}
+		},
+"rift_shard": {
+      "textures": "textures/items/rift_shard"
+    },
+    "rift_transporter": {
+      "textures": "textures/items/rift_transporter"
+    },
+    "glitch_pouch": {
+      "textures": "textures/items/glitch_pouch"
+    }
   }
 }

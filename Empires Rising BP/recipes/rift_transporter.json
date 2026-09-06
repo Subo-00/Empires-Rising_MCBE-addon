@@ -1,0 +1,23 @@
+{
+  "format_version": "1.19.80",
+  "minecraft:recipe_shaped": {
+    "description": {
+      "identifier": "subo:rift_transporter"
+    },
+    "tags": ["crafting_table"],
+    "pattern": [
+      "SSS",
+      "S S",
+      "SSS"
+    ],
+    "key": {
+      "S": {
+        "item": "subo:rift_shard"
+      }
+    },
+    "result": {
+      "item": "subo:rift_transporter",
+      "count": 1
+    }
+  }
+}

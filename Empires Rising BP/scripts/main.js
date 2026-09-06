@@ -10,6 +10,7 @@ import "./specialMobDrops.js";
 import "./items/milkPotion.js";
 import "./items/potionBlaster.js";
 import "./items/troopHorn.js";
+import "./rift/rift_dimension.js";
 
 // -------------------------------------------------------
 // Bootstrap

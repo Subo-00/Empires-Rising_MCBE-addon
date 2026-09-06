@@ -5,7 +5,7 @@
 		"description": "Empires Rising Behavior Pack",
 		"uuid": "e402d6a0-63ec-83bd-ba04-cc5fcb6d5d67",
 		"version": [1, 0, 0],
-		"min_engine_version": [1, 26, 10]
+		"min_engine_version": [1, 26, 30]
 	},
 	"metadata": {
 		"authors": ["Subo"],
