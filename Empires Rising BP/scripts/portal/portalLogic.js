@@ -1,8 +1,8 @@
 import { world, system, BlockPermutation, ItemStack } from "@minecraft/server";
 import { ModalFormData } from "@minecraft/server-ui";
 import { ACTIVE_SECONDS, TROOP_RADIUS } from "../config/itemsConfig.js";
-import { getStorageLocation, setTag, getTag, isBarbarian, isArcher, isDragon, isTroop } from "../spawner/spawnerHelpers.js";
-
+import { getStorageLocation, setTag, getTag, isTroop } from "../spawner/spawnerHelpers.js";
+import { forceNearbyTroopsStay, restoreNearbyTroops } from "../sharedHelpers/troopTeleport.js";
 
 const PORTAL_BLOCK = "subo:portal";
 const PORTAL_ENTITY = "subo:portal_entity";
@@ -725,94 +725,85 @@ function ensurePortalTicker() {
                     activePortals.delete(key);
                 }
 
-                const isOverworldOnly = dimId === "minecraft:overworld" && data.dest.dim === "minecraft:overworld";
+                const isOverworldOnly =
+                    dimId === "minecraft:overworld" && data.dest.dim === "minecraft:overworld";
 
-                const troopsToBring = [];
-                const troopsToStrip = [];
+                if (isOverworldOnly) {
+                    // Same-dimension: collect the following troops so we can move them with the player
+                    const troopsToBring = [];
 
-                const nearby = dim.getEntities({
-                    location: portalLoc,
-                    maxDistance: TROOP_RADIUS
-                });
-
-                for (const ent of nearby) {
-                    if (!isTroop(ent.typeId)) continue;
-
-                    const ownerTag = ent.getTags().find(t => t.startsWith("owner:"));
-                    if (!ownerTag || ownerTag !== `owner:${player.name}`) continue;
-
-                    // Only currently following troops
-                    const mark = ent.getComponent("minecraft:mark_variant");
-                    if (!mark || mark.value !== 1) continue;
-
-                    if (isOverworldOnly) {
-                        troopsToBring.push(ent);
-                    } else {
-                        troopsToStrip.push(ent);
-                    }
-                }
-
-                // Cross-dimension: force stay + mark them so we can restore later
-                for (const ent of troopsToStrip) {
-                    const events = getStayFollowEvents(ent.typeId);
-                    if (events) {
-                        try { ent.triggerEvent(events.stay); } catch { }
-                    }
-                    try { ent.addTag("subo:resume_follow"); } catch { }
-                }
-
-                // Small delay so the stay event has time to apply
-                system.runTimeout(() => {
-                    // Teleport the player
-                    try {
-                        player.teleport(destLoc, { dimension: destDim });
-                        player.sendMessage(`§bTeleported to "${data.dest.name}"`);
-
-                        if (needDropPortal) {
-                            system.runTimeout(() => {
-                                try {
-                                    player.dimension.spawnItem(new ItemStack("subo:portal", 1), player.location);
-                                    player.sendMessage("§eInventory full – portal dropped at your feet.");
-                                } catch { }
-                            }, 10);
-                        }
-                    } catch { }
-
-                    // Bring troops (Overworld → Overworld only)
-                    for (const ent of troopsToBring) {
-                        if (!ent.isValid) continue;
-
-                        const targetLoc = {
-                            x: destLoc.x + (Math.random() - 0.5) * 1.5,
-                            y: destLoc.y,
-                            z: destLoc.z + (Math.random() - 0.5) * 1.5
-                        };
-
-                        try {
-                            ent.teleport(targetLoc, { dimension: destDim });
-                        } catch { }
-                    }
-
-                    // Restore any nearby troops that were previously forced into stay mode
-                    const toRestore = destDim.getEntities({
-                        location: destLoc,
+                    const nearby = dim.getEntities({
+                        location: portalLoc,
                         maxDistance: TROOP_RADIUS
                     });
 
-                    for (const ent of toRestore) {
-                        if (!isTroop(ent.typeId)) continue;
-                        if (!ent.hasTag("subo:resume_follow")) continue;
+                    for (const ent of nearby) {
+                        // We need isTroop again for this path
+                        if (!isTroop(ent.typeId)) continue; 
 
                         const ownerTag = ent.getTags().find(t => t.startsWith("owner:"));
                         if (!ownerTag || ownerTag !== `owner:${player.name}`) continue;
 
-                        const events = getStayFollowEvents(ent.typeId);
-                        if (events) {
-                            try { ent.triggerEvent(events.follow); } catch { }
-                        }
-                        try { ent.removeTag("subo:resume_follow"); } catch { }
+                        const mark = ent.getComponent("minecraft:mark_variant");
+                        if (!mark || mark.value !== 1) continue;
+
+                        troopsToBring.push(ent);
                     }
-                }, 2);
+
+                    system.runTimeout(() => {
+                        try {
+                            player.teleport(destLoc, { dimension: destDim });
+                            player.sendMessage(`§bTeleported to "${data.dest.name}"`);
+
+                            if (needDropPortal) {
+                                system.runTimeout(() => {
+                                    try {
+                                        player.dimension.spawnItem(new ItemStack("subo:portal", 1), player.location);
+                                        player.sendMessage("§eInventory full – portal dropped at your feet.");
+                                    } catch { }
+                                }, 10);
+                            }
+                        } catch { }
+
+                        // Bring the troops (same dimension – safe)
+                        for (const ent of troopsToBring) {
+                            if (!ent.isValid) continue;
+
+                            const targetLoc = {
+                                x: destLoc.x + (Math.random() - 0.5) * 1.5,
+                                y: destLoc.y,
+                                z: destLoc.z + (Math.random() - 0.5) * 1.5
+                            };
+
+                            try {
+                                ent.teleport(targetLoc); // no dimension change
+                            } catch { }
+                        }
+                    }, 2);
+
+                } else {
+                    // Cross-dimension: leave troops behind
+                    forceNearbyTroopsStay(player, TROOP_RADIUS);
+
+                    system.runTimeout(() => {
+                        try {
+                            player.teleport(destLoc, { dimension: destDim });
+                            player.sendMessage(`§bTeleported to "${data.dest.name}"`);
+
+                            if (needDropPortal) {
+                                system.runTimeout(() => {
+                                    try {
+                                        player.dimension.spawnItem(new ItemStack("subo:portal", 1), player.location);
+                                        player.sendMessage("§eInventory full – portal dropped at your feet.");
+                                    } catch { }
+                                }, 10);
+                            }
+                        } catch { }
+
+                        // Resume any troops that were previously left at this destination
+                        restoreNearbyTroops(player, TROOP_RADIUS);
+                    }, 2);
+                }
 
             }
         }
@@ -822,13 +813,6 @@ function ensurePortalTicker() {
             portalTickId = null;
         }
     }, 5);
-}
-
-function getStayFollowEvents(typeId) {
-    if (isBarbarian(typeId)) return { stay: "barbarian:stay", follow: "barbarian:follow" };
-    if (isArcher(typeId)) return { stay: "archer:stay", follow: "archer:follow" };
-    if (isDragon(typeId)) return { stay: "dragon:stay", follow: "dragon:follow" };
-    return null;
 }
 
 // ===== Clean up when portal is broken =====
