@@ -17,5 +17,12 @@
     "flipbook_texture": "textures/blocks/subo_portal_active",
     "ticks_per_frame": 3,
     "blend_frames": true
+  },
+  {
+    "flipbook_texture": "textures/blocks/rift_transporter_active",
+    "atlas_tile": "rift_transporter_active",
+    "ticks_per_frame": 2,
+    "blend_frames": false,
+    "frames": [0, 1, 2, 3, 4, 5, 6, 7]
   }
 ]

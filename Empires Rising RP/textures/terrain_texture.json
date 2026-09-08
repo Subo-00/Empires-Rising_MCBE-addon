@@ -72,6 +72,15 @@
 		},
 		"subo_portal_active": {
 			"textures": "textures/blocks/subo_portal_active"
+		},
+		"rift_transporter_inactive": {
+			"textures": "textures/blocks/rift_transporter_inactive"
+		},
+		"rift_transporter_active": {
+			"textures": "textures/blocks/rift_transporter_active"
+		},
+		"rift_transporter_broken": {
+			"textures": "textures/blocks/rift_transporter_broken"
 		}
 	}
 }

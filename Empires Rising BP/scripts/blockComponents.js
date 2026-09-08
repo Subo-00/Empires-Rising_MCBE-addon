@@ -4,6 +4,7 @@ import { replaceWithLootChest } from "./camp/randomChests.js";
 import { spawnRandomEnemies } from "./camp/randomMobSpawner.js";
 import { handlePortalBreak } from "./portal/portalLogic.js";
 import { handlePurifierBreak } from "./purifier/purifierLogic.js";
+import { handleRiftTransporterBreak } from "./rift/riftDimension.js";
 // import { buildCamp } from "./camp/campBuilder.js";  // for testing
 
 
@@ -57,6 +58,13 @@ export function registerBlockComponents() {
         blockComponentRegistry.registerCustomComponent("subo:portal_block", {
             onBreak: (event) => {
                 handlePortalBreak(event);
+            }
+        });
+
+        blockComponentRegistry.registerCustomComponent("subo:rift_transporter", {
+            onBreak: (event) => {
+                const { block, dimension } = event;
+                handleRiftTransporterBreak(dimension, block.location);
             }
         });
     });

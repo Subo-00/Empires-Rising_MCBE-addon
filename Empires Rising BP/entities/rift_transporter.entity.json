@@ -2,7 +2,7 @@
     "format_version": "1.21.50",
     "minecraft:entity": {
         "description": {
-            "identifier": "subo:spawner_entity",
+            "identifier": "subo:rift_transporter_entity",
             "is_spawnable": false,
             "is_summonable": true
         },

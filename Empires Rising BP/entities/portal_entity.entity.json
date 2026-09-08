@@ -18,7 +18,11 @@
             "minecraft:custom_hit_test": {
                 "hitboxes": [
                     {
-                        "pivot": [0, 100, 0],
+                        "pivot": [
+                            0,
+                            100,
+                            0
+                        ],
                         "width": 0,
                         "height": 0
                     }

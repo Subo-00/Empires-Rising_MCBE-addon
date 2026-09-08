@@ -81,9 +81,9 @@ export function setTag(entity, prefix, value) {
 }
 
 export function getTag(entity, prefix, fallback) {
-    const tag = entity.getTags().find(t => t.startsWith(prefix));
-    if (!tag) return fallback;
-    return tag.split(":")[1];
+  const tag = entity.getTags().find(t => t.startsWith(prefix));
+  if (!tag) return fallback;
+  return tag.slice(prefix.length);   // was tag.split(":")[1]
 }
 
 // =========================
