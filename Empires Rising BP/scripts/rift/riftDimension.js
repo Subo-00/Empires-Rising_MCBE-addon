@@ -23,6 +23,124 @@ const activeRifts = new Map();
 
 // playerId → tick until which they cannot be teleported again
 const teleportLock = new Map();
+
+// -----------------------------------------------------------------------------
+// RECOVERY (server restart / chunk reload)
+// -----------------------------------------------------------------------------
+const recoveredRifts = new Set();   // prevent double-recovery of the same riftId
+
+function recoverSingleRift(entity) {
+  if (!entity || !entity.isValid) return;
+
+  const riftId = getNum(entity, "riftId:", 0);
+  if (!riftId || recoveredRifts.has(riftId)) return;
+  recoveredRifts.add(riftId);
+
+  const loc = blockLoc(entity);
+  if (!loc) return;
+
+  const dim = world.getDimension("minecraft:overworld");
+  let block = null;
+  try { block = dim.getBlock(loc); } catch { }
+
+  // ---- permanently broken ----
+  if (isBroken(entity)) {
+    if (block?.typeId === RIFT_BLOCK) trySetState(block, "broken");
+    // entity can stay (marked) or be removed – we remove it for cleanliness
+    clearRiftState(entity);
+    entity.remove();
+    return;
+  }
+
+  const remaining = getNum(entity, "remaining:", 0);
+
+  // ---- still had time left → RESUME ----
+  if (remaining > 0) {
+    // cancel any leftover timer just in case
+    const old = activeRifts.get(riftId);
+    if (old) {
+      try { system.clearRun(old.timeoutId); } catch { }
+      activeRifts.delete(riftId);
+    }
+
+    const timeoutId = system.runTimeout(() => {
+      activeRifts.delete(riftId);
+      let ent = null;
+      try { ent = getRiftEntityAt(dim, loc); } catch { }
+      forceCloseRift(dim, ent, false, riftId, { ...loc });
+    }, remaining);
+
+    // re-schedule 15 s warning if still relevant
+    if (remaining > WARNING_15) {
+      system.runTimeout(() => {
+        if (!activeRifts.has(riftId)) return;
+        for (const p of world.getPlayers()) {
+          const data = getPlayerRiftReturn(p);
+          if (data && data.riftId === riftId && p.dimension.id === DIMENSION_ID) {
+            p.onScreenDisplay.setActionBar("§eRift closing in 15 seconds!");
+          }
+        }
+      }, remaining - WARNING_15);
+    }
+
+    activeRifts.set(riftId, {
+      timeoutId,
+      x: loc.x,
+      y: loc.y,
+      z: loc.z,
+      endTick: system.currentTick + remaining
+    });
+
+    if (block?.typeId === RIFT_BLOCK) trySetState(block, "active");
+    startStepOnTicker();
+    console.warn(`[Rift] Resumed rift #${riftId} with ${Math.ceil(remaining / TICKS_PER_SECOND)}s left`);
+    return;
+  }
+
+  // ---- remaining == 0 but block still says "active" → clean close ----
+  if (block?.permutation?.getState("subo:state") === "active") {
+    forceCloseRift(dim, entity, false, riftId, { ...loc });
+  }
+}
+
+function recoverStuckPlayers() {
+  for (const p of world.getPlayers()) {
+    if (p.dimension.id !== DIMENSION_ID) continue;
+
+    const data = getPlayerRiftReturn(p);
+    if (!data) {
+      // no return tag → emergency eject to overworld spawn
+      p.teleport({ x: 0, y: 100, z: 0 }, { dimension: world.getDimension("minecraft:overworld") });
+      p.sendMessage("§cYou were stuck in a rift. Returned to spawn.");
+      continue;
+    }
+
+    // if the corresponding rift is no longer active, bring them home
+    if (!activeRifts.has(data.riftId)) {
+      returnPlayerHome(p, {
+        dim: "overworld",
+        x: data.x,
+        y: data.y,
+        z: data.z
+      });
+      clearPlayerRiftTags(p);
+    }
+  }
+}
+
+function recoverAllRifts() {
+  recoveredRifts.clear();
+  const dim = world.getDimension("minecraft:overworld");
+  try {
+    for (const e of dim.getEntities({ type: RIFT_ENTITY })) {
+      recoverSingleRift(e);
+    }
+  } catch (err) {
+    console.warn("[Rift] recovery scan failed", err);
+  }
+  recoverStuckPlayers();
+}
+
 // =============================================================================
 // REGISTER DIMENSION + COMPONENTS
 // =============================================================================
@@ -39,6 +157,17 @@ system.beforeEvents.startup.subscribe((ev) => {
       handleGlitchPouchUse(player, item);
     }
   });
+});
+
+// Run recovery a few seconds after the world is fully loaded
+system.runTimeout(() => {
+  recoverAllRifts();
+}, 60);   // 3 seconds – safe for most servers
+
+world.afterEvents.entityLoad.subscribe((ev) => {
+  if (ev.entity?.typeId !== RIFT_ENTITY) return;
+  // small delay so tags are readable
+  system.runTimeout(() => recoverSingleRift(ev.entity), 5);
 });
 
 // =============================================================================
@@ -226,32 +355,45 @@ function startStepOnTicker() {
     const now = system.currentTick;
 
     for (const [riftId, info] of [...activeRifts]) {
-      // ---- remaining time & particles ----
       const remaining = info.endTick - now;
+
+      // Safety – timer should already have fired
       if (remaining <= 0) {
-        // safety – the one-shot should already have fired
         activeRifts.delete(riftId);
         continue;
       }
 
-      // tiny upward particles
-      try {
-        dim.spawnParticle(
-          "subo:rift_transporter",
-          { x: info.x + 0.5, y: info.y + 0.1, z: info.z + 0.5 }
-        );
-      } catch (e) {
-        console.warn(e);
-      }
-
-      // live remaining on the entity (for action-bar)
+      // ---- only touch the overworld if the pad chunk is still loaded ----
       let entity = null;
-      try { entity = getRiftEntityAt(dim, { x: info.x, y: info.y, z: info.z }); } catch { }
-      if (entity && entity.isValid) {
-        setNum(entity, "remaining:", remaining);
+      let chunkLoaded = false;
+      try {
+        // getBlock throws LocationInUnloadedChunkError when the chunk is gone
+        const testBlock = dim.getBlock({ x: info.x, y: info.y, z: info.z });
+        chunkLoaded = !!testBlock;
+        if (chunkLoaded) {
+          entity = getRiftEntityAt(dim, { x: info.x, y: info.y, z: info.z });
+        }
+      } catch {
+        chunkLoaded = false;
       }
 
-      // 5-second warning
+      // Entity gone or marked broken → drop from active list
+      if (chunkLoaded && (!entity || isBroken(entity))) {
+        activeRifts.delete(riftId);
+        continue;
+      }
+
+      // Particles only when the chunk is loaded (avoids the warning spam)
+      if (chunkLoaded) {
+        try {
+          dim.spawnParticle(
+            "subo:rift_transporter",
+            { x: info.x + 0.5, y: info.y + 0.1, z: info.z + 0.5 }
+          );
+        } catch { }
+      }
+
+      // 5-second warning (does not need the overworld chunk)
       if (remaining === WARNING_5) {
         for (const p of world.getPlayers()) {
           const data = getPlayerRiftReturn(p);
@@ -261,12 +403,12 @@ function startStepOnTicker() {
         }
       }
 
-      // ---- step-on teleport ----
-      if (isBroken(entity)) continue;          // never teleport on a broken pad
+      // Step-on teleport only possible when the chunk is loaded
+      if (!chunkLoaded || isBroken(entity)) continue;
 
       const players = dim.getPlayers({
         location: { x: info.x + 0.5, y: info.y + 0.5, z: info.z + 0.5 },
-        maxDistance: 0.1
+        maxDistance: 0.6
       });
 
       for (const player of players) {
@@ -279,7 +421,6 @@ function startStepOnTicker() {
 
         if (getPlayerRiftReturn(player)) clearPlayerRiftTags(player);
 
-        // prune expired locks
         for (const [id, until] of teleportLock) {
           if (now >= until) teleportLock.delete(id);
         }
