@@ -88,17 +88,19 @@ function openRiftForm(player, loc, dimId) {
   const block = dim.getBlock(loc);
   if (!block || block.typeId !== RIFT_BLOCK) return;
 
+  // Hard early-out for broken state (entity may already be gone)
   let entity = getRiftEntityAt(dim, loc);
+  if (isBroken(entity) || (block.permutation.getState("subo:state") === "broken")) {
+    player.onScreenDisplay.setActionBar("§cThis transporter is broken.");
+    return;
+  }
+
+  // Only create the entity if it truly does not exist AND the pad is not broken
   if (!entity) {
     entity = dim.spawnEntity(RIFT_ENTITY, getStorageLocation(block));
     setTag(entity, "bx:", loc.x);
     setTag(entity, "by:", loc.y);
     setTag(entity, "bz:", loc.z);
-  }
-
-  if (isBroken(entity)) {
-    player.onScreenDisplay.setActionBar("§cThis transporter is broken.");
-    return;
   }
 
   const riftIdForUi = getNum(entity, "riftId:", 0);
@@ -221,41 +223,68 @@ function startStepOnTicker() {
     }
 
     const dim = world.getDimension("minecraft:overworld");
-    for (const [riftId, info] of activeRifts) {
+    const now = system.currentTick;
+
+    for (const [riftId, info] of [...activeRifts]) {
+      // ---- remaining time & particles ----
+      const remaining = info.endTick - now;
+      if (remaining <= 0) {
+        // safety – the one-shot should already have fired
+        activeRifts.delete(riftId);
+        continue;
+      }
+
+      // tiny upward particles
+      try {
+        dim.spawnParticle(
+          "subo:rift_transporter",
+          { x: info.x + 0.5, y: info.y + 0.1, z: info.z + 0.5 }
+        );
+      } catch (e) {
+        console.warn(e);
+      }
+
+      // live remaining on the entity (for action-bar)
+      let entity = null;
+      try { entity = getRiftEntityAt(dim, { x: info.x, y: info.y, z: info.z }); } catch { }
+      if (entity && entity.isValid) {
+        setNum(entity, "remaining:", remaining);
+      }
+
+      // 5-second warning
+      if (remaining === WARNING_5) {
+        for (const p of world.getPlayers()) {
+          const data = getPlayerRiftReturn(p);
+          if (data && data.riftId === riftId && p.dimension.id === DIMENSION_ID) {
+            p.onScreenDisplay.setActionBar("§cRift closing in 5 seconds!");
+          }
+        }
+      }
+
+      // ---- step-on teleport ----
+      if (isBroken(entity)) continue;          // never teleport on a broken pad
+
       const players = dim.getPlayers({
         location: { x: info.x + 0.5, y: info.y + 0.5, z: info.z + 0.5 },
-        maxDistance: 1.25
+        maxDistance: 0.1
       });
 
       for (const player of players) {
-        // feet can be on top of the block (y or y+1)
         const py = Math.floor(player.location.y);
         if (py < info.y || py > info.y + 1) continue;
-
-        // already inside the rift
         if (player.dimension.id === DIMENSION_ID) continue;
 
-        // short lock to prevent double fire from the interval
         const lockedUntil = teleportLock.get(player.id) ?? 0;
-        if (system.currentTick < lockedUntil) continue;
+        if (now < lockedUntil) continue;
 
-        // stale tags from a previous trip → clear so entry works
-        if (getPlayerRiftReturn(player)) {
-          clearPlayerRiftTags(player);
-        }
+        if (getPlayerRiftReturn(player)) clearPlayerRiftTags(player);
 
         // prune expired locks
         for (const [id, until] of teleportLock) {
-          if (system.currentTick >= until) teleportLock.delete(id);
+          if (now >= until) teleportLock.delete(id);
         }
 
-        // lock for ~2 seconds (40 ticks)
-        teleportLock.set(player.id, system.currentTick + 40);
-
-        let entity = null;
-        try {
-          entity = getRiftEntityAt(dim, { x: info.x, y: info.y, z: info.z });
-        } catch { }
+        teleportLock.set(player.id, now + 40);
 
         teleportPlayerToRift(
           player,
@@ -278,6 +307,11 @@ async function teleportPlayerToRift(player, entity, loc, forcedRiftId = null) {
   const riftId = forcedRiftId ?? (entity ? getNum(entity, "riftId:", 0) : 0);
   if (!riftId) {
     console.warn("[DBG] teleport aborted – no riftId");
+    return;
+  }
+
+  if (entity && isBroken(entity)) {
+    console.warn("[DBG] teleport aborted – transporter broken");
     return;
   }
 
@@ -402,7 +436,6 @@ async function forceCloseRift(dim, entity, wasDestroyed, forcedRiftId = null, fo
   if (wasDestroyed) {
     if (riftId) {
       await deleteIsland(riftId);
-      freeRiftId(riftId);
     }
     if (entity && entity.isValid) {
       clearRiftState(entity);
@@ -474,14 +507,14 @@ async function handleGlitchPouchUse(player, pouch) {
       const options = {
         dimension: dim,
         from: { x: loc.x - 2, y: loc.y - 2, z: loc.z - 2 },
-        to:   { x: loc.x + 2, y: loc.y + 2, z: loc.z + 2 }
+        to: { x: loc.x + 2, y: loc.y + 2, z: loc.z + 2 }
       };
       if (world.tickingAreaManager.hasCapacity(options)) {
         await world.tickingAreaManager.createTickingArea(areaId, options);
         areaCreated = true;
         await system.waitTicks(5);
       }
-    } catch {}
+    } catch { }
   }
 
   let entity = loc ? getRiftEntityAt(dim, loc) : null;
@@ -496,7 +529,7 @@ async function handleGlitchPouchUse(player, pouch) {
           break;
         }
       }
-    } catch {}
+    } catch { }
   }
 
   let total = 0;
@@ -517,7 +550,7 @@ async function handleGlitchPouchUse(player, pouch) {
     // Outside: only cancel the timer / mark inactive if the rift is still open
     const info = activeRifts.get(riftId);
     if (info) {
-      try { system.clearRun(info.timeoutId); } catch {}
+      try { system.clearRun(info.timeoutId); } catch { }
       activeRifts.delete(riftId);
     }
     if (entity && entity.isValid) {
@@ -527,7 +560,7 @@ async function handleGlitchPouchUse(player, pouch) {
       try {
         const block = dim.getBlock(loc);
         if (block?.typeId === RIFT_BLOCK) trySetState(block, "inactive");
-      } catch {}
+      } catch { }
     }
   }
 
@@ -543,7 +576,7 @@ async function handleGlitchPouchUse(player, pouch) {
         try {
           const block = dim.getBlock(loc);
           if (block?.typeId === RIFT_BLOCK) trySetState(block, "broken");
-        } catch {}
+        } catch { }
       }
       clearRiftState(entity);
       entity.remove();
@@ -551,7 +584,7 @@ async function handleGlitchPouchUse(player, pouch) {
   }
 
   if (areaCreated) {
-    try { world.tickingAreaManager.removeTickingArea(areaId); } catch {}
+    try { world.tickingAreaManager.removeTickingArea(areaId); } catch { }
   }
 }
 

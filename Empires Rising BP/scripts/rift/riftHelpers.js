@@ -5,7 +5,7 @@ import { RIFT_ENTITY } from "../config/riftConfig.js";
 export function trySetState(block, value) {
   try {
     block.setPermutation(block.permutation.withState("subo:state", value));
-  } catch {}
+  } catch { }
 }
 
 export function getNum(entity, prefix, fallback = 0) {
@@ -35,12 +35,14 @@ export function getRiftEntityAt(dim, loc) {
   return ents[0] ?? null;
 }
 
-export function isActive(entity) {
-  return getNum(entity, "remaining:", 0) > 0;
+export function isBroken(entity) {
+  if (!entity || !entity.isValid) return true;          // missing entity = permanently broken
+  return getTag(entity, "broken:", null) === "1";
 }
 
-export function isBroken(entity) {
-  return getTag(entity, "broken:", null) === "1";
+export function isActive(entity) {
+  if (!entity || !entity.isValid) return false;
+  return getNum(entity, "remaining:", 0) > 0;
 }
 
 export function clearRiftState(entity) {
