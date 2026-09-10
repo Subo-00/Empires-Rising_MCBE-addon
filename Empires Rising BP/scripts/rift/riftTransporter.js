@@ -20,9 +20,29 @@ import {
 
 // riftId → { timeoutId, x, y, z }
 const activeRifts = new Map();
-
 // playerId → tick until which they cannot be teleported again
 const teleportLock = new Map();
+
+// -----------------------------------------------------------------------------
+// REGISTER Dimension and Pouch Usage
+// -----------------------------------------------------------------------------
+
+export function registerRiftComponents() {
+  system.beforeEvents.startup.subscribe((ev) => {
+    // Custom dimension
+    ev.dimensionRegistry.registerCustomDimension(DIMENSION_ID);
+
+    // Glitch pouch item component
+    ev.itemComponentRegistry.registerCustomComponent("subo:glitch_pouch_use", {
+      onUse(event) {
+        const player = event.source;
+        const item = event.itemStack;
+        if (!player || !item) return;
+        handleGlitchPouchUse(player, item);
+      }
+    });
+  });
+}
 
 // -----------------------------------------------------------------------------
 // RECOVERY (server restart / chunk reload)
@@ -45,8 +65,12 @@ function recoverSingleRift(entity) {
 
   // ---- permanently broken ----
   if (isBroken(entity)) {
-    if (block?.typeId === RIFT_BLOCK) trySetState(block, "broken");
-    // entity can stay (marked) or be removed – we remove it for cleanliness
+    // convert old broken pads to the new destroyed block
+    if (block?.typeId === RIFT_BLOCK) {
+      try {
+        block.setType("subo:destroyed_rift");
+      } catch { }
+    }
     clearRiftState(entity);
     entity.remove();
     return;
@@ -144,20 +168,6 @@ function recoverAllRifts() {
 // =============================================================================
 // REGISTER DIMENSION + COMPONENTS
 // =============================================================================
-system.beforeEvents.startup.subscribe((ev) => {
-  ev.dimensionRegistry.registerCustomDimension(DIMENSION_ID);
-});
-
-system.beforeEvents.startup.subscribe((ev) => {
-  ev.itemComponentRegistry.registerCustomComponent("subo:glitch_pouch_use", {
-    onUse(event) {
-      const player = event.source;
-      const item = event.itemStack;
-      if (!player || !item) return;
-      handleGlitchPouchUse(player, item);
-    }
-  });
-});
 
 // Run recovery a few seconds after the world is fully loaded
 system.runTimeout(() => {
@@ -195,24 +205,7 @@ world.afterEvents.playerPlaceBlock.subscribe((ev) => {
 // =============================================================================
 const formOpenPlayers = new Set();
 
-world.beforeEvents.playerInteractWithBlock.subscribe((ev) => {
-  if (ev.block?.typeId !== RIFT_BLOCK) return;
-  if (ev.player.isSneaking) return;
-
-  ev.cancel = true;
-  if (formOpenPlayers.has(ev.player.id)) return;
-  formOpenPlayers.add(ev.player.id);
-
-  const blockLoc = { ...ev.block.location };
-  const dimId = ev.block.dimension.id;
-
-  system.run(() => {
-    openRiftForm(ev.player, blockLoc, dimId);
-    system.runTimeout(() => formOpenPlayers.delete(ev.player.id), 10);
-  });
-});
-
-function openRiftForm(player, loc, dimId) {
+export function openRiftForm(player, loc, dimId) {
   const dim = world.getDimension(dimId);
   const block = dim.getBlock(loc);
   if (!block || block.typeId !== RIFT_BLOCK) return;
@@ -542,15 +535,6 @@ async function forceCloseRift(dim, entity, wasDestroyed, forcedRiftId = null, fo
     setNum(entity, "remaining:", 0);
   }
 
-  if (loc) {
-    try {
-      const block = dim.getBlock(loc);
-      if (block?.typeId === RIFT_BLOCK) {
-        trySetState(block, wasDestroyed ? "broken" : "inactive");
-      }
-    } catch { }
-  }
-
   const playersToReturn = [];
   for (const p of world.getPlayers()) {
     const data = getPlayerRiftReturn(p);
@@ -568,6 +552,19 @@ async function forceCloseRift(dim, entity, wasDestroyed, forcedRiftId = null, fo
       z: loc.z
     });
     clearPlayerRiftTags(p);
+  }
+
+  if (loc) {
+    try {
+      const block = dim.getBlock(loc);
+      if (block?.typeId === RIFT_BLOCK) {
+        // Only set inactive when the rift just timed out / was closed normally.
+        // Never set "broken" anymore – permanent destruction is handled by the caller.
+        if (!wasDestroyed) {
+          trySetState(block, "inactive");
+        }
+      }
+    } catch { }
   }
 
   if (areaCreated) {
@@ -588,15 +585,25 @@ async function forceCloseRift(dim, entity, wasDestroyed, forcedRiftId = null, fo
 }
 
 // =============================================================================
-// BREAK HANDLER
+// BREAK/PLACE HANDLER
 // =============================================================================
 export function handleRiftTransporterBreak(dim, loc) {
-  const entity = getRiftEntityAt(dim, loc);
-  if (!entity) return;
-
   system.run(async () => {
-    await forceCloseRift(dim, entity, true);
+    const entity = getRiftEntityAt(dim, loc);
+
+    // Full cleanup only – no replacement, no visual explosion required
+    await forceCloseRift(dim, entity, true, null, loc);
   });
+}
+
+export function handleRiftTransporterPlace(event) {
+  if (event.dimension.id === DIMENSION_ID) {   // import DIMENSION_ID if needed
+    event.cancel = true;
+    // player feedback
+    system.run(() => {
+      event.player?.onScreenDisplay.setActionBar("§cYou cannot place a Rift Transporter inside a rift.");
+    });
+  }
 }
 
 // =============================================================================
@@ -684,11 +691,40 @@ async function handleGlitchPouchUse(player, pouch) {
 
   player.sendMessage(`§dGlitch Pouch opened (${opened}/${total || "?"})`);
 
-  // If the player is inside this rift → return everyone + deactivate
+  // ------------------------------------------------------------------
+  // Always force-load the pad when we are about to change its state
+  // (the earlier area may have been created with a null loc)
+  // ------------------------------------------------------------------
+  const needDestroy = opened >= total && total > 0;
+  let destroyAreaId = null;
+  let destroyAreaCreated = false;
+
+  if (loc && (insideCorrectRift || needDestroy)) {
+    destroyAreaId = `rift_pouch_destroy_${riftId}_${Date.now()}`;
+    try {
+      const options = {
+        dimension: dim,
+        from: { x: loc.x - 2, y: loc.y - 2, z: loc.z - 2 },
+        to: { x: loc.x + 2, y: loc.y + 2, z: loc.z + 2 }
+      };
+      if (world.tickingAreaManager.hasCapacity(options)) {
+        await world.tickingAreaManager.createTickingArea(destroyAreaId, options);
+        destroyAreaCreated = true;
+        await system.waitTicks(5);
+
+        // re-fetch entity now that the chunk is guaranteed loaded
+        entity = getRiftEntityAt(dim, loc) ?? entity;
+      }
+    } catch { }
+  }
+
+  // ------------------------------------------------------------------
+  // Close the rift (return players only when the pouch matches the current one)
+  // ------------------------------------------------------------------
   if (insideCorrectRift) {
     await forceCloseRift(dim, entity, false, riftId, loc);
   } else {
-    // Outside: only cancel the timer / mark inactive if the rift is still open
+    // Different rift (or already closed) – just cancel timer + set inactive
     const info = activeRifts.get(riftId);
     if (info) {
       try { system.clearRun(info.timeoutId); } catch { }
@@ -705,27 +741,66 @@ async function handleGlitchPouchUse(player, pouch) {
     }
   }
 
-  // Last pouch → permanent break + delete island (no player teleport beyond what forceClose already did)
-  if (opened >= total && total > 0) {
+  // ------------------------------------------------------------------
+  // Last pouch → permanent destruction
+  // ------------------------------------------------------------------
+  if (needDestroy) {
     player.sendMessage("§5§lAll glitch energy extracted! The island collapses...");
-    await deleteIsland(riftId);
-    freeRiftId(riftId);
 
-    if (entity && entity.isValid) {
-      setTag(entity, "broken:", "1");
-      if (loc) {
-        try {
-          const block = dim.getBlock(loc);
-          if (block?.typeId === RIFT_BLOCK) trySetState(block, "broken");
-        } catch { }
+    if (loc) {
+      // Re-use / keep a ticking area so the chunk stays loaded for the replacement
+      const finalAreaId = `rift_final_${riftId}_${Date.now()}`;
+      let finalAreaCreated = false;
+      try {
+        const options = {
+          dimension: dim,
+          from: { x: loc.x - 2, y: loc.y - 2, z: loc.z - 2 },
+          to: { x: loc.x + 2, y: loc.y + 2, z: loc.z + 2 }
+        };
+        if (world.tickingAreaManager.hasCapacity(options)) {
+          await world.tickingAreaManager.createTickingArea(finalAreaId, options);
+          finalAreaCreated = true;
+          await system.waitTicks(5);
+        }
+      } catch { }
+
+      // 1. Full cleanup (entity + island + free ID)
+      //    wasDestroyed = true → deletes island & removes entity
+      //    but does NOT touch the block state any more
+      const entity = getRiftEntityAt(dim, loc);
+      await forceCloseRift(dim, entity, true, null, loc);
+
+      // 2. Visual-only explosion
+      try {
+        dim.spawnParticle("minecraft:large_explosion", {
+          x: loc.x + 0.5, y: loc.y + 0.5, z: loc.z + 0.5
+        });
+      } catch { }
+      try {
+        dim.playSound("random.explode", loc, { volume: 1.1, pitch: 0.85 });
+        dim.playSound("portal.travel", loc, { volume: 0.6, pitch: 0.55 });
+      } catch { }
+
+      // 3. Place the destroyed transporter (chunk is still force-loaded)
+      try {
+        const block = dim.getBlock(loc);
+        if (block) {
+          block.setType("subo:destroyed_rift");
+        }
+      } catch { }
+
+      if (finalAreaCreated) {
+        try { world.tickingAreaManager.removeTickingArea(finalAreaId); } catch { }
       }
-      clearRiftState(entity);
-      entity.remove();
     }
   }
 
+  // Clean up both possible ticking areas
   if (areaCreated) {
     try { world.tickingAreaManager.removeTickingArea(areaId); } catch { }
+  }
+  if (destroyAreaCreated && destroyAreaId) {
+    try { world.tickingAreaManager.removeTickingArea(destroyAreaId); } catch { }
   }
 }
 

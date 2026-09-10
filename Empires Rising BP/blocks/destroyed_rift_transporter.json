@@ -1,0 +1,51 @@
+{
+  "format_version": "1.21.120",
+  "minecraft:block": {
+    "description": {
+      "identifier": "subo:destroyed_rift",
+      "menu_category": {
+        "category": "equipment"
+      }
+    },
+    "components": {
+      "subo:destroyed_rift": {},
+      "minecraft:geometry": "geometry.rift_transporter",
+      "minecraft:material_instances": {
+        "*": {
+          "texture": "rift_transporter_broken",
+          "render_method": "alpha_test"
+        }
+      },
+      "minecraft:collision_box": {
+        "origin": [-8, 0, -8],
+        "size": [16, 2, 16]
+      },
+      "minecraft:selection_box": {
+        "origin": [-8, 0, -8],
+        "size": [16, 2, 16]
+      },
+      "minecraft:destructible_by_mining": {
+        "seconds_to_destroy": 1.5
+      },
+      "minecraft:destructible_by_explosion": {
+        "explosion_resistance": 2.0
+      },
+      "minecraft:light_dampening": 0,
+      "minecraft:map_color": "#5A2A8A",
+
+      "minecraft:precipitation_interactions": {
+        "precipitation_behavior": "obstruct_rain"
+      },
+
+      "minecraft:liquid_detection": {
+        "detection_rules": [
+          {
+            "liquid_type": "water",
+            "can_contain_liquid": true,
+            "on_liquid_touches": "no_reaction"
+          }
+        ]
+      }
+    }
+  }
+}
