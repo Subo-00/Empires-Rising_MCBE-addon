@@ -19,8 +19,8 @@
     "blend_frames": true
   },
   {
-    "flipbook_texture": "textures/blocks/rift_transporter_active",
-    "atlas_tile": "rift_transporter_active",
+    "flipbook_texture": "textures/blocks/rift_port_active",
+    "atlas_tile": "rift_port_active",
     "ticks_per_frame": 3,
     "blend_frames": true,
     "frames": [0, 1, 2, 3]

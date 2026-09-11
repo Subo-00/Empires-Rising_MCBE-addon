@@ -2,7 +2,7 @@
   "format_version": "1.19.80",
   "minecraft:recipe_shaped": {
     "description": {
-      "identifier": "subo:rift_transporter"
+      "identifier": "subo:rift_port"
     },
     "tags": ["crafting_table"],
     "pattern": [
@@ -12,14 +12,14 @@
     ],
     "key": {
       "S": {
-        "item": "subo:rift_shard"
+        "item": "subo:rift_fragment"
       },
       "C": {
         "item": "subo:rift_core"
       }
     },
     "result": {
-      "item": "subo:rift_transporter",
+      "item": "subo:rift_port",
       "count": 1
     }
   }

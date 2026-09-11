@@ -2,7 +2,7 @@
     "format_version": "1.21.50",
     "minecraft:block": {
         "description": {
-            "identifier": "subo:rift_transporter",
+            "identifier": "subo:rift_port",
             "menu_category": {
                 "category": "equipment"
             },
@@ -15,9 +15,9 @@
             }
         },
         "components": {
-            "subo:rift_transporter": {},
+            "subo:rift_port": {},
 			"minecraft:loot": "loot_tables/empty.json",
-            "minecraft:geometry": "geometry.rift_transporter",
+            "minecraft:geometry": "geometry.rift_port",
             "minecraft:collision_box": {
                 "origin": [
                     -8,
@@ -57,7 +57,7 @@
                 "components": {
                     "minecraft:material_instances": {
                         "*": {
-                            "texture": "rift_transporter_inactive",
+                            "texture": "rift_port_inactive",
                             "render_method": "alpha_test"
                         }
                     }
@@ -68,7 +68,7 @@
                 "components": {
                     "minecraft:material_instances": {
                         "*": {
-                            "texture": "rift_transporter_active",
+                            "texture": "rift_port_active",
                             "render_method": "alpha_test"
                         }
                     },
@@ -80,7 +80,7 @@
                 "components": {
                     "minecraft:material_instances": {
                         "*": {
-                            "texture": "rift_transporter_broken",
+                            "texture": "rift_port_broken",
                             "render_method": "alpha_test"
                         }
                     }

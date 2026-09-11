@@ -65,14 +65,14 @@
     "potion_blaster": {
       "textures": "textures/items/potion_blaster"
     },
-"subo_trumpet": {
-			"textures": "textures/items/trumpet"
-		},
-"rift_shard": {
-      "textures": "textures/items/rift_shard"
+    "subo_trumpet": {
+      "textures": "textures/items/trumpet"
     },
-    "rift_transporter": {
-      "textures": "textures/items/rift_transporter"
+    "rift_fragment": {
+      "textures": "textures/items/rift_fragment"
+    },
+    "rift_port": {
+      "textures": "textures/items/rift_port"
     },
     "glitch_pouch": {
       "textures": "textures/items/glitch_pouch"

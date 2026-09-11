@@ -9,10 +9,10 @@
     },
     "components": {
       "subo:destroyed_rift": {},
-      "minecraft:geometry": "geometry.rift_transporter",
+      "minecraft:geometry": "geometry.rift_port",
       "minecraft:material_instances": {
         "*": {
-          "texture": "rift_transporter_broken",
+          "texture": "rift_port_broken",
           "render_method": "alpha_test"
         }
       },

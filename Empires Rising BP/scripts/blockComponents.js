@@ -4,7 +4,7 @@ import { replaceWithLootChest } from "./camp/randomChests.js";
 import { spawnRandomEnemies } from "./camp/randomMobSpawner.js";
 import { handlePortalBreak } from "./portal/portalLogic.js";
 import { handlePurifierBreak } from "./purifier/purifierLogic.js";
-import { openRiftForm, handleRiftTransporterBreak, handleRiftTransporterPlace } from "./rift/riftTransporter.js";
+import { openRiftForm, handleRiftPortBreak, handleRiftPortPlace } from "./rift/riftPort.js";
 import { handleDestroyedRiftInteract } from "./rift/brokenRift.js";
 // import { buildCamp } from "./camp/campBuilder.js";  // for testing
 
@@ -62,13 +62,13 @@ export function registerBlockComponents() {
             }
         });
 
-        blockComponentRegistry.registerCustomComponent("subo:rift_transporter", {
+        blockComponentRegistry.registerCustomComponent("subo:rift_port", {
             beforeOnPlayerPlace: (event) => {
-                handleRiftTransporterPlace(event);
+                handleRiftPortPlace(event);
             },
             onBreak: (event) => {
                 const { block, dimension } = event;
-                handleRiftTransporterBreak(dimension, block.location);
+                handleRiftPortBreak(dimension, block.location);
             },
             onPlayerInteract: (event) => {
                 if (event.player.isSneaking) return;

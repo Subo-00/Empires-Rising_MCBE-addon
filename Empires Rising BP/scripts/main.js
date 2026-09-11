@@ -1,7 +1,7 @@
 import { system } from "@minecraft/server";
 
 import { registerBlockComponents } from "./blockComponents.js";
-import { registerRiftComponents } from "./rift/riftTransporter.js";
+import { registerRiftComponents } from "./rift/riftPort.js";
 import { initCampSystem } from "./camp/campSystem.js";
 import { initEntityTicks } from "./entityTicks.js";
 import { resumeAllQueuedSpawners } from "./spawner//troopLogic.js";
@@ -11,7 +11,7 @@ import "./specialMobDrops.js";
 import "./items/milkPotion.js";
 import "./items/potionBlaster.js";
 import "./items/troopHorn.js";
-import "./rift/riftTransporter.js";
+import "./rift/riftPort.js";
 
 // -------------------------------------------------------
 // Bootstrap

@@ -1,6 +1,6 @@
 export const DIMENSION_ID = "subo:rift_realm";
-export const RIFT_BLOCK = "subo:rift_transporter";
-export const RIFT_ENTITY = "subo:rift_transporter_entity";
+export const RIFT_BLOCK = "subo:rift_port";
+export const RIFT_ENTITY = "subo:rift_port_entity";
 
 export const ISLAND_SPACING = 8000;
 export const MAX_ISLAND_LENGTH = 150;
@@ -34,5 +34,5 @@ export const DESTROYED_RIFT_MESSAGES = [
     "§7Every ending is a threshold we cannot cross twice.",
     "§7The silence between worlds has grown thick and final.",
     "§7Somewhere, a forgotten shore still listens for footsteps.",
-    "§7The transporter has become a monument to what cannot return."
+    "§7The port has become a monument to what cannot return."
 ];

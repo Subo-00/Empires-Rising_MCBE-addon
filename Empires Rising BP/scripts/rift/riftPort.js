@@ -213,7 +213,7 @@ export function openRiftForm(player, loc, dimId) {
   // Hard early-out for broken state (entity may already be gone)
   let entity = getRiftEntityAt(dim, loc);
   if (isBroken(entity) || (block.permutation.getState("subo:state") === "broken")) {
-    player.onScreenDisplay.setActionBar("§cThis transporter is broken.");
+    player.onScreenDisplay.setActionBar("§cThis port is broken.");
     return;
   }
 
@@ -245,7 +245,7 @@ export function openRiftForm(player, loc, dimId) {
   const maxSeconds = Math.min(MAX_OPEN_SECONDS, lapisCount * SECONDS_PER_LAPIS);
 
   const form = new ModalFormData()
-    .title("§5✦ Open Rift Transporter ✦")
+    .title("§5✦ Open Rift Port ✦")
     .slider(`§7Duration (seconds)  §8(1 Lapis = ${SECONDS_PER_LAPIS}s)`, 10, maxSeconds, {
       valueStep: 10,
       defaultValue: 10
@@ -265,7 +265,7 @@ export function openRiftForm(player, loc, dimId) {
 
     activateRift(dim, block, entity, seconds * TICKS_PER_SECOND);
     player.playSound("random.pop");
-    player.onScreenDisplay.setActionBar(`§aRift opened for §f${seconds}s`);
+    player.onScreenDisplay.setActionBar(`§dRift opened for §f${seconds}s`);
   });
 }
 
@@ -380,7 +380,7 @@ function startStepOnTicker() {
       if (chunkLoaded) {
         try {
           dim.spawnParticle(
-            "subo:rift_transporter",
+            "subo:rift_port",
             { x: info.x + 0.5, y: info.y + 0.1, z: info.z + 0.5 }
           );
         } catch { }
@@ -445,7 +445,7 @@ async function teleportPlayerToRift(player, entity, loc, forcedRiftId = null) {
   }
 
   if (entity && isBroken(entity)) {
-    console.warn("[DBG] teleport aborted – transporter broken");
+    console.warn("[DBG] teleport aborted – port broken");
     return;
   }
 
@@ -456,7 +456,7 @@ async function teleportPlayerToRift(player, entity, loc, forcedRiftId = null) {
 
   // still respect broken state when we can read the entity
   if (entity && isBroken(entity)) {
-    console.warn("[DBG] teleport aborted – transporter broken");
+    console.warn("[DBG] teleport aborted – port broken");
     return;
   }
 
@@ -587,7 +587,7 @@ async function forceCloseRift(dim, entity, wasDestroyed, forcedRiftId = null, fo
 // =============================================================================
 // BREAK/PLACE HANDLER
 // =============================================================================
-export function handleRiftTransporterBreak(dim, loc) {
+export function handleRiftPortBreak(dim, loc) {
   system.run(async () => {
     const entity = getRiftEntityAt(dim, loc);
 
@@ -596,12 +596,12 @@ export function handleRiftTransporterBreak(dim, loc) {
   });
 }
 
-export function handleRiftTransporterPlace(event) {
+export function handleRiftPortPlace(event) {
   if (event.dimension.id === DIMENSION_ID) {   // import DIMENSION_ID if needed
     event.cancel = true;
     // player feedback
     system.run(() => {
-      event.player?.onScreenDisplay.setActionBar("§cYou cannot place a Rift Transporter inside a rift.");
+      event.player?.onScreenDisplay.setActionBar("§cYou cannot place a Rift Port inside a rift.");
     });
   }
 }
@@ -781,7 +781,7 @@ async function handleGlitchPouchUse(player, pouch) {
         dim.playSound("portal.travel", loc, { volume: 0.6, pitch: 0.55 });
       } catch { }
 
-      // 3. Place the destroyed transporter (chunk is still force-loaded)
+      // 3. Place the destroyed port (chunk is still force-loaded)
       try {
         const block = dim.getBlock(loc);
         if (block) {
