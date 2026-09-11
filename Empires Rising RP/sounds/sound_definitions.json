@@ -86,13 +86,13 @@
         "subo.purifier.purify": {
             "category": "block",
             "sounds": [
-                "sounds/blocks/purify_loop"
+                "sounds/blocks/purifier/purify_loop"
             ]
         },
         "subo.purifier.done": {
             "category": "block",
             "sounds": [
-                "sounds/blocks/purify_done"
+                "sounds/blocks/purifier/purify_done"
             ]
         },
         "mob.lava_golem.idle": {
