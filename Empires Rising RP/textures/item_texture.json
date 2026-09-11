@@ -76,6 +76,9 @@
     },
     "glitch_pouch": {
       "textures": "textures/items/glitch_pouch"
+    },
+    "rift_core": {
+      "textures": "textures/items/rift_core"
     }
   }
 }

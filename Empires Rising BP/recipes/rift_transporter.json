@@ -6,13 +6,16 @@
     },
     "tags": ["crafting_table"],
     "pattern": [
-      "SSS",
-      "S S",
-      "SSS"
+      "   ",
+      "SCS",
+      "   "
     ],
     "key": {
       "S": {
         "item": "subo:rift_shard"
+      },
+      "C": {
+        "item": "subo:rift_core"
       }
     },
     "result": {
