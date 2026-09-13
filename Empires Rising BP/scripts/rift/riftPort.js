@@ -23,6 +23,9 @@ import { handleGlitchPouchUse } from "./riftPouch.js";
 // riftId → { timeoutId, x, y, z }
 export const activeRifts = new Map();
 
+// Prevents recovery / step-ticker from racing with forceCloseRift
+const closingRifts = new Set();
+
 // -----------------------------------------------------------------------------
 // REGISTER Dimension and Pouch Usage
 // -----------------------------------------------------------------------------
@@ -54,6 +57,13 @@ function recoverSingleRift(entity) {
 
   const riftId = getNum(entity, "riftId:", 0);
   if (!riftId || recoveredRifts.has(riftId)) return;
+
+  // Never resume something that is already tracked OR currently being closed
+  if (activeRifts.has(riftId) || closingRifts.has(riftId)) {
+    recoveredRifts.add(riftId);
+    return;
+  }
+
   recoveredRifts.add(riftId);
 
   const loc = blockLoc(entity);
@@ -352,6 +362,9 @@ function startStepOnTicker() {
     const now = system.currentTick;
 
     for (const [riftId, info] of [...activeRifts]) {
+      // NEW: skip if this rift is currently being closed
+      if (closingRifts.has(riftId)) continue;
+
       const remaining = info.endTick - now;
 
       // Safety – timer should already have fired
@@ -375,7 +388,8 @@ function startStepOnTicker() {
       }
 
       // Keep the persistent tag in sync so recovery works after a restart
-      if (chunkLoaded && entity && entity.isValid) {
+      // (only while we are still the authoritative owner)
+      if (chunkLoaded && entity && entity.isValid && activeRifts.has(riftId) && !closingRifts.has(riftId)) {
         setNum(entity, "remaining:", remaining);
       }
 
@@ -460,6 +474,13 @@ export async function forceCloseRift(dim, entity, wasDestroyed, forcedRiftId = n
     return;
   }
 
+  // Prevent re-entrancy / recovery race
+  if (closingRifts.has(riftId)) {
+    console.warn(`[DBG forceClose] already closing rift #${riftId} – skip`);
+    return;
+  }
+  closingRifts.add(riftId);
+
   // cancel the one-shot timer if it is still pending
   const info = activeRifts.get(riftId);
   if (info) {
@@ -494,8 +515,16 @@ export async function forceCloseRift(dim, entity, wasDestroyed, forcedRiftId = n
     } catch { }
   }
 
-  if (entity && entity.isValid) {
-    setNum(entity, "remaining:", 0);
+  // Always try to zero the tags, even if the original entity reference is stale
+  let targetEntity = (entity && entity.isValid) ? entity : null;
+  if (!targetEntity && loc) {
+    try {
+      targetEntity = getRiftEntityAt(dim, loc);
+    } catch { }
+  }
+  if (targetEntity && targetEntity.isValid) {
+    setNum(targetEntity, "remaining:", 0);
+    setNum(targetEntity, "total:", 0);
   }
 
   const playersToReturn = [];
@@ -545,6 +574,7 @@ export async function forceCloseRift(dim, entity, wasDestroyed, forcedRiftId = n
   }
 
   console.warn(`[DBG forceClose] FINISHED for rift #${riftId}`);
+  closingRifts.delete(riftId);
 }
 
 // =============================================================================
