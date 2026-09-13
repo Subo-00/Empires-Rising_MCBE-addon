@@ -130,8 +130,11 @@ export async function handleGlitchPouchUse(player, pouch) {
     opened = getNum(entity, "pouchOpened:", 0) + 1;
     setNum(entity, "pouchOpened:", opened);
   }
-
-  player.sendMessage(`§dGlitch Pouch opened (${opened}/${total || "?"})`);
+  if (total > 0) {
+    player.sendMessage(`§dGlitch Pouch opened (${opened}/${total})`);
+  } else {
+    player.sendMessage(`§dGlitch Pouch opened (rift already closed or unknown)`);
+  }
 
   // -------------------------------------------------------------------------
   // 8. Decide what kind of close is required and perform it only once

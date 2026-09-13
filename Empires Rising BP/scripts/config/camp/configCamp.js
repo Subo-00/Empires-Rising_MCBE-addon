@@ -59,8 +59,8 @@ export const MIN_VALID_RATIO = {
     small: 0.75,
     medium: 0.75,
     big: 0.65,
-    very_big: 0.55,
-    huge: 0.55,
+    very_big: 0.70,
+    huge: 0.75,
 };
 
 // How many gates to place (sides chosen randomly)

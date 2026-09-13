@@ -1,6 +1,7 @@
 import { world, system, BlockPermutation, ItemStack } from "@minecraft/server";
 import { ModalFormData } from "@minecraft/server-ui";
 import { ACTIVE_SECONDS, TROOP_RADIUS } from "../config/itemsConfig.js";
+import { DIMENSION_ID } from "../config/riftConfig.js";
 import { getStorageLocation, setTag, getTag, isTroop } from "../spawner/spawnerHelpers.js";
 import { forceNearbyTroopsStay, restoreNearbyTroops } from "../sharedHelpers/troopTeleport.js";
 
@@ -242,8 +243,18 @@ function playExpandParticle(dim, loc, maxRadius = 20) {
 // ===== Placement → name prompt =====
 world.afterEvents.playerPlaceBlock.subscribe(async (ev) => {
     if (ev.block.typeId !== PORTAL_BLOCK) return;
-
     const player = ev.player;
+
+    // NEW – refuse any portal placement inside a rift
+    if (player.dimension.id === DIMENSION_ID) {
+        // Remove both halves without dropping items
+        removePortalBlocksNoDrop(ev.block.dimension, ev.block.location);
+        // Give exactly one portal item back
+        tryGivePortalItem(player);
+        player.onScreenDisplay.setActionBar("§cYou cannot place a portal inside a rift.");
+        return;
+    }
+
     const lower = ev.block;
     const dim = lower.dimension;
     const facing = lower.permutation.getState("minecraft:cardinal_direction") || "north";
@@ -739,7 +750,7 @@ function ensurePortalTicker() {
 
                     for (const ent of nearby) {
                         // We need isTroop again for this path
-                        if (!isTroop(ent.typeId)) continue; 
+                        if (!isTroop(ent.typeId)) continue;
 
                         const ownerTag = ent.getTags().find(t => t.startsWith("owner:"));
                         if (!ownerTag || ownerTag !== `owner:${player.name}`) continue;

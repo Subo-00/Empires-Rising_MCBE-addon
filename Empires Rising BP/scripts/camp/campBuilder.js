@@ -59,12 +59,12 @@ import {
     placeStructures,
 } from "./helpers/structuresTowers.js";
 
-export async function buildCamp(dimension, centerX, centerY, centerZ) {
+export async function buildCamp(dimension, centerX, centerY, centerZ, bypassDistCheck = false) {
     const start = now();
     let persistentAreas = null;
 
     // Abort early if a player could see the generation
-    if (isPlayerNearby(dimension, centerX, centerY, centerZ, 500)) {
+    if (isPlayerNearby(dimension, centerX, centerY, centerZ, 500, bypassDistCheck)) {
         console.warn(
             `[camp] EARLY SKIP: player within 500 blocks of ${centerX},${centerY},${centerZ}`
         );
@@ -115,7 +115,7 @@ export async function buildCamp(dimension, centerX, centerY, centerZ) {
             `strips=${stripCount} areaMs=${areaMs}ms slotMs=${slotMs}ms`
         );
 
-        if (isPlayerNearby(dimension, centerX, centerY, centerZ, 500)) {
+        if (isPlayerNearby(dimension, centerX, centerY, centerZ, 500, bypassDistCheck)) {
             return { placed: false, reason: "player_nearby" };
         }
 

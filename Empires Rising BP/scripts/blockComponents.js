@@ -6,7 +6,6 @@ import { handlePortalBreak } from "./portal/portalLogic.js";
 import { handlePurifierBreak } from "./purifier/purifierLogic.js";
 import { openRiftForm, handleRiftPortBreak, handleRiftPortPlace } from "./rift/riftPort.js";
 import { handleDestroyedRiftInteract } from "./rift/brokenRift.js";
-// import { buildCamp } from "./camp/campBuilder.js";  // for testing
 
 
 export function registerBlockComponents() {
@@ -36,9 +35,6 @@ export function registerBlockComponents() {
             onBreak: (event) => breakSpawner(event),
             onPlayerInteract: (event) => {
                 handleSpawnerInteraction(event);
-                // const block = event.block;
-                // const { x, y, z } = block.location;
-                // buildCamp(block.dimension, x, y, z); // Spawn a cwamp, for testing;
             }
         });
 

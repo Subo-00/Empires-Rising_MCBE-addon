@@ -12,6 +12,7 @@ import "./items/milkPotion.js";
 import "./items/potionBlaster.js";
 import "./items/troopHorn.js";
 import "./rift/riftPort.js";
+import "./commandRegistry.js"
 
 // -------------------------------------------------------
 // Bootstrap

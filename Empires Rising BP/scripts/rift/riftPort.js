@@ -1,6 +1,6 @@
 import { system, world, ItemStack } from "@minecraft/server";
 import { ModalFormData } from "@minecraft/server-ui";
-import { getStorageLocation, setTag, getTag } from "../spawner/spawnerHelpers.js";
+import { getStorageLocation, setTag } from "../spawner/spawnerHelpers.js";
 
 import {
   DIMENSION_ID, RIFT_BLOCK, RIFT_ENTITY,
@@ -15,7 +15,7 @@ import {
   countItem, removeItemAmount
 } from "./riftHelpers.js";
 
-import { getNextRiftId, ensureIsland, deleteIsland } from "./riftIsland.js";
+import { getNextRiftId, ensureIsland, freeRiftId } from "./riftIsland.js";
 import { teleportLock, teleportPlayerToRift, returnPlayerHome } from "./riftTeleport.js";
 import { handleGlitchPouchUse } from "./riftPouch.js";
 
@@ -45,6 +45,9 @@ export function registerRiftComponents() {
       }
     });
   });
+
+  // Start the lightweight dimension ticker (it self-idles when no-one is inside)
+  startRiftDimensionTicker();
 }
 
 // -----------------------------------------------------------------------------
@@ -81,8 +84,9 @@ function recoverSingleRift(entity) {
         block.setType("subo:destroyed_rift");
       } catch { }
     }
+    if (riftId) freeRiftId(riftId);
     clearRiftState(entity);
-    entity.remove();
+    try { entity.remove(); } catch { }
     return;
   }
 
@@ -191,9 +195,42 @@ world.afterEvents.entityLoad.subscribe((ev) => {
 });
 
 // =============================================================================
+// Prevent any block place / break while inside the rift dimension
 // PLACEMENT → spawn persistence entity
 // =============================================================================
 world.afterEvents.playerPlaceBlock.subscribe((ev) => {
+  if (ev.player?.dimension?.id === DIMENSION_ID) {
+    const placedType = ev.block.type.id;      // capture the block type
+
+    // Skip the multi-part portal – it handles itself
+    if (placedType === "subo:portal") return;
+
+    // undo the placement
+    try {
+      ev.block.setType("minecraft:air");
+    } catch { }
+    system.run(() => {
+      const player = ev.player;
+      player.onScreenDisplay.setActionBar("§cYou cannot place blocks inside a rift.");
+      // give the item back
+      const inv = player.getComponent("minecraft:inventory")?.container;
+      if (inv) {
+        try {
+          const item = new ItemStack(placedType, 1);
+          const leftover = inv.addItem(item);
+          // If addItem returns something, inventory was full
+          if (leftover) {
+            dim.spawnItem(leftover, player.location);
+          }
+        } catch (e) {
+          console.warn(e);
+        }
+      }
+    });
+    return;
+  }
+
+
   if (ev.block?.typeId !== RIFT_BLOCK) return;
 
   const dim = ev.block.dimension;
@@ -210,6 +247,15 @@ world.afterEvents.playerPlaceBlock.subscribe((ev) => {
   });
 });
 
+world.beforeEvents.playerBreakBlock.subscribe((ev) => {
+  if (ev.player?.dimension?.id === DIMENSION_ID) {
+    ev.cancel = true;
+    system.run(() => {
+      ev.player.onScreenDisplay.setActionBar("§cYou cannot break blocks inside a rift.");
+    });
+  }
+});
+
 // =============================================================================
 // INTERACTION → activation form
 // =============================================================================
@@ -224,6 +270,18 @@ export function openRiftForm(player, loc, dimId) {
   let entity = getRiftEntityAt(dim, loc);
   if (isBroken(entity) || (block.permutation.getState("subo:state") === "broken")) {
     player.onScreenDisplay.setActionBar("§cThis port is broken.");
+    // Clean up the broken/ghost port and return the item to the player
+    try {
+      if (entity && entity.isValid) {
+        clearRiftState(entity);
+        entity.remove();
+      }
+    } catch { }
+    try {
+      block.setType("minecraft:air");
+      const inv = player.getComponent("minecraft:inventory")?.container;
+      if (inv) inv.addItem(new ItemStack(RIFT_BLOCK, 1));
+    } catch { }
     return;
   }
 
@@ -270,6 +328,40 @@ export function openRiftForm(player, loc, dimId) {
     const seconds = Math.floor(res.formValues[0] ?? 0);
     if (seconds < 10) return;
 
+    // Re-validate everything after the async form – the original entity
+    // reference can become invalid if the port was broken/destroyed while
+    // the player still had the UI open.
+    const currentBlock = dim.getBlock(loc);
+    if (!currentBlock || currentBlock.typeId !== RIFT_BLOCK) {
+      player.onScreenDisplay.setActionBar("§cThe port is gone.");
+      return;
+    }
+
+    let currentEntity = getRiftEntityAt(dim, loc);
+    if (isBroken(currentEntity) || currentBlock.permutation.getState("subo:state") === "broken") {
+      player.onScreenDisplay.setActionBar("§cThis port is broken.");
+      // Clean up the broken/ghost port and return the item to the player
+      try {
+        if (currentEntity && currentEntity.isValid) {
+          clearRiftState(currentEntity);
+          currentEntity.remove();
+        }
+      } catch { }
+      try {
+        currentBlock.setType("minecraft:air");
+        const inv = player.getComponent("minecraft:inventory")?.container;
+        if (inv) inv.addItem(new ItemStack(RIFT_BLOCK, 1));
+      } catch { }
+      return;
+    }
+
+    if (!currentEntity || !currentEntity.isValid) {
+      currentEntity = dim.spawnEntity(RIFT_ENTITY, getStorageLocation(currentBlock));
+      setTag(currentEntity, "bx:", loc.x);
+      setTag(currentEntity, "by:", loc.y);
+      setTag(currentEntity, "bz:", loc.z);
+    }
+
     const needed = Math.ceil(seconds / SECONDS_PER_LAPIS);
     const removed = removeItemAmount(player, LAPIS_ID, needed);
     if (removed < needed) {
@@ -277,13 +369,24 @@ export function openRiftForm(player, loc, dimId) {
       return;
     }
 
-    activateRift(dim, block, entity, seconds * TICKS_PER_SECOND);
+    activateRift(dim, currentBlock, currentEntity, seconds * TICKS_PER_SECOND);
     player.playSound("random.pop");
     player.onScreenDisplay.setActionBar(`§dRift opened for §f${seconds}s`);
   });
 }
 
 async function activateRift(dim, block, entity, totalTicks) {
+  // Final safety – never call getTags / setTag on an invalid entity
+  if (!entity || !entity.isValid) {
+    entity = getRiftEntityAt(dim, block.location);
+    if (!entity || !entity.isValid) {
+      entity = dim.spawnEntity(RIFT_ENTITY, getStorageLocation(block));
+      setTag(entity, "bx:", block.location.x);
+      setTag(entity, "by:", block.location.y);
+      setTag(entity, "bz:", block.location.z);
+    }
+  }
+
   let riftId = getNum(entity, "riftId:", 0);
   if (!riftId) {
     riftId = getNextRiftId();
@@ -303,9 +406,10 @@ async function activateRift(dim, block, entity, totalTicks) {
 
   const islandData = await ensureIsland(riftId);
 
-  // only set pouchTotal when the island was just generated
+  // only set / reset pouch counters when the island was just generated
   if (islandData.pouchCount > 0) {
     setNum(entity, "pouchTotal:", islandData.pouchCount);
+    setNum(entity, "pouchOpened:", 0);
   }
   setNum(entity, "total:", totalTicks);
   setNum(entity, "remaining:", totalTicks);   // only for the action-bar display
@@ -461,6 +565,79 @@ function stopStepOnTicker() {
 }
 
 // =============================================================================
+// RIFT DIMENSION RULES (mobs + block protection)
+// Only does real work while at least one player is inside the dimension
+// =============================================================================
+let riftDimRunId = null;
+
+const RIFT_MOBS = [
+  "minecraft:zombie",
+  "minecraft:skeleton",
+  "minecraft:spider",
+  "minecraft:creeper",
+  "minecraft:enderman"
+];
+
+function trySpawnMobsNear(player) {
+  const dim = player.dimension;
+  const loc = player.location;
+
+  // Limit how many hostiles are already close so we don't flood
+  const nearby = dim.getEntities({
+    location: loc,
+    maxDistance: 24,
+    excludeTypes: ["minecraft:player", "minecraft:item", "minecraft:xp_orb"]
+  }).filter(e => e.typeId.startsWith("minecraft:") && !e.typeId.includes("villager"));
+
+  if (nearby.length >= 8) return;
+
+  // Try a few random positions around the player
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const angle = Math.random() * Math.PI * 2;
+    const dist = 6 + Math.random() * 10;
+    const x = Math.floor(loc.x + Math.cos(angle) * dist);
+    const z = Math.floor(loc.z + Math.sin(angle) * dist);
+    const y = Math.floor(loc.y);
+
+    // Look for solid ground a few blocks below / at the player height
+    let groundY = null;
+    for (let dy = 2; dy >= -4; dy--) {
+      const b = dim.getBlock({ x, y: y + dy, z });
+      const above = dim.getBlock({ x, y: y + dy + 1, z });
+      if (b && !b.isAir && !b.isLiquid && above && above.isAir) {
+        groundY = y + dy + 1;
+        break;
+      }
+    }
+    if (groundY === null) continue;
+
+    const mobId = RIFT_MOBS[Math.floor(Math.random() * RIFT_MOBS.length)];
+    try {
+      dim.spawnEntity(mobId, { x: x + 0.5, y: groundY, z: z + 0.5 });
+    } catch { }
+    break; // one successful spawn per call is enough
+  }
+}
+
+function startRiftDimensionTicker() {
+  if (riftDimRunId !== null) return;
+  riftDimRunId = system.runInterval(() => {
+    const playersInRift = world.getPlayers().filter(p => p.dimension.id === DIMENSION_ID);
+    if (playersInRift.length === 0) return; // cheap early-out – no work when empty
+
+    for (const player of playersInRift) {
+      trySpawnMobsNear(player);
+    }
+  }, 60); // every 3 seconds
+}
+
+function stopRiftDimensionTicker() {
+  if (riftDimRunId === null) return;
+  system.clearRun(riftDimRunId);
+  riftDimRunId = null;
+}
+
+// =============================================================================
 // FORCE CLOSE / RETURN ALL PLAYERS
 // =============================================================================
 export async function forceCloseRift(dim, entity, wasDestroyed, forcedRiftId = null, forcedLoc = null) {
@@ -564,12 +741,19 @@ export async function forceCloseRift(dim, entity, wasDestroyed, forcedRiftId = n
   }
 
   if (wasDestroyed) {
+    // Free the ID so a future port can reuse the island slot.
+    // Structure load on the next ensureIsland will simply overwrite the old terrain –
+    // no manual air-fill / deleteIsland is required.
     if (riftId) {
-      await deleteIsland(riftId);
+      freeRiftId(riftId);
     }
-    if (entity && entity.isValid) {
-      clearRiftState(entity);
-      entity.remove();
+
+    // Prefer the fresh targetEntity we resolved above
+    const toRemove = (targetEntity && targetEntity.isValid) ? targetEntity
+      : (entity && entity.isValid) ? entity : null;
+    if (toRemove) {
+      clearRiftState(toRemove);
+      try { toRemove.remove(); } catch { }
     }
   }
 

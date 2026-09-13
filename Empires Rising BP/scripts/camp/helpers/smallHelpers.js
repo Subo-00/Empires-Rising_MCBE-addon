@@ -412,8 +412,8 @@ export function isInsideSafeArea(plan, x, z, half) {
  * Returns true if any player is within `radius` of (cx, cy, cz).
  * Uses a single query — cheap.
  */
-export function isPlayerNearby(dimension, cx, cy, cz, radius = 500) {
-    // return false;  // for testing prpss
+export function isPlayerNearby(dimension, cx, cy, cz, radius = 500, bypassDistCheck) {
+    if (bypassDistCheck) return false;  // for testing prpss
     try {
         const players = dimension.getPlayers({
             location: { x: cx, y: cy, z: cz },

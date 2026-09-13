@@ -9,15 +9,24 @@ export function trySetState(block, value) {
 }
 
 export function getNum(entity, prefix, fallback = 0) {
-  const v = getTag(entity, prefix, null);
-  return v === null ? fallback : Number(v);
+  if (!entity || !entity.isValid) return fallback;
+  try {
+    const v = getTag(entity, prefix, null);
+    return v === null ? fallback : Number(v);
+  } catch {
+    return fallback;
+  }
 }
 
 export function setNum(entity, prefix, value) {
-  setTag(entity, prefix, value);
+  if (!entity || !entity.isValid) return;
+  try {
+    setTag(entity, prefix, value);
+  } catch { }
 }
 
 export function ensureId(entity) {
+  if (!entity || !entity.isValid) return null;
   let id = getTag(entity, "id:", null);
   if (!id) {
     id = Math.random().toString(36).substring(2, 10);
@@ -27,17 +36,25 @@ export function ensureId(entity) {
 }
 
 export function getRiftEntityAt(dim, loc) {
-  const ents = dim.getEntities({
-    type: RIFT_ENTITY,
-    location: getStorageLocation({ location: loc, dimension: dim }),
-    maxDistance: 0.5
-  });
-  return ents[0] ?? null;
+  try {
+    const ents = dim.getEntities({
+      type: RIFT_ENTITY,
+      location: getStorageLocation({ location: loc, dimension: dim }),
+      maxDistance: 0.5
+    });
+    return ents[0] ?? null;
+  } catch {
+    return null;
+  }
 }
 
 export function isBroken(entity) {
-  if (!entity || !entity.isValid) return true;          // missing entity = permanently broken
-  return getTag(entity, "broken:", null) === "1";
+  if (!entity || !entity.isValid) return true;
+  try {
+    return getTag(entity, "broken:", null) === "1";
+  } catch {
+    return true;
+  }
 }
 
 export function isActive(entity) {
@@ -46,32 +63,44 @@ export function isActive(entity) {
 }
 
 export function clearRiftState(entity) {
+  if (!entity || !entity.isValid) return;
   const prefixes = [
     "remaining:", "total:", "riftId:", "bx:", "by:", "bz:",
     "pouchTotal:", "pouchOpened:", "fog:", "returnX:", "returnY:", "returnZ:"
   ];
-  for (const tag of [...entity.getTags()]) {
-    if (prefixes.some(p => tag.startsWith(p))) entity.removeTag(tag);
-  }
+  try {
+    for (const tag of [...entity.getTags()]) {
+      if (prefixes.some(p => tag.startsWith(p))) entity.removeTag(tag);
+    }
+  } catch { }
 }
 
 export function blockLoc(entity) {
-  const x = getTag(entity, "bx:", null);
-  const y = getTag(entity, "by:", null);
-  const z = getTag(entity, "bz:", null);
-  if (x === null || y === null || z === null) return null;
-  return { x: Number(x), y: Number(y), z: Number(z) };
+  if (!entity || !entity.isValid) return null;
+  try {
+    const x = getTag(entity, "bx:", null);
+    const y = getTag(entity, "by:", null);
+    const z = getTag(entity, "bz:", null);
+    if (x === null || y === null || z === null) return null;
+    return { x: Number(x), y: Number(y), z: Number(z) };
+  } catch {
+    return null;
+  }
 }
 
 // ----- Player rift tags -----
 export function clearPlayerRiftTags(player) {
+  if (!player || !player.isValid) return;
   const prefixes = ["riftId:", "riftReturnX:", "riftReturnY:", "riftReturnZ:", "riftDim:"];
-  for (const tag of [...player.getTags()]) {
-    if (prefixes.some(p => tag.startsWith(p))) player.removeTag(tag);
-  }
+  try {
+    for (const tag of [...player.getTags()]) {
+      if (prefixes.some(p => tag.startsWith(p))) player.removeTag(tag);
+    }
+  } catch { }
 }
 
 export function setPlayerRiftTags(player, riftId, loc) {
+  if (!player || !player.isValid) return;
   clearPlayerRiftTags(player);
   setTag(player, "riftId:", riftId);
   setTag(player, "riftReturnX:", loc.x);
@@ -81,15 +110,20 @@ export function setPlayerRiftTags(player, riftId, loc) {
 }
 
 export function getPlayerRiftReturn(player) {
-  const id = getTag(player, "riftId:", null);
-  if (id === null) return null;
-  return {
-    riftId: Number(id),
-    x: Number(getTag(player, "riftReturnX:", 0)),
-    y: Number(getTag(player, "riftReturnY:", 0)),
-    z: Number(getTag(player, "riftReturnZ:", 0)),
-    dim: getTag(player, "riftDim:", "minecraft:overworld")
-  };
+  if (!player || !player.isValid) return null;
+  try {
+    const id = getTag(player, "riftId:", null);
+    if (id === null) return null;
+    return {
+      riftId: Number(id),
+      x: Number(getTag(player, "riftReturnX:", 0)),
+      y: Number(getTag(player, "riftReturnY:", 0)),
+      z: Number(getTag(player, "riftReturnZ:", 0)),
+      dim: getTag(player, "riftDim:", "minecraft:overworld")
+    };
+  } catch {
+    return null;
+  }
 }
 
 // ----- Inventory -----
