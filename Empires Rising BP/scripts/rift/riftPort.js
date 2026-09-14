@@ -9,9 +9,9 @@ import {
 } from "../config/riftConfig.js";
 
 import {
-  trySetState, getNum, setNum, ensureId, getRiftEntityAt,
+  trySetState, getNum, setNum, getRiftEntityAt,
   isActive, isBroken, clearRiftState, blockLoc,
-  clearPlayerRiftTags, setPlayerRiftTags, getPlayerRiftReturn,
+  clearPlayerRiftTags, getPlayerRiftReturn,
   countItem, removeItemAmount
 } from "./riftHelpers.js";
 
@@ -249,7 +249,7 @@ world.afterEvents.playerPlaceBlock.subscribe((ev) => {
 
 world.beforeEvents.playerBreakBlock.subscribe((ev) => {
   if (ev.player?.dimension?.id === DIMENSION_ID) {
-    ev.cancel = true;
+    // ev.cancel = true;
     system.run(() => {
       ev.player.onScreenDisplay.setActionBar("§cYou cannot break blocks inside a rift.");
     });
@@ -404,7 +404,7 @@ async function activateRift(dim, block, entity, totalTicks) {
   ];
   setTag(entity, "fog:", fogOptions[Math.floor(Math.random() * fogOptions.length)]);
 
-  const islandData = await ensureIsland(riftId);
+  const islandData = await ensureIsland(riftId, entity);
 
   // only set / reset pouch counters when the island was just generated
   if (islandData.pouchCount > 0) {

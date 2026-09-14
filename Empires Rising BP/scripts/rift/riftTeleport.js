@@ -33,7 +33,7 @@ export async function teleportPlayerToRift(player, entity, loc, forcedRiftId = n
 
     console.warn(`[DBG] START teleport to rift #${riftId}`);
 
-    const islandData = await ensureIsland(riftId);
+    const islandData = await ensureIsland(riftId, entity);
 
     setPlayerRiftTags(player, riftId, loc);
 
@@ -42,7 +42,7 @@ export async function teleportPlayerToRift(player, entity, loc, forcedRiftId = n
 
     const riftDim = world.getDimension(DIMENSION_ID);
     player.teleport(islandData.spawn, { dimension: riftDim, checkForBlocks: false });
-
+    
     const fog = entity
         ? getTag(entity, "fog:", "minecraft:fog_hell")
         : "minecraft:fog_hell";

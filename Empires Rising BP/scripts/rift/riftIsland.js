@@ -3,220 +3,226 @@ import {
   DIMENSION_ID,
   ISLAND_SPACING,
 } from "../config/riftConfig.js";
+import { getNum, setNum } from "./riftHelpers.js";
 
 export { getNextRiftId, ensureIsland, freeRiftId };
 
 // ────────────────────────────────────────────────
-//  ID management (unchanged)
+//  Surrounding Box
 // ────────────────────────────────────────────────
-function getFreeRiftIds() {
-  try {
-    const raw = world.getDynamicProperty("subo:free_rift_ids");
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
+const BOTTOM_BLOCK = "magma";          // or "minecraft:magma_block"
+const WALL_BLOCK = "netherrack";
+
+const BOX_SIZE = 160;         // exactly 100 chunks when aligned
+const BOX_HEIGHT_OFFSET = 75;          // ±75 from fortress centre
+const FORTRESS_Y_OFFSET = -40;       // fortress/chests/spawns y offset inside the box
+
+// ────────────────────────────────────────────────
+//  Loot tables (shared by both layouts)
+// ────────────────────────────────────────────────
+const LOOT_TIER_1 = [
+  { id: "minecraft:iron_ingot", min: 1, max: 3 },
+  { id: "minecraft:coal", min: 2, max: 6 },
+];
+const LOOT_TIER_2 = [
+  { id: "minecraft:gold_ingot", min: 1, max: 2 },
+  { id: "minecraft:diamond", min: 1, max: 1 },
+];
+const LOOT_TIER_3 = [
+  { id: "minecraft:netherite_scrap", min: 1, max: 1 },
+  { id: "minecraft:enchanted_golden_apple", min: 1, max: 1 },
+];
+const LOOT_TIERS = [LOOT_TIER_1, LOOT_TIER_2, LOOT_TIER_3];
+
+const CHEST_SPAWN_CHANCE = 0.65;
+
+// ────────────────────────────────────────────────
+//  LAYOUT DEFINITIONS
+//  Each layout owns its own:
+//    • fortress offset (how far the whole build is shifted from box origin)
+//    • structure pieces
+//    • player spawn points
+//    • chest points
+// ────────────────────────────────────────────────
+const LAYOUTS = [
+  // ── Layout 1 ──────────────────────────────
+  {
+    id: 0,
+    offsetX: 10,
+    offsetZ: 8,
+    pieces: [
+      { name: "rift_fort:0_50_rift_fort", x: 0, z: 50 },
+      { name: "rift_fort:50_0_rift_fort", x: 50, z: 0 },
+      { name: "rift_fort:55_50_rift_fort", x: 55, z: 50 },
+      { name: "rift_fort:59_105_rift_fort", x: 59, z: 105 },
+      { name: "rift_fort:100_55_rift_fort", x: 100, z: 55 },
+    ],
+    spawnOffsets: [
+      { x: 67, y: 2, z: 42 },
+    ],
+    chestOffsets: [
+      { x: 69, y: 2, z: 42 },
+      // { x: 45, y: 2, z: 30 },
+      // { x: 80, y: 1, z: 60 },
+    ],
+  },
+
+  // ── Layout 2 ──────────────────────────────
+  {
+    id: 1,
+    offsetX: 10,
+    offsetZ: 8,
+    pieces: [
+      { name: "rift_fort_2:0_0_rift_fort_2", x: 0, z: 0 },
+      { name: "rift_fort_2:0_50_rift_port_2", x: 0, z: 50 },
+      { name: "rift_fort_2:100_50_rift_port_2", x: 100, z: 50 },
+      { name: "rift_fort_2:50_0_rift_port_2", x: 50, z: 0 },
+      { name: "rift_fort_2:50_100_rift_port_2", x: 50, z: 100 },
+      { name: "rift_fort_2:50_50_rift_port_2", x: 50, z: 50 },
+    ],
+    spawnOffsets: [
+      { x: 70, y: 2, z: 70 },
+    ],
+    chestOffsets: [
+      { x: 72, y: 2, z: 70 },
+    ],
+  },
+];
+
+// ────────────────────────────────────────────────
+//  Taken-ID tracking (scoreboard only)
+// ────────────────────────────────────────────────
+const TAKEN_OBJ = "rift_taken";
+
+function getTakenObjective() {
+  return world.scoreboard.getObjective(TAKEN_OBJ)
+    ?? world.scoreboard.addObjective(TAKEN_OBJ, "Rift Taken IDs");
 }
 
-function saveFreeRiftIds(list) {
-  world.setDynamicProperty("subo:free_rift_ids", JSON.stringify(list));
+function getTakenIds() {
+  const obj = getTakenObjective();
+  const taken = new Set();
+  for (const p of obj.getParticipants()) {
+    const n = Number(p.displayName);
+    if (Number.isInteger(n) && n > 0) taken.add(n);
+  }
+  return taken;
+}
+
+function isIslandGenerated(riftId) {
+  return getTakenIds().has(riftId);
+}
+
+function markIslandGenerated(riftId) {
+  getTakenObjective().setScore(String(riftId), 1);
 }
 
 function freeRiftId(id) {
   if (!id) return;
-  const free = getFreeRiftIds();
-  if (!free.includes(id)) {
-    free.push(id);
-    free.sort((a, b) => a - b);
-    saveFreeRiftIds(free);
-  }
-  // also un-mark so the next ensureIsland for this ID will regenerate
-  unmarkIslandGenerated(id);
+  try {
+    getTakenObjective().removeParticipant(String(id));
+  } catch { }
 }
 
 function getNextRiftId() {
-  const free = getFreeRiftIds();
-  if (free.length > 0) {
-    const id = free.shift();
-    saveFreeRiftIds(free);
-    return id;
+  const taken = getTakenIds();
+  if (taken.size === 0) return 1;
+
+  const sorted = [...taken].sort((a, b) => a - b);
+  // gap-fill: if the highest ID is not equal to the count, a hole exists
+  if (sorted[sorted.length - 1] !== sorted.length) {
+    for (let i = 1; i <= sorted[sorted.length - 1]; i++) {
+      if (!taken.has(i)) return i;
+    }
   }
-
-  const obj =
-    world.scoreboard.getObjective("rift_counter") ??
-    world.scoreboard.addObjective("rift_counter", "Rift Counter");
-
-  let score = 0;
-  try {
-    score = obj.getScore("next_id") ?? 0;
-  } catch { }
-  obj.setScore("next_id", score + 1);
-  return score + 1;
+  // contiguous → next sequential
+  return sorted[sorted.length - 1] + 1;
 }
 
 // ────────────────────────────────────────────────
-//  Generated-island tracking (no terrain delete needed)
-// ────────────────────────────────────────────────
-function getGeneratedSet() {
-  try {
-    const raw = world.getDynamicProperty("subo:generated_rift_islands");
-    return raw ? new Set(JSON.parse(raw)) : new Set();
-  } catch {
-    return new Set();
-  }
-}
-
-function saveGeneratedSet(set) {
-  world.setDynamicProperty("subo:generated_rift_islands", JSON.stringify([...set]));
-}
-
-function isIslandGenerated(riftId) {
-  return getGeneratedSet().has(riftId);
-}
-
-function markIslandGenerated(riftId) {
-  const s = getGeneratedSet();
-  s.add(riftId);
-  saveGeneratedSet(s);
-}
-
-function unmarkIslandGenerated(riftId) {
-  const s = getGeneratedSet();
-  if (s.delete(riftId)) saveGeneratedSet(s);
-}
-
-// ────────────────────────────────────────────────
-//  Island position (unchanged)
+//  Island position
 // ────────────────────────────────────────────────
 function getIslandPos(riftId) {
-  let x = 0,
-    z = 0;
+  let x = 0, z = 0;
   if (riftId > 1) {
     const layer = Math.ceil((Math.sqrt(riftId) - 1) / 2);
     const leg = riftId - (2 * layer - 1) ** 2;
     const side = Math.floor(leg / (layer * 2));
     const offset = leg % (layer * 2);
-
-    if (side === 0) {
-      x = layer;
-      z = -layer + offset;
-    } else if (side === 1) {
-      x = layer - offset;
-      z = layer;
-    } else if (side === 2) {
-      x = -layer;
-      z = layer - offset;
-    } else {
-      x = -layer + offset;
-      z = -layer;
-    }
+    if (side === 0) { x = layer; z = -layer + offset; }
+    else if (side === 1) { x = layer - offset; z = layer; }
+    else if (side === 2) { x = -layer; z = layer - offset; }
+    else { x = -layer + offset; z = -layer; }
   }
-  return { x: x * ISLAND_SPACING, y: 180, z: z * ISLAND_SPACING };
+  return { x: x * ISLAND_SPACING, y: 50, z: z * ISLAND_SPACING };
 }
 
 // ────────────────────────────────────────────────
-//  SKELETON MAPS – fill these later
-// ────────────────────────────────────────────────
-
-/** Possible player spawn points relative to island origin (base.x, base.y, base.z) */
-const SPAWN_OFFSETS = [
-  { x: 67, y: 2, z: 42 },
-];
-
-/** Possible chest locations relative to island origin */
-const CHEST_OFFSETS = [
-  { x: 69, y: 2, z: 42 },
-  // { x: 45, y: 2, z: 30 },
-  // { x: 80, y: 1, z: 60 },
-  // add as many as you want…
-];
-
-// Chance that a given CHEST_OFFSET actually receives a chest
-const CHEST_SPAWN_CHANCE = 0.65;
-
-// ────────────────────────────────────────────────
-//  Loot tables (3 tiers) – expand with real items
-// ────────────────────────────────────────────────
-const LOOT_TIER_1 = [
-  // common
-  { id: "minecraft:iron_ingot", min: 1, max: 3 },
-  { id: "minecraft:coal", min: 2, max: 6 },
-  // …
-];
-
-const LOOT_TIER_2 = [
-  // uncommon
-  { id: "minecraft:gold_ingot", min: 1, max: 2 },
-  { id: "minecraft:diamond", min: 1, max: 1 },
-  // …
-];
-
-const LOOT_TIER_3 = [
-  // rare
-  { id: "minecraft:netherite_scrap", min: 1, max: 1 },
-  { id: "minecraft:enchanted_golden_apple", min: 1, max: 1 },
-  // …
-];
-
-const LOOT_TIERS = [LOOT_TIER_1, LOOT_TIER_2, LOOT_TIER_3];
-
-// ────────────────────────────────────────────────
-//  Helper: fill a chest with random loot from a tier
+//  Helper: fill a chest
 // ────────────────────────────────────────────────
 function fillChestWithLoot(container, tierIndex) {
   const table = LOOT_TIERS[tierIndex];
   if (!table || !container) return;
-
-  // simple: put 2–5 random stacks
   const stacks = 2 + Math.floor(Math.random() * 4);
   for (let i = 0; i < stacks; i++) {
     const entry = table[Math.floor(Math.random() * table.length)];
-    const count =
-      entry.min + Math.floor(Math.random() * (entry.max - entry.min + 1));
+    const count = entry.min + Math.floor(Math.random() * (entry.max - entry.min + 1));
     const slot = Math.floor(Math.random() * container.size);
-    try {
-      container.setItem(slot, new ItemStack(entry.id, count));
-    } catch { }
+    try { container.setItem(slot, new ItemStack(entry.id, count)); } catch { }
   }
 }
 
 // ────────────────────────────────────────────────
 //  Main generation
 // ────────────────────────────────────────────────
-async function ensureIsland(riftId) {
+async function ensureIsland(riftId, entity = null) {
   const dim = world.getDimension(DIMENSION_ID);
   const base = getIslandPos(riftId);
 
-  // Default spawn (used both when already generated and after generation)
-  let spawn = { x: base.x + 0.5, y: base.y + 1, z: base.z + 0.5 };
-  if (SPAWN_OFFSETS.length > 0) {
-    const s = SPAWN_OFFSETS[Math.floor(Math.random() * SPAWN_OFFSETS.length)];
+  // ── choose / restore layout (stored on the entity) ───────────────────
+  let layoutIndex = entity ? getNum(entity, "layout:", -1) : -1;
+  if (layoutIndex < 0 || layoutIndex >= LAYOUTS.length) {
+    // first time (or missing data) → pick randomly and persist on entity
+    layoutIndex = Math.floor(Math.random() * LAYOUTS.length);
+    if (entity && entity.isValid) {
+      setNum(entity, "layout:", layoutIndex);
+    }
+  }
+  const layout = LAYOUTS[layoutIndex];
+
+  // ── spawn point (always calculated from the chosen layout) ───
+  let spawn = {
+    x: base.x + layout.offsetX + 0.5,
+    y: base.y + FORTRESS_Y_OFFSET + 1,
+    z: base.z + layout.offsetZ + 0.5,
+    rotation: { x: 0, y: 0 }
+  };
+  if (layout.spawnOffsets.length > 0) {
+    const s = layout.spawnOffsets[Math.floor(Math.random() * layout.spawnOffsets.length)];
     spawn = {
-      x: base.x + s.x + 0.5,
-      y: base.y + (s.y ?? 1),
-      z: base.z + s.z + 0.5,
+      x: base.x + layout.offsetX + s.x + 0.5,
+      y: base.y + FORTRESS_Y_OFFSET + (s.y ?? 1),
+      z: base.z + layout.offsetZ + s.z + 0.5,
+      rotation: {
+        x: s.pitch ?? 0,
+        y: s.yaw ?? 0
+      }
     };
   }
 
-  // ---- already generated for this riftId? (re-open of same port) ----
+  // ── already generated? just return the spawn ─────────────────
   if (isIslandGenerated(riftId)) {
-    return {
-      spawn,
-      pouchCount: -1, // already exists – do not overwrite loot / pouch counters
-    };
+    return { spawn, pouchCount: -1 };
   }
 
-  // ---- create ticking area for the whole fortress ----
-  const width = 150; // adjust to your real structure size
-  const depth = 150;
+  // ── create ticking area (160×160 → exactly 100 chunks) ───────
   const taId = `rift_gen_${riftId}`;
   let areaCreated = false;
-
   try {
     const options = {
       dimension: dim,
-      from: { x: base.x, y: base.y - 5, z: base.z },
-      to: { x: base.x + width - 1, y: base.y + 20, z: base.z + depth - 1 },
+      from: { x: base.x, y: base.y - BOX_HEIGHT_OFFSET, z: base.z },
+      to: { x: base.x + BOX_SIZE - 1, y: base.y + BOX_HEIGHT_OFFSET, z: base.z + BOX_SIZE - 1 },
     };
     if (world.tickingAreaManager.hasCapacity(options)) {
       await world.tickingAreaManager.createTickingArea(taId, options);
@@ -224,68 +230,70 @@ async function ensureIsland(riftId) {
     }
   } catch { }
 
-  // ---- load structure pieces (overwrites whatever was there) ----
-  const pieces = [
-    { name: "rift_fort:0_50_rift_fort", x: 0, z: 50 },
-    { name: "rift_fort:50_0_rift_fort", x: 50, z: 0 },
-    { name: "rift_fort:55_50_rift_fort", x: 55, z: 50 },
-    { name: "rift_fort:59_105_rift_fort", x: 59, z: 105 },
-    { name: "rift_fort:100_55_rift_fort", x: 100, z: 55 },
-    // add the rest of your pieces here
-  ];
-
-  // runCommand must be delayed one tick after the ticking area is ready
   await system.waitTicks(1);
 
-  for (const p of pieces) {
+  // ── load the chosen layout’s structures ──────────────────────
+  for (const p of layout.pieces) {
     try {
       dim.runCommand(
-        `structure load ${p.name} ${base.x + p.x} ${base.y} ${base.z + p.z}`
+        `structure load ${p.name} ${base.x + layout.offsetX + p.x} ${base.y + FORTRESS_Y_OFFSET} ${base.z + layout.offsetZ + p.z}`
       );
     } catch (e) {
       console.warn(`[rift] Failed to load ${p.name}: ${e}`);
     }
   }
 
-  // ---- decide which chest positions will actually spawn ----
-  // Rules:
-  //   • Always at least min(10, available offsets) chests
-  //   • Exactly 3–5 of those chests get a glitch pouch (or all of them if fewer chests exist)
-  //   • Even with only 1 offset the single chest is forced + receives a pouch
-  const offsets = [...CHEST_OFFSETS];
-  // Fisher-Yates shuffle for randomness
+  // ── build the enclosing box ──────────────────────────────────
+  const bottomY = base.y - BOX_HEIGHT_OFFSET;
+  const topY = base.y + BOX_HEIGHT_OFFSET;
+  const maxX = base.x + BOX_SIZE - 1;
+  const maxZ = base.z + BOX_SIZE - 1;
+
+  try {
+    dim.runCommand(`fill ${base.x} ${bottomY} ${base.z} ${maxX} ${bottomY} ${maxZ} ${BOTTOM_BLOCK}`);
+  } catch (e) { console.warn(`[rift] bottom fill failed: ${e}`); }
+
+  try {
+    dim.runCommand(`fill ${base.x} ${topY} ${base.z} ${maxX} ${topY} ${maxZ} ${WALL_BLOCK}`);
+  } catch (e) { console.warn(`[rift] top fill failed: ${e}`); }
+
+  const wallCmds = [
+    `fill ${base.x} ${bottomY + 1} ${base.z} ${maxX} ${topY - 1} ${base.z} ${WALL_BLOCK}`,
+    `fill ${base.x} ${bottomY + 1} ${maxZ} ${maxX} ${topY - 1} ${maxZ} ${WALL_BLOCK}`,
+    `fill ${base.x} ${bottomY + 1} ${base.z} ${base.x} ${topY - 1} ${maxZ} ${WALL_BLOCK}`,
+    `fill ${maxX} ${bottomY + 1} ${base.z} ${maxX} ${topY - 1} ${maxZ} ${WALL_BLOCK}`,
+  ];
+  for (const cmd of wallCmds) {
+    try { dim.runCommand(cmd); } catch (e) { console.warn(`[rift] wall fill failed: ${e}`); }
+  }
+
+  await system.waitTicks(1);
+
+  // ── chests from the chosen layout ────────────────────────────
+  const offsets = [...layout.chestOffsets];
   for (let i = offsets.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [offsets[i], offsets[j]] = [offsets[j], offsets[i]];
   }
 
   const minChests = Math.min(10, offsets.length);
-  const activeChests = offsets.slice(0, minChests); // always take at least this many
-
-  // Optionally add extra chests beyond the minimum with the normal chance
+  const activeChests = offsets.slice(0, minChests);
   for (let i = minChests; i < offsets.length; i++) {
-    if (Math.random() < CHEST_SPAWN_CHANCE) {
-      activeChests.push(offsets[i]);
-    }
+    if (Math.random() < CHEST_SPAWN_CHANCE) activeChests.push(offsets[i]);
   }
 
-  // ---- guarantee exactly 3–5 pouches (clamped to number of chests) ----
-  const pouchTarget = Math.min(
-    3 + Math.floor(Math.random() * 3), // 3, 4 or 5
-    activeChests.length
-  );
+  const pouchTarget = Math.min(3 + Math.floor(Math.random() * 3), activeChests.length);
   const pouchSlots = new Set();
   while (pouchSlots.size < pouchTarget) {
     pouchSlots.add(Math.floor(Math.random() * activeChests.length));
   }
 
   let placedPouches = 0;
-
   for (let i = 0; i < activeChests.length; i++) {
     const off = activeChests[i];
-    const bx = base.x + off.x;
-    const by = base.y + (off.y ?? 1);
-    const bz = base.z + off.z;
+    const bx = base.x + layout.offsetX + off.x;
+    const by = base.y + FORTRESS_Y_OFFSET + (off.y ?? 1);
+    const bz = base.z + layout.offsetZ + off.z;
 
     const block = dim.getBlock({ x: bx, y: by, z: bz });
     if (!block) continue;
@@ -294,11 +302,8 @@ async function ensureIsland(riftId) {
     const inv = block.getComponent("inventory")?.container;
     if (!inv) continue;
 
-    // random loot tier
-    const tier = Math.floor(Math.random() * 3);
-    fillChestWithLoot(inv, tier);
+    fillChestWithLoot(inv, Math.floor(Math.random() * 3));
 
-    // glitch pouch?
     if (pouchSlots.has(i)) {
       const pouch = new ItemStack("subo:glitch_pouch", 1);
       pouch.setLore([
@@ -306,72 +311,18 @@ async function ensureIsland(riftId) {
         `§8Rift #${riftId}`,
         "§7Right-click to extract",
       ]);
-      // try to put it in a free slot (or slot 0)
-      try {
-        inv.setItem(0, pouch);
-      } catch {
-        // fallback – just force it
-        inv.setItem(Math.floor(Math.random() * inv.size), pouch);
-      }
+      try { inv.setItem(0, pouch); }
+      catch { inv.setItem(Math.floor(Math.random() * inv.size), pouch); }
       placedPouches++;
     }
   }
 
-  // ---- clean up ticking area ----
+  // ── clean up ─────────────────────────────────────────────────
   if (areaCreated) {
-    try {
-      world.tickingAreaManager.removeTickingArea(taId);
-    } catch { }
+    try { world.tickingAreaManager.removeTickingArea(taId); } catch { }
   }
 
-  // mark so subsequent ensures for the same riftId skip generation
   markIslandGenerated(riftId);
 
-  return {
-    spawn,
-    pouchCount: placedPouches,
-  };
-}
-
-// ────────────────────────────────────────────────
-//  Delete (kept almost the same)
-// ────────────────────────────────────────────────
-async function deleteIsland(riftId) {
-  const dim = world.getDimension(DIMENSION_ID);
-  const base = getIslandPos(riftId);
-  const radius = 90;
-  const areaId = `rift_del_${riftId}`;
-  let areaCreated = false;
-
-  try {
-    const options = {
-      dimension: dim,
-      from: { x: base.x - radius, y: base.y - 10, z: base.z - radius },
-      to: { x: base.x + radius, y: base.y + 30, z: base.z + radius },
-    };
-    if (world.tickingAreaManager.hasCapacity(options)) {
-      await world.tickingAreaManager.createTickingArea(areaId, options);
-      areaCreated = true;
-    }
-  } catch { }
-
-  for (let y = base.y - 5; y <= base.y + 25; y++) {
-    for (let x = base.x - radius; x <= base.x + radius; x++) {
-      for (let z = base.z - radius; z <= base.z + radius; z++) {
-        const b = dim.getBlock({ x, y, z });
-        if (b && b.typeId !== "minecraft:air") b.setType("minecraft:air");
-      }
-    }
-    await system.waitTicks(1);
-  }
-
-  dim.getBlock({ x: base.x, y: base.y - 1, z: base.z })?.setType("minecraft:air");
-
-  if (areaCreated) {
-    try {
-      world.tickingAreaManager.removeTickingArea(areaId);
-    } catch { }
-  }
-
-  freeRiftId(riftId);
+  return { spawn, pouchCount: placedPouches };
 }
