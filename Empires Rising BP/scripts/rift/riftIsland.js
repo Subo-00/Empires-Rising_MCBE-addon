@@ -1,4 +1,4 @@
-import { system, world, ItemStack } from "@minecraft/server";
+import { system, world, ItemStack, BlockPermutation } from "@minecraft/server";
 import {
   DIMENSION_ID,
   ISLAND_SPACING,
@@ -49,42 +49,125 @@ const LAYOUTS = [
   {
     id: 0,
     offsetX: 10,
-    offsetZ: 8,
+    offsetZ: 10,
     pieces: [
+      { name: "rift_fort:0_0_rift_fort", x: 0, z: 0 },
       { name: "rift_fort:0_50_rift_fort", x: 0, z: 50 },
+      { name: "rift_fort:100_50_rift_fort", x: 100, z: 50 },
       { name: "rift_fort:50_0_rift_fort", x: 50, z: 0 },
-      { name: "rift_fort:55_50_rift_fort", x: 55, z: 50 },
-      { name: "rift_fort:59_105_rift_fort", x: 59, z: 105 },
-      { name: "rift_fort:100_55_rift_fort", x: 100, z: 55 },
+      { name: "rift_fort:50_100_rift_fort", x: 50, z: 100 },
+      { name: "rift_fort:50_50_rift_fort", x: 50, z: 50 },
     ],
     spawnOffsets: [
-      { x: 67, y: 2, z: 42 },
+      { x: 67, y: 152 - 146, z: 43 },
     ],
+    // Split by chunks (structure blocks)
     chestOffsets: [
-      { x: 69, y: 2, z: 42 },
-      // { x: 45, y: 2, z: 30 },
-      // { x: 80, y: 1, z: 60 },
+      { x: 73, y: 156 - 146, z: 14, facing: "west" },
+      { x: 73, y: 156 - 146, z: 32, facing: "west" },
+      { x: 74, y: 161 - 146, z: 22, facing: "west" },
+      { x: 66, y: 166 - 146, z: 11, facing: "east" },
+      { x: 67, y: 167 - 146, z: 33, facing: "north" },
+      { x: 72, y: 171 - 146, z: 11, facing: "west" },
+      { x: 70, y: 171 - 146, z: 29, facing: "south" },
+      { x: 80, y: 169, z: 42, facing: "west" },
+      { x: 54, y: 169, z: 46, facing: "east" },
+      
+      { x: 14, y: 151, z: 67, facing: "south" },
+      { x: 43, y: 151, z: 58, facing: "south" },
+      { x: 43, y: 151, z: 70, facing: "north" },
+      { x: 34, y: 169, z: 81, facing: "east" },
+      { x: 13, y: 151, z: 98, facing: "east" },
+
+      { x: 63, y: 172, z: 60, facing: "east" },
+      { x: 71, y: 172, z: 60, facing: "west" },
+      { x: 71, y: 172, z: 68, facing: "west" },
+      { x: 63, y: 172, z: 68, facing: "east" },
+      { x: 63, y: 172, z: 99, facing: "east" },
+      { x: 71, y: 172, z: 99, facing: "west" },
+      { x: 71, y: 172, z: 91, facing: "west" },
+      { x: 63, y: 172, z: 91, facing: "east" },
+      { x: 91, y: 171, z: 70, facing: "north" },
+      { x: 91, y: 171, z: 58, facing: "south" },
+      { x: 67, y: 162, z: 91, facing: "south" },
+      { x: 67, y: 162, z: 68, facing: "north" },
+      
+      { x: 124, y: 192, z: 64, facing: "east" },
+      { x: 123, y: 151, z: 91, facing: "east" },
+      { x: 121, y: 151, z: 68, facing: "east" },
+      
+      { x: 64, y: 151, z: 136, facing: "north" },
     ],
+    beaconOffset: {x: 67, z: 131},  // replace roof with glass here
   },
 
   // ── Layout 2 ──────────────────────────────
   {
     id: 1,
     offsetX: 10,
-    offsetZ: 8,
+    offsetZ: 10,
     pieces: [
       { name: "rift_fort_2:0_0_rift_fort_2", x: 0, z: 0 },
-      { name: "rift_fort_2:0_50_rift_port_2", x: 0, z: 50 },
-      { name: "rift_fort_2:100_50_rift_port_2", x: 100, z: 50 },
-      { name: "rift_fort_2:50_0_rift_port_2", x: 50, z: 0 },
-      { name: "rift_fort_2:50_100_rift_port_2", x: 50, z: 100 },
-      { name: "rift_fort_2:50_50_rift_port_2", x: 50, z: 50 },
+      { name: "rift_fort_2:0_50_rift_fort_2", x: 0, z: 50 },
+      { name: "rift_fort_2:100_50_rift_fort_2", x: 100, z: 50 },
+      { name: "rift_fort_2:50_0_rift_fort_2", x: 50, z: 0 },
+      { name: "rift_fort_2:50_100_rift_fort_2", x: 50, z: 100 },
+      { name: "rift_fort_2:50_50_rift_fort_2", x: 50, z: 50 },
     ],
     spawnOffsets: [
-      { x: 70, y: 2, z: 70 },
+      { x: 78, y: 14, z: 58 },
     ],
     chestOffsets: [
-      { x: 72, y: 2, z: 70 },
+      { x: 16, y: 30, z: 10, facing: "south" },
+      { x: 1, y: 30, z: 26, facing: "east" },
+      { x: 27, y: 51, z: 20, facing: "south" },
+      { x: 24, y: 27, z: 19, facing: "south" },
+      { x: 33, y: 25, z: 34, facing: "south" },
+      { x: 14, y: 25, z: 36, facing: "east" },
+      { x: 17, y: 28, z: 32, facing: "south" },
+      { x: 17, y: 26, z: 24, facing: "south" },
+      { x: 15, y: 13, z: 31, facing: "north" },
+      { x: 15, y: 13, z: 18, facing: "south" },
+      { x: 38, y: 4, z: 11, facing: "south" },
+      { x: 2, y: 4, z: 22, facing: "east" },
+      { x: 2, y: 4, z: 28, facing: "east" },
+      { x: 19, y: 4, z: 31, facing: "north" },
+      { x: 40, y: 3, z: 38, facing: "north" },
+      
+      { x: 71, y: 23, z: 36, facing: "south" },
+      { x: 73, y: 23, z: 26, facing: "west" },
+      { x: 70, y: 19, z: 40, facing: "north" },
+      { x: 75, y: 13, z: 29, facing: "west" },
+      { x: 66, y: 13, z: 11, facing: "south" },
+      { x: 66, y: 8, z: 10, facing: "south" },
+      
+      { x: 15, y: 3, z: 74, facing: "west" },
+      { x: 13, y: 3, z: 98, facing: "west" },
+      { x: 10, y: 44, z: 102, facing: "west" },
+      { x: 35, y: 21, z: 88, facing: "west" },
+      { x: 44, y: 23, z: 77, facing: "north" },
+      { x: 44, y: 23, z: 65, facing: "south" },
+      
+      { x: 84, y: 21, z: 53, facing: "west" },
+      { x: 64, y: 24, z: 67, facing: "east" },
+      { x: 64, y: 24, z: 75, facing: "east" },
+      { x: 72, y: 24, z: 75, facing: "west" },
+      { x: 101, y: 21, z: 84, facing: "west" },
+      { x: 92, y: 23, z: 65, facing: "south" },
+      { x: 92, y: 23, z: 77, facing: "north" },
+      { x: 72, y: 14, z: 71, facing: "west" },
+
+      { x: 122, y: 3, z: 71, facing: "east" },
+      { x: 124, y: 3, z: 102, facing: "east" },
+      { x: 127, y: 44, z: 102, facing: "east" },
+
+      { x: 72, y: 24, z: 106, facing: "west" },
+      { x: 72, y: 24, z: 98, facing: "west" },
+      { x: 64, y: 24, z: 98, facing: "east" },
+      { x: 64, y: 24, z: 106, facing: "east" },
+      { x: 68, y: 14, z: 98, facing: "south" },
+      { x: 70, y: 3, z: 142, facing: "north" },
+      { x: 66, y: 23, z: 141, facing: "north" },
     ],
   },
 ];
@@ -298,7 +381,14 @@ async function ensureIsland(riftId, entity = null) {
     const block = dim.getBlock({ x: bx, y: by, z: bz });
     if (!block) continue;
 
-    block.setType("minecraft:chest");
+    // Default to "north" if no facing is specified
+    const facing = off.facing ?? "north";
+
+    const perm = BlockPermutation.resolve("minecraft:chest", {
+      "minecraft:cardinal_direction": facing
+    });
+    block.setPermutation(perm);
+
     const inv = block.getComponent("inventory")?.container;
     if (!inv) continue;
 
