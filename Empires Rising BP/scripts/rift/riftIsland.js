@@ -1,176 +1,14 @@
 import { system, world, ItemStack, BlockPermutation } from "@minecraft/server";
 import {
-  DIMENSION_ID,
-  ISLAND_SPACING,
+  DIMENSION_ID, ISLAND_SPACING, BOTTOM_BLOCK, WALL_BLOCK,
+  BOX_SIZE, BOX_HEIGHT_OFFSET, FORTRESS_Y_OFFSET,
+  LAYOUTS, BEACON_OFFSETS
 } from "../config/riftConfig.js";
 import { getNum, setNum } from "./riftHelpers.js";
+import { CHEST_SPAWN_CHANCE, LOOT_TIERS } from "../config/riftChestLoot.js";
 
 export { getNextRiftId, ensureIsland, freeRiftId };
 
-// ────────────────────────────────────────────────
-//  Surrounding Box
-// ────────────────────────────────────────────────
-const BOTTOM_BLOCK = "magma";          // or "minecraft:magma_block"
-const WALL_BLOCK = "netherrack";
-
-const BOX_SIZE = 160;         // exactly 100 chunks when aligned
-const BOX_HEIGHT_OFFSET = 75;          // ±75 from fortress centre
-const FORTRESS_Y_OFFSET = -40;       // fortress/chests/spawns y offset inside the box
-
-// ────────────────────────────────────────────────
-//  Loot tables (shared by both layouts)
-// ────────────────────────────────────────────────
-const LOOT_TIER_1 = [
-  { id: "minecraft:iron_ingot", min: 1, max: 3 },
-  { id: "minecraft:coal", min: 2, max: 6 },
-];
-const LOOT_TIER_2 = [
-  { id: "minecraft:gold_ingot", min: 1, max: 2 },
-  { id: "minecraft:diamond", min: 1, max: 1 },
-];
-const LOOT_TIER_3 = [
-  { id: "minecraft:netherite_scrap", min: 1, max: 1 },
-  { id: "minecraft:enchanted_golden_apple", min: 1, max: 1 },
-];
-const LOOT_TIERS = [LOOT_TIER_1, LOOT_TIER_2, LOOT_TIER_3];
-
-const CHEST_SPAWN_CHANCE = 0.65;
-
-// ────────────────────────────────────────────────
-//  LAYOUT DEFINITIONS
-//  Each layout owns its own:
-//    • fortress offset (how far the whole build is shifted from box origin)
-//    • structure pieces
-//    • player spawn points
-//    • chest points
-// ────────────────────────────────────────────────
-const LAYOUTS = [
-  // ── Layout 1 ──────────────────────────────
-  {
-    id: 0,
-    offsetX: 10,
-    offsetZ: 10,
-    pieces: [
-      { name: "rift_fort:0_0_rift_fort", x: 0, z: 0 },
-      { name: "rift_fort:0_50_rift_fort", x: 0, z: 50 },
-      { name: "rift_fort:100_50_rift_fort", x: 100, z: 50 },
-      { name: "rift_fort:50_0_rift_fort", x: 50, z: 0 },
-      { name: "rift_fort:50_100_rift_fort", x: 50, z: 100 },
-      { name: "rift_fort:50_50_rift_fort", x: 50, z: 50 },
-    ],
-    spawnOffsets: [
-      { x: 67, y: 152 - 146, z: 43 },
-    ],
-    // Split by chunks (structure blocks)
-    chestOffsets: [
-      { x: 73, y: 156 - 146, z: 14, facing: "west" },
-      { x: 73, y: 156 - 146, z: 32, facing: "west" },
-      { x: 74, y: 161 - 146, z: 22, facing: "west" },
-      { x: 66, y: 166 - 146, z: 11, facing: "east" },
-      { x: 67, y: 167 - 146, z: 33, facing: "north" },
-      { x: 72, y: 171 - 146, z: 11, facing: "west" },
-      { x: 70, y: 171 - 146, z: 29, facing: "south" },
-      { x: 80, y: 169, z: 42, facing: "west" },
-      { x: 54, y: 169, z: 46, facing: "east" },
-      
-      { x: 14, y: 151, z: 67, facing: "south" },
-      { x: 43, y: 151, z: 58, facing: "south" },
-      { x: 43, y: 151, z: 70, facing: "north" },
-      { x: 34, y: 169, z: 81, facing: "east" },
-      { x: 13, y: 151, z: 98, facing: "east" },
-
-      { x: 63, y: 172, z: 60, facing: "east" },
-      { x: 71, y: 172, z: 60, facing: "west" },
-      { x: 71, y: 172, z: 68, facing: "west" },
-      { x: 63, y: 172, z: 68, facing: "east" },
-      { x: 63, y: 172, z: 99, facing: "east" },
-      { x: 71, y: 172, z: 99, facing: "west" },
-      { x: 71, y: 172, z: 91, facing: "west" },
-      { x: 63, y: 172, z: 91, facing: "east" },
-      { x: 91, y: 171, z: 70, facing: "north" },
-      { x: 91, y: 171, z: 58, facing: "south" },
-      { x: 67, y: 162, z: 91, facing: "south" },
-      { x: 67, y: 162, z: 68, facing: "north" },
-      
-      { x: 124, y: 192, z: 64, facing: "east" },
-      { x: 123, y: 151, z: 91, facing: "east" },
-      { x: 121, y: 151, z: 68, facing: "east" },
-      
-      { x: 64, y: 151, z: 136, facing: "north" },
-    ],
-    beaconOffset: {x: 67, z: 131},  // replace roof with glass here
-  },
-
-  // ── Layout 2 ──────────────────────────────
-  {
-    id: 1,
-    offsetX: 10,
-    offsetZ: 10,
-    pieces: [
-      { name: "rift_fort_2:0_0_rift_fort_2", x: 0, z: 0 },
-      { name: "rift_fort_2:0_50_rift_fort_2", x: 0, z: 50 },
-      { name: "rift_fort_2:100_50_rift_fort_2", x: 100, z: 50 },
-      { name: "rift_fort_2:50_0_rift_fort_2", x: 50, z: 0 },
-      { name: "rift_fort_2:50_100_rift_fort_2", x: 50, z: 100 },
-      { name: "rift_fort_2:50_50_rift_fort_2", x: 50, z: 50 },
-    ],
-    spawnOffsets: [
-      { x: 78, y: 14, z: 58 },
-    ],
-    chestOffsets: [
-      { x: 16, y: 30, z: 10, facing: "south" },
-      { x: 1, y: 30, z: 26, facing: "east" },
-      { x: 27, y: 51, z: 20, facing: "south" },
-      { x: 24, y: 27, z: 19, facing: "south" },
-      { x: 33, y: 25, z: 34, facing: "south" },
-      { x: 14, y: 25, z: 36, facing: "east" },
-      { x: 17, y: 28, z: 32, facing: "south" },
-      { x: 17, y: 26, z: 24, facing: "south" },
-      { x: 15, y: 13, z: 31, facing: "north" },
-      { x: 15, y: 13, z: 18, facing: "south" },
-      { x: 38, y: 4, z: 11, facing: "south" },
-      { x: 2, y: 4, z: 22, facing: "east" },
-      { x: 2, y: 4, z: 28, facing: "east" },
-      { x: 19, y: 4, z: 31, facing: "north" },
-      { x: 40, y: 3, z: 38, facing: "north" },
-      
-      { x: 71, y: 23, z: 36, facing: "south" },
-      { x: 73, y: 23, z: 26, facing: "west" },
-      { x: 70, y: 19, z: 40, facing: "north" },
-      { x: 75, y: 13, z: 29, facing: "west" },
-      { x: 66, y: 13, z: 11, facing: "south" },
-      { x: 66, y: 8, z: 10, facing: "south" },
-      
-      { x: 15, y: 3, z: 74, facing: "west" },
-      { x: 13, y: 3, z: 98, facing: "west" },
-      { x: 10, y: 44, z: 102, facing: "west" },
-      { x: 35, y: 21, z: 88, facing: "west" },
-      { x: 44, y: 23, z: 77, facing: "north" },
-      { x: 44, y: 23, z: 65, facing: "south" },
-      
-      { x: 84, y: 21, z: 53, facing: "west" },
-      { x: 64, y: 24, z: 67, facing: "east" },
-      { x: 64, y: 24, z: 75, facing: "east" },
-      { x: 72, y: 24, z: 75, facing: "west" },
-      { x: 101, y: 21, z: 84, facing: "west" },
-      { x: 92, y: 23, z: 65, facing: "south" },
-      { x: 92, y: 23, z: 77, facing: "north" },
-      { x: 72, y: 14, z: 71, facing: "west" },
-
-      { x: 122, y: 3, z: 71, facing: "east" },
-      { x: 124, y: 3, z: 102, facing: "east" },
-      { x: 127, y: 44, z: 102, facing: "east" },
-
-      { x: 72, y: 24, z: 106, facing: "west" },
-      { x: 72, y: 24, z: 98, facing: "west" },
-      { x: 64, y: 24, z: 98, facing: "east" },
-      { x: 64, y: 24, z: 106, facing: "east" },
-      { x: 68, y: 14, z: 98, facing: "south" },
-      { x: 70, y: 3, z: 142, facing: "north" },
-      { x: 66, y: 23, z: 141, facing: "north" },
-    ],
-  },
-];
 
 // ────────────────────────────────────────────────
 //  Taken-ID tracking (scoreboard only)
@@ -209,17 +47,20 @@ function freeRiftId(id) {
 
 function getNextRiftId() {
   const taken = getTakenIds();
-  if (taken.size === 0) return 1;
+  if (taken.size === 0) return { id: 1, shouldBuildBox: true };
 
   const sorted = [...taken].sort((a, b) => a - b);
-  // gap-fill: if the highest ID is not equal to the count, a hole exists
-  if (sorted[sorted.length - 1] !== sorted.length) {
-    for (let i = 1; i <= sorted[sorted.length - 1]; i++) {
-      if (!taken.has(i)) return i;
+  const max = sorted[sorted.length - 1];
+
+  // gap-fill → not a new highest ID
+  if (max !== sorted.length) {
+    for (let i = 1; i <= max; i++) {
+      if (!taken.has(i)) return { id: i, shouldBuildBox: false };
     }
   }
-  // contiguous → next sequential
-  return sorted[sorted.length - 1] + 1;
+
+  // contiguous → brand-new highest ID
+  return { id: max + 1, shouldBuildBox: true };
 }
 
 // ────────────────────────────────────────────────
@@ -243,22 +84,47 @@ function getIslandPos(riftId) {
 // ────────────────────────────────────────────────
 //  Helper: fill a chest
 // ────────────────────────────────────────────────
-function fillChestWithLoot(container, tierIndex) {
-  const table = LOOT_TIERS[tierIndex];
-  if (!table || !container) return;
-  const stacks = 2 + Math.floor(Math.random() * 4);
+function fillChestWithLoot(container) {
+  if (!container) return;
+
+  const totalWeight = LOOT_TIERS.reduce((sum, t) => sum + t.weight, 0);
+  const stacks = 4 + Math.floor(Math.random() * 4); // 4–7 stacks (avg ≈ 5.5)
+
   for (let i = 0; i < stacks; i++) {
-    const entry = table[Math.floor(Math.random() * table.length)];
-    const count = entry.min + Math.floor(Math.random() * (entry.max - entry.min + 1));
+    // Independent weighted roll for every stack
+    let roll = Math.random() * totalWeight;
+    let chosenTier = LOOT_TIERS[0];
+    for (const tier of LOOT_TIERS) {
+      roll -= tier.weight;
+      if (roll <= 0) {
+        chosenTier = tier;
+        break;
+      }
+    }
+
+    const entry = chosenTier.items[Math.floor(Math.random() * chosenTier.items.length)];
     const slot = Math.floor(Math.random() * container.size);
-    try { container.setItem(slot, new ItemStack(entry.id, count)); } catch { }
+
+    try {
+      if (entry.type === "book") {
+        const book = new ItemStack("minecraft:enchanted_book", 1);
+        const enchComp = book.getComponent("minecraft:enchantable");
+        if (enchComp) {
+          enchComp.addEnchantment({ type: entry.enchant, level: entry.level });
+        }
+        container.setItem(slot, book);
+      } else {
+        const count = entry.min + Math.floor(Math.random() * (entry.max - entry.min + 1));
+        container.setItem(slot, new ItemStack(entry.id, count));
+      }
+    } catch { /* ignore full/invalid slots */ }
   }
 }
 
 // ────────────────────────────────────────────────
 //  Main generation
 // ────────────────────────────────────────────────
-async function ensureIsland(riftId, entity = null) {
+async function ensureIsland(riftId, entity = null, shouldBuildBox = true) {
   const dim = world.getDimension(DIMENSION_ID);
   const base = getIslandPos(riftId);
 
@@ -326,31 +192,44 @@ async function ensureIsland(riftId, entity = null) {
     }
   }
 
-  // ── build the enclosing box ──────────────────────────────────
-  const bottomY = base.y - BOX_HEIGHT_OFFSET;
-  const topY = base.y + BOX_HEIGHT_OFFSET;
-  const maxX = base.x + BOX_SIZE - 1;
-  const maxZ = base.z + BOX_SIZE - 1;
+  // ── build the enclosing box ONLY when told to ──
+  if (shouldBuildBox) {
+    const bottomY = base.y - BOX_HEIGHT_OFFSET;
+    const topY = base.y + BOX_HEIGHT_OFFSET;
+    const maxX = base.x + BOX_SIZE - 1;
+    const maxZ = base.z + BOX_SIZE - 1;
 
-  try {
-    dim.runCommand(`fill ${base.x} ${bottomY} ${base.z} ${maxX} ${bottomY} ${maxZ} ${BOTTOM_BLOCK}`);
-  } catch (e) { console.warn(`[rift] bottom fill failed: ${e}`); }
+    try {
+      dim.runCommand(`fill ${base.x} ${bottomY} ${base.z} ${maxX} ${bottomY} ${maxZ} ${BOTTOM_BLOCK}`);
+    } catch (e) { console.warn(`[rift] bottom fill failed: ${e}`); }
 
-  try {
-    dim.runCommand(`fill ${base.x} ${topY} ${base.z} ${maxX} ${topY} ${maxZ} ${WALL_BLOCK}`);
-  } catch (e) { console.warn(`[rift] top fill failed: ${e}`); }
+    try {
+      dim.runCommand(`fill ${base.x} ${topY} ${base.z} ${maxX} ${topY} ${maxZ} ${WALL_BLOCK}`);
+    } catch (e) { console.warn(`[rift] top fill failed: ${e}`); }
 
-  const wallCmds = [
-    `fill ${base.x} ${bottomY + 1} ${base.z} ${maxX} ${topY - 1} ${base.z} ${WALL_BLOCK}`,
-    `fill ${base.x} ${bottomY + 1} ${maxZ} ${maxX} ${topY - 1} ${maxZ} ${WALL_BLOCK}`,
-    `fill ${base.x} ${bottomY + 1} ${base.z} ${base.x} ${topY - 1} ${maxZ} ${WALL_BLOCK}`,
-    `fill ${maxX} ${bottomY + 1} ${base.z} ${maxX} ${topY - 1} ${maxZ} ${WALL_BLOCK}`,
-  ];
-  for (const cmd of wallCmds) {
-    try { dim.runCommand(cmd); } catch (e) { console.warn(`[rift] wall fill failed: ${e}`); }
+    const wallCmds = [
+      `fill ${base.x} ${bottomY + 1} ${base.z} ${maxX} ${topY - 1} ${base.z} ${WALL_BLOCK}`,
+      `fill ${base.x} ${bottomY + 1} ${maxZ} ${maxX} ${topY - 1} ${maxZ} ${WALL_BLOCK}`,
+      `fill ${base.x} ${bottomY + 1} ${base.z} ${base.x} ${topY - 1} ${maxZ} ${WALL_BLOCK}`,
+      `fill ${maxX} ${bottomY + 1} ${base.z} ${maxX} ${topY - 1} ${maxZ} ${WALL_BLOCK}`,
+    ];
+    for (const cmd of wallCmds) {
+      try { dim.runCommand(cmd); } catch (e) { console.warn(`[rift] wall fill failed: ${e}`); }
+    }
+    await system.waitTicks(1);
+
+    // ── place red stained glass at beaconOffset (exact rooftop Y) ──
+    for (const offs of BEACON_OFFSETS) {
+      const bx = base.x + layout.offsetX + offs.x;
+      const bz = base.z + layout.offsetZ + offs.z;
+      try {
+        const block = dim.getBlock({ x: bx, y: topY, z: bz });
+        block.setType("minecraft:red_stained_glass");
+      } catch (e) {
+        console.warn(`[rift] Failed to place beacon glass: ${e}`);
+      }
+    }
   }
-
-  await system.waitTicks(1);
 
   // ── chests from the chosen layout ────────────────────────────
   const offsets = [...layout.chestOffsets];
@@ -392,7 +271,7 @@ async function ensureIsland(riftId, entity = null) {
     const inv = block.getComponent("inventory")?.container;
     if (!inv) continue;
 
-    fillChestWithLoot(inv, Math.floor(Math.random() * 3));
+    fillChestWithLoot(inv);
 
     if (pouchSlots.has(i)) {
       const pouch = new ItemStack("subo:glitch_pouch", 1);

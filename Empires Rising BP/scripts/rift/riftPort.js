@@ -249,11 +249,44 @@ world.afterEvents.playerPlaceBlock.subscribe((ev) => {
 
 world.beforeEvents.playerBreakBlock.subscribe((ev) => {
   if (ev.player?.dimension?.id === DIMENSION_ID) {
-    // ev.cancel = true;
+    ev.cancel = true;
     system.run(() => {
       ev.player.onScreenDisplay.setActionBar("§cYou cannot break blocks inside a rift.");
     });
   }
+});
+
+// =============================================================================
+// Prevent natural mob spawns in the rift dimension
+// Only allow the explicit whitelist (everything else is removed)
+// =============================================================================
+const ALLOWED_RIFT_MOBS = new Set([
+  "subo:fire_spirit",
+  "minecraft:magma_cube",
+  "minecraft:blaze",
+  "minecraft:wither_skeleton",
+  "minecraft:husk",
+  "minecraft:parched",
+  "minecraft:bogged",
+  "minecraft:spider",
+]);
+
+world.afterEvents.entitySpawn.subscribe((event) => {
+  const { entity } = event;
+  if (!entity?.isValid) return;
+  if (entity.dimension.id !== DIMENSION_ID) return;
+
+  // Keep players, items, xp, and the whitelist; remove everything else
+  if (
+    entity.typeId === "minecraft:player" ||
+    entity.typeId === "minecraft:item" ||
+    entity.typeId === "minecraft:xp_orb" ||
+    ALLOWED_RIFT_MOBS.has(entity.typeId)
+  ) {
+    return;
+  }
+
+  try { entity.remove(); } catch { }
 });
 
 // =============================================================================
@@ -388,8 +421,12 @@ async function activateRift(dim, block, entity, totalTicks) {
   }
 
   let riftId = getNum(entity, "riftId:", 0);
+  let shouldBuildBox = true;          // safe default
+
   if (!riftId) {
-    riftId = getNextRiftId();
+    const next = getNextRiftId();
+    riftId = next.id;
+    shouldBuildBox = next.shouldBuildBox;
     setNum(entity, "riftId:", riftId);
   }
 
@@ -404,7 +441,7 @@ async function activateRift(dim, block, entity, totalTicks) {
   ];
   setTag(entity, "fog:", fogOptions[Math.floor(Math.random() * fogOptions.length)]);
 
-  const islandData = await ensureIsland(riftId, entity);
+  const islandData = await ensureIsland(riftId, entity, shouldBuildBox);
 
   // only set / reset pouch counters when the island was just generated
   if (islandData.pouchCount > 0) {
@@ -565,70 +602,87 @@ function stopStepOnTicker() {
 }
 
 // =============================================================================
-// RIFT DIMENSION RULES (mobs + block protection)
-// Only does real work while at least one player is inside the dimension
+// RIFT DIMENSION RULES (forced spawns around players)
+// Global ticker every 10 s – only does work while ≥1 player is inside
 // =============================================================================
 let riftDimRunId = null;
 
-const RIFT_MOBS = [
-  "minecraft:zombie",
-  "minecraft:skeleton",
-  "minecraft:spider",
-  "minecraft:creeper",
-  "minecraft:enderman"
+/** Mobs we actively spawn around players */
+const FORCED_SPAWN_MOBS = [
+  "subo:fire_spirit",
+  "minecraft:magma_cube",
+  "minecraft:husk",
+  "minecraft:parched",
 ];
 
-function trySpawnMobsNear(player) {
+/** Blocks that are valid spawn surfaces */
+const VALID_SPAWN_BLOCKS = new Set([
+  "minecraft:obsidian",
+  "minecraft:nether_brick",
+  "minecraft:nether_bricks",
+]);
+
+/**
+ * Try to place one mob in a random valid spot near the player.
+ * Returns true if a mob was successfully spawned.
+ */
+function tryPlaceOneMobNear(player) {
   const dim = player.dimension;
   const loc = player.location;
+  const playerY = Math.floor(loc.y);
 
-  // Limit how many hostiles are already close so we don't flood
-  const nearby = dim.getEntities({
-    location: loc,
-    maxDistance: 24,
-    excludeTypes: ["minecraft:player", "minecraft:item", "minecraft:xp_orb"]
-  }).filter(e => e.typeId.startsWith("minecraft:") && !e.typeId.includes("villager"));
-
-  if (nearby.length >= 8) return;
-
-  // Try a few random positions around the player
-  for (let attempt = 0; attempt < 3; attempt++) {
+  // Up to 12 attempts to find a valid block
+  for (let attempt = 0; attempt < 12; attempt++) {
     const angle = Math.random() * Math.PI * 2;
-    const dist = 6 + Math.random() * 10;
+    const dist = 2 + Math.random() * 8; // 2–10 blocks
     const x = Math.floor(loc.x + Math.cos(angle) * dist);
     const z = Math.floor(loc.z + Math.sin(angle) * dist);
-    const y = Math.floor(loc.y);
 
-    // Look for solid ground a few blocks below / at the player height
-    let groundY = null;
-    for (let dy = 2; dy >= -4; dy--) {
-      const b = dim.getBlock({ x, y: y + dy, z });
-      const above = dim.getBlock({ x, y: y + dy + 1, z });
-      if (b && !b.isAir && !b.isLiquid && above && above.isAir) {
-        groundY = y + dy + 1;
-        break;
+    // Y must be player Y ± 2
+    for (let dy = -2; dy <= 2; dy++) {
+      const groundY = playerY + dy;
+      const ground = dim.getBlock({ x, y: groundY, z });
+      const space1 = dim.getBlock({ x, y: groundY + 1, z });
+      const space2 = dim.getBlock({ x, y: groundY + 2, z });
+
+      if (
+        ground &&
+        VALID_SPAWN_BLOCKS.has(ground.typeId) &&
+        space1?.isAir &&
+        space2?.isAir
+      ) {
+        const mobId = FORCED_SPAWN_MOBS[Math.floor(Math.random() * FORCED_SPAWN_MOBS.length)];
+        try {
+          dim.spawnEntity(mobId, { x: x + 0.5, y: groundY + 1, z: z + 0.5 });
+          return true;
+        } catch { }
       }
     }
-    if (groundY === null) continue;
+  }
+  return false;
+}
 
-    const mobId = RIFT_MOBS[Math.floor(Math.random() * RIFT_MOBS.length)];
-    try {
-      dim.spawnEntity(mobId, { x: x + 0.5, y: groundY, z: z + 0.5 });
-    } catch { }
-    break; // one successful spawn per call is enough
+/**
+ * Spawn 1–2 random forced mobs around a single player.
+ */
+function spawnForcedMobsAround(player) {
+  const count = 1 + Math.floor(Math.random() * 2); // 1 or 2
+  for (let i = 0; i < count; i++) {
+    tryPlaceOneMobNear(player);
   }
 }
 
 function startRiftDimensionTicker() {
   if (riftDimRunId !== null) return;
+  // 200 ticks = 10 seconds
   riftDimRunId = system.runInterval(() => {
     const playersInRift = world.getPlayers().filter(p => p.dimension.id === DIMENSION_ID);
     if (playersInRift.length === 0) return; // cheap early-out – no work when empty
 
     for (const player of playersInRift) {
-      trySpawnMobsNear(player);
+      spawnForcedMobsAround(player);
     }
-  }, 60); // every 3 seconds
+  }, 200);
 }
 
 function stopRiftDimensionTicker() {

@@ -27,7 +27,7 @@ const DEFOREST_LEAVES = [
 
 const DEFOREST_MISC = [
     "minecraft:red_mushroom_block", "minecraft:brown_mushroom_block", "minecraft:mushroom_stem", "minecraft:tall_grass", "minecraft:large_fern", "minecraft:fern",
-    "minecraft:reeds", "minecraft:bamboo", "minecraft:vine", "minecraft:mangrove_roots"
+    "minecraft:reeds", "minecraft:bamboo", "minecraft:vine", "minecraft:mangrove_roots", "minecraft:creaking_heart"
 ];
 
 const DEFOREST_CHUNK_XZ = 48; // chunk size per fillBlocks call
