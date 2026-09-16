@@ -1,9 +1,10 @@
 import { system, world } from "@minecraft/server";
 import { DIMENSION_ID } from "../config/riftConfig.js";
 import { forceNearbyTroopsStay, restoreNearbyTroops } from "../sharedHelpers/troopTeleport.js";
-import { getTag } from "../spawner/spawnerHelpers.js";    
+import { getTag } from "../spawner/spawnerHelpers.js";
 import { getNum, setPlayerRiftTags, isBroken } from "./riftHelpers.js";
 import { ensureIsland } from "./riftIsland.js";
+import { despawnSpiritsForPlayer } from "./riftSpirits.js";
 
 // playerId → tick until which they cannot be teleported again
 export const teleportLock = new Map();
@@ -33,7 +34,7 @@ export async function teleportPlayerToRift(player, entity, loc, forcedRiftId = n
 
     console.warn(`[DBG] START teleport to rift #${riftId}`);
 
-    const islandData = await ensureIsland(riftId, entity);
+    const islandData = await ensureIsland(riftId, entity, player);
 
     setPlayerRiftTags(player, riftId, loc);
 
@@ -42,7 +43,7 @@ export async function teleportPlayerToRift(player, entity, loc, forcedRiftId = n
 
     const riftDim = world.getDimension(DIMENSION_ID);
     player.teleport(islandData.spawn, { dimension: riftDim, checkForBlocks: false });
-    
+
     const fog = entity
         ? getTag(entity, "fog:", "minecraft:fog_hell")
         : "minecraft:fog_hell";
@@ -52,12 +53,47 @@ export async function teleportPlayerToRift(player, entity, loc, forcedRiftId = n
     } catch { }
 
     player.sendMessage(`§dYou have entered Rift #${riftId}.`);
+
+
+    // ── Wait until the spawn chunk is loaded ──
+    const spawnPos = islandData.spawn;
+    let loaded = false;
+
+    for (let i = 0; i < 200; i++) {          // max ~10 seconds
+        try {
+            const block = riftDim.getBlock({
+                x: Math.floor(spawnPos.x),
+                y: Math.floor(spawnPos.y),
+                z: Math.floor(spawnPos.z)
+            });
+            if (block) {
+                loaded = true;
+                break;
+            }
+        } catch {
+            // LocationInUnloadedChunkError → still waiting
+        }
+        await system.waitTicks(2);
+    }
+
+    if (loaded) {
+        spawnSpiritsForPlayer(player);
+    } else {
+        player.sendMessage("§cChunk took too long to load. Spirits will appear shortly...");
+        // Optional fallback: try again a bit later
+        system.runTimeout(() => {
+            if (player.isValid && player.dimension.id === DIMENSION_ID) {
+                spawnSpiritsForPlayer(player);
+            }
+        }, 40);
+    }
+
 }
 
 export async function returnPlayerHome(player, returnLoc) {
     console.warn(`[DBG returnPlayerHome] start for ${player.name}`);
 
-    forceNearbyTroopsStay(player);
+    despawnSpiritsForPlayer(player);
     await system.waitTicks(5);
 
     try {

@@ -8,9 +8,7 @@ import { forceCloseRift, activeRifts } from "./riftPort.js";
 import { returnPlayerHome } from "./riftTeleport.js";
 
 export async function handleGlitchPouchUse(player, pouch) {
-  // -------------------------------------------------------------------------
-  // 1. Extract riftId from the pouch lore
-  // -------------------------------------------------------------------------
+  // 1. Extract riftId from lore
   let riftId = null;
   for (const line of pouch.getLore()) {
     const m = line.match(/Rift #(\d+)/);
@@ -24,60 +22,36 @@ export async function handleGlitchPouchUse(player, pouch) {
     return;
   }
 
-  // -------------------------------------------------------------------------
-  // 2. Always give the loot and consume the pouch (even if something fails later)
-  // -------------------------------------------------------------------------
-  const loot = new ItemStack("minecraft:netherite_ingot", 1);
-  player.getComponent("inventory")?.container.addItem(loot);
-
-  const inv = player.getComponent("inventory")?.container;
+  // 2. Consume the pouch
+  const inv = player.getComponent("minecraft:inventory")?.container;
   if (inv) inv.setItem(player.selectedSlotIndex, undefined);
 
-  // -------------------------------------------------------------------------
-  // 3. Determine if the player is currently inside the correct rift
-  // -------------------------------------------------------------------------
-  const returnData = getPlayerRiftReturn(player);
-  const insideCorrectRift =
-    returnData &&
-    returnData.riftId === riftId &&
-    player.dimension.id === DIMENSION_ID;
-
-  // -------------------------------------------------------------------------
-  // 4. Resolve the overworld pad location of the POUCH'S rift only
-  // -------------------------------------------------------------------------
-  let loc = null;
-
-  // 4a. Player is currently tied to this exact riftId
-  if (returnData && returnData.riftId === riftId) {
-    loc = { x: returnData.x, y: returnData.y, z: returnData.z };
+  // 3. Give 1-3 random spirits
+  const types = ["subo:vigor_spirit", "subo:pyro_spirit", "subo:frost_spirit"];
+  const count = 1 + Math.floor(Math.random() * 3);
+  for (let i = 0; i < count; i++) {
+    const type = types[Math.floor(Math.random() * types.length)];
+    try { inv?.addItem(new ItemStack(type, 1)); } catch { }
   }
+  player.sendMessage(`§dYou extracted ${count} spirit${count > 1 ? "s" : ""} from the pouch.`);
 
-  // 4b. The rift is still in the active map
-  if (!loc) {
-    const info = activeRifts.get(riftId);
-    if (info) {
-      loc = { x: info.x, y: info.y, z: info.z };
-    }
-  }
-
-  // NOTE: We deliberately do NOT fall back to returnData when the riftId
-  // does not match. That was the bug that made foreign pouches progress
-  // the current rift.
-
+  // 4. Progress the correct rift’s counter (NO teleport)
   const dim = world.getDimension("minecraft:overworld");
+  let loc = null;
+  let entity = null;
 
-  // -------------------------------------------------------------------------
-  // 5. Force-load the correct pad (only if we know its location)
-  // -------------------------------------------------------------------------
-  const areaId = `rift_pouch_${riftId}_${Date.now()}`;
+  const info = activeRifts.get(riftId);
+  if (info) loc = { x: info.x, y: info.y, z: info.z };
+
+  // Force-load pad
+  const areaId = `pouch_${riftId}_${Date.now()}`;
   let areaCreated = false;
-
   if (loc) {
     try {
       const options = {
         dimension: dim,
         from: { x: loc.x - 2, y: loc.y - 2, z: loc.z - 2 },
-        to: { x: loc.x + 2, y: loc.y + 2, z: loc.z + 2 }
+        to:   { x: loc.x + 2, y: loc.y + 2, z: loc.z + 2 }
       };
       if (world.tickingAreaManager.hasCapacity(options)) {
         await world.tickingAreaManager.createTickingArea(areaId, options);
@@ -87,129 +61,48 @@ export async function handleGlitchPouchUse(player, pouch) {
     } catch { }
   }
 
-  // -------------------------------------------------------------------------
-  // 6. Find the persistence entity that belongs to this pouch’s riftId
-  // -------------------------------------------------------------------------
-  let entity = null;
-
-  // First try the location we just loaded
-  if (loc) {
-    entity = getRiftEntityAt(dim, loc);
-    // Extra safety: make sure the entity we found actually has the right riftId
-    if (entity && getNum(entity, "riftId:", 0) !== riftId) {
-      entity = null;
-    }
-  }
-
-  // Fallback scan – only accept an entity that really belongs to this riftId
-  if (!entity) {
-    try {
-      for (const e of dim.getEntities({ type: RIFT_ENTITY })) {
-        if (getNum(e, "riftId:", 0) === riftId) {
-          entity = e;
-          const bl = blockLoc(e);
-          if (bl) loc = bl;
-          break;
-        }
+  // Find the persistence entity
+  try {
+    for (const e of dim.getEntities({ type: "subo:rift_port_entity" })) {
+      if (getNum(e, "riftId:", 0) === riftId) {
+        entity = e;
+        if (!loc) loc = blockLoc(e);
+        break;
       }
-    } catch { }
-  }
+    }
+  } catch { }
 
-  // Final recovery of location from the entity tags
-  if (entity && !loc) {
-    loc = blockLoc(entity);
-  }
-
-  // -------------------------------------------------------------------------
-  // 7. Update pouch counters
-  // -------------------------------------------------------------------------
-  let total = 0;
-  let opened = 0;
-
-  if (entity && entity.isValid) {
+  // Update counters
+  let total = 0, opened = 0;
+  if (entity?.isValid) {
     total = getNum(entity, "pouchTotal:", 0);
     opened = getNum(entity, "pouchOpened:", 0) + 1;
     setNum(entity, "pouchOpened:", opened);
   }
+
   if (total > 0) {
-    player.sendMessage(`§dGlitch Pouch opened (${opened}/${total})`);
-  } else {
-    player.sendMessage(`§dGlitch Pouch opened (rift already closed or unknown)`);
+    player.sendMessage(`§dGlitch energy extracted (${opened}/${total})`);
   }
 
-  // -------------------------------------------------------------------------
-  // 8. Always return every player that is currently inside this rift
-  //    and close / destroy the port according to the pouch counters
-  // -------------------------------------------------------------------------
   const needDestroy = opened >= total && total > 0;
 
-  // Return EVERYONE who is still inside this island
-  const playersToReturn = [];
-  for (const p of world.getPlayers()) {
-    const data = getPlayerRiftReturn(p);
-    if (data && data.riftId === riftId && p.dimension.id === DIMENSION_ID) {
-      playersToReturn.push(p);
-    }
-  }
-  for (const p of playersToReturn) {
-    await returnPlayerHome(p, {
-      dim: "overworld",
-      x: loc?.x ?? 0,
-      y: loc?.y ?? 0,
-      z: loc?.z ?? 0
-    });
-    clearPlayerRiftTags(p);
-  }
-
-  // Now close (or permanently destroy) the port itself
+  // Only destroy the port – do NOT force players out
   await forceCloseRift(dim, entity, needDestroy, riftId, loc);
 
-  // -------------------------------------------------------------------------
-  // 9. Visual feedback + permanent block replacement (only on last pouch)
-  // -------------------------------------------------------------------------
   if (needDestroy && loc) {
     player.sendMessage("§5§lAll glitch energy extracted! The island collapses...");
-
-    const finalAreaId = `rift_final_${riftId}_${Date.now()}`;
-    let finalAreaCreated = false;
-    try {
-      const options = {
-        dimension: dim,
-        from: { x: loc.x - 2, y: loc.y - 2, z: loc.z - 2 },
-        to: { x: loc.x + 2, y: loc.y + 2, z: loc.z + 2 }
-      };
-      if (world.tickingAreaManager.hasCapacity(options)) {
-        await world.tickingAreaManager.createTickingArea(finalAreaId, options);
-        finalAreaCreated = true;
-        await system.waitTicks(3);
-      }
-    } catch { }
-
     try {
       dim.spawnParticle("minecraft:large_explosion", {
         x: loc.x + 0.5, y: loc.y + 0.5, z: loc.z + 0.5
       });
-    } catch { }
-    try {
       dim.playSound("random.explode", loc, { volume: 1.1, pitch: 0.85 });
       dim.playSound("portal.travel", loc, { volume: 0.6, pitch: 0.55 });
-    } catch { }
-
-    try {
       const block = dim.getBlock(loc);
       if (block) block.setType("subo:destroyed_rift");
     } catch { }
-
-    if (finalAreaCreated) {
-      try { world.tickingAreaManager.removeTickingArea(finalAreaId); } catch { }
-    }
   }
 
-  // -------------------------------------------------------------------------
-  // 10. Clean up temporary ticking areas
-  // -------------------------------------------------------------------------
   if (areaCreated) {
     try { world.tickingAreaManager.removeTickingArea(areaId); } catch { }
-    try { world.tickingAreaManager.removeTickingArea(areaId + "_retry"); } catch { }
   }
 }

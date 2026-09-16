@@ -6,6 +6,7 @@ import {
 } from "../config/riftConfig.js";
 import { getNum, setNum } from "./riftHelpers.js";
 import { CHEST_SPAWN_CHANCE, LOOT_TIERS } from "../config/riftChestLoot.js";
+import { spawnSpiritsForPlayer } from "./riftSpirits.js";
 
 export { getNextRiftId, ensureIsland, freeRiftId };
 
@@ -124,7 +125,7 @@ function fillChestWithLoot(container) {
 // ────────────────────────────────────────────────
 //  Main generation
 // ────────────────────────────────────────────────
-async function ensureIsland(riftId, entity = null, shouldBuildBox = true) {
+async function ensureIsland(riftId, entity = null, shouldBuildBox = true, player) {
   const dim = world.getDimension(DIMENSION_ID);
   const base = getIslandPos(riftId);
 
@@ -278,14 +279,14 @@ async function ensureIsland(riftId, entity = null, shouldBuildBox = true) {
       pouch.setLore([
         "§5Glitch Pouch",
         `§8Rift #${riftId}`,
-        "§7Right-click to extract",
+        "§7Right-click to extract spirits"
       ]);
       try { inv.setItem(0, pouch); }
       catch { inv.setItem(Math.floor(Math.random() * inv.size), pouch); }
       placedPouches++;
     }
   }
-
+  
   // ── clean up ─────────────────────────────────────────────────
   if (areaCreated) {
     try { world.tickingAreaManager.removeTickingArea(taId); } catch { }

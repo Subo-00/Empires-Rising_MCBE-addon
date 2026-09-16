@@ -1,0 +1,18 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "subo:pyro_spirit_projectile",
+      "materials": {
+        "default": "entity_alphatest"
+      },
+      "textures": {
+        "default": "textures/entity/projectiles/pyro_spirit_projectile"
+      },
+      "geometry": {
+        "default": "geometry.pyro_spirit_projectile"
+      },
+      "render_controllers": ["controller.render.default"]
+    }
+  }
+}

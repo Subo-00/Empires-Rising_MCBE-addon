@@ -158,6 +158,37 @@ export const BEACON_OFFSETS = [
   { x: 68, z: 138 }
 ]
 
+
+/** Mobs allowed to spawn in the Rift */
+export const ALLOWED_RIFT_MOBS = new Set([
+  "subo:vigor_spirit_entity",
+  "subo:pyro_spirit_entity",
+  "subo:frost_spirit_entity",
+  "subo:fire_spirit",
+  "minecraft:magma_cube",
+  "minecraft:blaze",
+  "minecraft:wither_skeleton",
+  "minecraft:husk",
+  "minecraft:parched",
+  "minecraft:bogged",
+  "minecraft:spider",
+]);
+
+/** Mobs we actively spawn around players */
+export const FORCED_SPAWN_MOBS = [
+  "subo:fire_spirit",
+  "minecraft:magma_cube",
+  "minecraft:husk",
+  "minecraft:parched",
+];
+
+/** Blocks that are valid spawn surfaces */
+export const VALID_SPAWN_BLOCKS = new Set([
+  "minecraft:obsidian",
+  "minecraft:nether_brick",
+  "minecraft:nether_bricks",
+]);
+
 export const DESTROYED_RIFT_MESSAGES = [
     "§7The path is gone, yet the longing remains.",
     "§7Some doors close so that the soul may learn to walk alone.",

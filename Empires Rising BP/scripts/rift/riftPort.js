@@ -4,6 +4,7 @@ import { getStorageLocation, setTag } from "../spawner/spawnerHelpers.js";
 import {
   DIMENSION_ID, RIFT_BLOCK, RIFT_ENTITY,
   RIFT_KEY_ID, OPEN_DURATION_TICKS,
+  VALID_SPAWN_BLOCKS, FORCED_SPAWN_MOBS, ALLOWED_RIFT_MOBS
 } from "../config/riftConfig.js";
 
 import {
@@ -11,11 +12,11 @@ import {
   isActive, isBroken, clearRiftState, blockLoc,
   clearPlayerRiftTags, getPlayerRiftReturn,
 } from "./riftHelpers.js";
+import { handleGlitchPouchUse } from "./riftPouch.js";
 
 import { getNextRiftId, ensureIsland, freeRiftId } from "./riftIsland.js";
 import { teleportLock, teleportPlayerToRift, returnPlayerHome } from "./riftTeleport.js";
-import { handleGlitchPouchUse } from "./riftPouch.js";
-
+import { handleSpiritUse, startSpiritTicker, recoverSpirits } from "./riftSpirits.js";
 
 // riftId → { timeoutId, x, y, z }
 export const activeRifts = new Map();
@@ -41,7 +42,20 @@ export function registerRiftComponents() {
         handleGlitchPouchUse(player, item);
       }
     });
+
+    // Spirit items (all three share the same use handler)
+    ev.itemComponentRegistry.registerCustomComponent("subo:spirit_use", {
+      onUse(event) {
+        const player = event.source;
+        const item = event.itemStack;
+        if (!player || !item) return;
+        handleSpiritUse(player, item);
+      }
+    });
+
   });
+
+  startSpiritTicker();
 
   // Start the lightweight dimension ticker (it self-idles when no-one is inside)
   startRiftDimensionTicker();
@@ -95,22 +109,12 @@ function recoverStuckPlayers() {
 
     const data = getPlayerRiftReturn(p);
     if (!data) {
-      // no return tag → emergency eject to overworld spawn
+      // no return tag at all → true emergency (should never happen in normal play)
       p.teleport({ x: 0, y: 100, z: 0 }, { dimension: world.getDimension("minecraft:overworld") });
       p.sendMessage("§cYou were stuck in a rift. Returned to spawn.");
-      continue;
     }
-
-    // if the corresponding rift is no longer active, bring them home
-    if (!activeRifts.has(data.riftId)) {
-      returnPlayerHome(p, {
-        dim: "overworld",
-        x: data.x,
-        y: data.y,
-        z: data.z
-      });
-      clearPlayerRiftTags(p);
-    }
+    // otherwise leave them alone – they stay in the island until a spirit is used
+    // or the port is destroyed
   }
 }
 
@@ -134,6 +138,7 @@ function recoverAllRifts() {
 // Run recovery a few seconds after the world is fully loaded
 system.runTimeout(() => {
   recoverAllRifts();
+  recoverSpirits();
 }, 60);   // 3 seconds – safe for most servers
 
 world.afterEvents.entityLoad.subscribe((ev) => {
@@ -208,16 +213,7 @@ world.beforeEvents.playerBreakBlock.subscribe((ev) => {
 // Prevent natural mob spawns in the rift dimension
 // Only allow the explicit whitelist (everything else is removed)
 // =============================================================================
-const ALLOWED_RIFT_MOBS = new Set([
-  "subo:fire_spirit",
-  "minecraft:magma_cube",
-  "minecraft:blaze",
-  "minecraft:wither_skeleton",
-  "minecraft:husk",
-  "minecraft:parched",
-  "minecraft:bogged",
-  "minecraft:spider",
-]);
+
 
 world.afterEvents.entitySpawn.subscribe((event) => {
   const { entity } = event;
@@ -482,21 +478,6 @@ function stopStepOnTicker() {
 // =============================================================================
 let riftDimRunId = null;
 
-/** Mobs we actively spawn around players */
-const FORCED_SPAWN_MOBS = [
-  "subo:fire_spirit",
-  "minecraft:magma_cube",
-  "minecraft:husk",
-  "minecraft:parched",
-];
-
-/** Blocks that are valid spawn surfaces */
-const VALID_SPAWN_BLOCKS = new Set([
-  "minecraft:obsidian",
-  "minecraft:nether_brick",
-  "minecraft:nether_bricks",
-]);
-
 /**
  * Try to place one mob in a random valid spot near the player.
  * Returns true if a mob was successfully spawned.
@@ -621,28 +602,6 @@ export async function forceCloseRift(dim, entity, wasDestroyed, forcedRiftId = n
     // We no longer store remaining/total, but clear just in case
     setNum(targetEntity, "remaining:", 0);
     setNum(targetEntity, "total:", 0);
-  }
-
-  // This block mainly acts as a safety net
-  // Only return players when the rift is being *destroyed* (last pouch).
-  // A normal timer expiry / unload just closes the port; players stay inside.
-  if (wasDestroyed) {
-    const playersToReturn = [];
-    for (const p of world.getPlayers()) {
-      const data = getPlayerRiftReturn(p);
-      if (data && data.riftId === riftId && p.dimension.id === DIMENSION_ID) {
-        playersToReturn.push(p);
-      }
-    }
-    for (const p of playersToReturn) {
-      await returnPlayerHome(p, {
-        dim: "overworld",
-        x: loc.x,
-        y: loc.y,
-        z: loc.z
-      });
-      clearPlayerRiftTags(p);
-    }
   }
 
   // Set the block state

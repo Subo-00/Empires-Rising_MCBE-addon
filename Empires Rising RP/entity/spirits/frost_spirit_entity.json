@@ -1,0 +1,18 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "subo:frost_spirit_entity",
+      "materials": {
+        "default": "entity_alphatest"
+      },
+      "textures": {
+        "default": "textures/entity/spirits/frost_spirit"
+      },
+      "geometry": {
+        "default": "geometry.frost_spirit"
+      },
+      "render_controllers": ["controller.render.default"]
+    }
+  }
+}

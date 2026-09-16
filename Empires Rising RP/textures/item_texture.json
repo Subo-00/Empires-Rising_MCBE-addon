@@ -73,6 +73,15 @@
     },
     "rift_key": {
       "textures": "textures/items/rift/rift_key"
+    },
+    "vigor_spirit": {
+      "textures": "textures/items/rift/spirits/vigor_spirit"
+    },
+    "pyro_spirit": {
+      "textures": "textures/items/rift/spirits/pyro_spirit"
+    },
+    "frost_spirit": {
+      "textures": "textures/items/rift/spirits/frost_spirit"
     }
   }
 }
