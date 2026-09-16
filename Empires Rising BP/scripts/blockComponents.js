@@ -4,7 +4,7 @@ import { replaceWithLootChest } from "./camp/randomChests.js";
 import { spawnRandomEnemies } from "./camp/randomMobSpawner.js";
 import { handlePortalBreak } from "./portal/portalLogic.js";
 import { handlePurifierBreak } from "./purifier/purifierLogic.js";
-import { openRiftForm, handleRiftPortBreak, handleRiftPortPlace } from "./rift/riftPort.js";
+import { openRiftPort, handleRiftPortBreak, handleRiftPortPlace } from "./rift/riftPort.js";
 import { handleDestroyedRiftInteract } from "./rift/brokenRift.js";
 
 
@@ -68,7 +68,7 @@ export function registerBlockComponents() {
             },
             onPlayerInteract: (event) => {
                 if (event.player.isSneaking) return;
-                openRiftForm(event.player, event.block.location, event.block.dimension.id);
+                openRiftPort(event.player, event.block.location, event.block.dimension.id);
             }
         });
 

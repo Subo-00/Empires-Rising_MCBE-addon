@@ -1,0 +1,18 @@
+{
+  "format_version": "1.21.0",
+  "minecraft:item": {
+    "description": {
+      "identifier": "subo:rift_key",
+      "menu_category": {
+        "category": "items"
+      }
+    },
+    "components": {
+      "minecraft:max_stack_size": 16,
+      "minecraft:icon": "rift_key",
+      "minecraft:display_name": {
+        "value": "Rift Key"
+      }
+    }
+  }
+}

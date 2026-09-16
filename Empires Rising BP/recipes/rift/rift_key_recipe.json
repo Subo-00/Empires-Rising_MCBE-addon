@@ -1,0 +1,22 @@
+{
+  "format_version": "1.19.80",
+  "minecraft:recipe_shaped": {
+    "description": {
+      "identifier": "subo:rift_key"
+    },
+    "tags": ["crafting_table"],
+    "pattern": [
+      "AVA",
+      " A ",
+      " A "
+    ],
+    "key": {
+      "A": { "item": "minecraft:amethyst_shard" },
+      "V": { "item": "subo:void_shard" }
+    },
+    "result": {
+      "item": "subo:rift_key",
+      "count": 1
+    }
+  }
+}

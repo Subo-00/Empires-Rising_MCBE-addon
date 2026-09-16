@@ -70,6 +70,9 @@
     },
     "rift_core": {
       "textures": "textures/items/rift/rift_core"
+    },
+    "rift_key": {
+      "textures": "textures/items/rift/rift_key"
     }
   }
 }

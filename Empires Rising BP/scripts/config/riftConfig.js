@@ -2,10 +2,8 @@ export const DIMENSION_ID = "subo:rift_realm";
 export const RIFT_BLOCK = "subo:rift_port";
 export const RIFT_ENTITY = "subo:rift_port_entity";
 
-export const LAPIS_ID = "minecraft:lapis_lazuli";
-export const SECONDS_PER_LAPIS = 10;
-export const MAX_OPEN_SECONDS = 3600;       // 1 hour
-export const TICKS_PER_SECOND = 20;
+export const RIFT_KEY_ID = "subo:rift_key";
+export const OPEN_DURATION_TICKS = 10 * 20;   // 10 seconds
 
 // ────────────────────────────────────────────────
 //  Surrounding Box
@@ -159,9 +157,6 @@ export const BEACON_OFFSETS = [
   { x: 67, z: 131 },
   { x: 68, z: 138 }
 ]
-
-export const WARNING_15 = 15 * TICKS_PER_SECOND;
-export const WARNING_5  = 5  * TICKS_PER_SECOND;
 
 export const DESTROYED_RIFT_MESSAGES = [
     "§7The path is gone, yet the longing remains.",

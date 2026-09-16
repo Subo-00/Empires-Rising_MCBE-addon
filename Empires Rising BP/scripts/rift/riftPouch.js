@@ -1,10 +1,11 @@
 import { system, world, ItemStack } from "@minecraft/server";
-import { DIMENSION_ID, RIFT_BLOCK, RIFT_ENTITY } from "../config/riftConfig.js";
+import { DIMENSION_ID, RIFT_ENTITY } from "../config/riftConfig.js";
 import {
   getNum, setNum, blockLoc, getRiftEntityAt,
-  getPlayerRiftReturn, trySetState
+  getPlayerRiftReturn, clearPlayerRiftTags
 } from "./riftHelpers.js";
 import { forceCloseRift, activeRifts } from "./riftPort.js";
+import { returnPlayerHome } from "./riftTeleport.js";
 
 export async function handleGlitchPouchUse(player, pouch) {
   // -------------------------------------------------------------------------
@@ -137,36 +138,31 @@ export async function handleGlitchPouchUse(player, pouch) {
   }
 
   // -------------------------------------------------------------------------
-  // 8. Decide what kind of close is required and perform it only once
+  // 8. Always return every player that is currently inside this rift
+  //    and close / destroy the port according to the pouch counters
   // -------------------------------------------------------------------------
   const needDestroy = opened >= total && total > 0;
-  const shouldForceClose = insideCorrectRift || needDestroy;
 
-  if (shouldForceClose) {
-    // needDestroy === true  → permanent destruction (island + entity removed)
-    // needDestroy === false → normal close (just return players + set inactive)
-    await forceCloseRift(dim, entity, needDestroy, riftId, loc);
-  } else {
-    // Pouch belongs to a different / already-closed rift
-    // → only cancel its timer and mark the pad inactive
-    const info = activeRifts.get(riftId);
-    if (info) {
-      try { system.clearRun(info.timeoutId); } catch { }
-      activeRifts.delete(riftId);
-    }
-    if (entity && entity.isValid) {
-      setNum(entity, "remaining:", 0);
-      setNum(entity, "total:", 0);
-    }
-    if (loc) {
-      try {
-        const block = dim.getBlock(loc);
-        if (block?.typeId === RIFT_BLOCK) {
-          trySetState(block, "inactive");
-        }
-      } catch { }
+  // Return EVERYONE who is still inside this island
+  const playersToReturn = [];
+  for (const p of world.getPlayers()) {
+    const data = getPlayerRiftReturn(p);
+    if (data && data.riftId === riftId && p.dimension.id === DIMENSION_ID) {
+      playersToReturn.push(p);
     }
   }
+  for (const p of playersToReturn) {
+    await returnPlayerHome(p, {
+      dim: "overworld",
+      x: loc?.x ?? 0,
+      y: loc?.y ?? 0,
+      z: loc?.z ?? 0
+    });
+    clearPlayerRiftTags(p);
+  }
+
+  // Now close (or permanently destroy) the port itself
+  await forceCloseRift(dim, entity, needDestroy, riftId, loc);
 
   // -------------------------------------------------------------------------
   // 9. Visual feedback + permanent block replacement (only on last pouch)
@@ -174,7 +170,6 @@ export async function handleGlitchPouchUse(player, pouch) {
   if (needDestroy && loc) {
     player.sendMessage("§5§lAll glitch energy extracted! The island collapses...");
 
-    // Short final area so the block swap is reliable even on slow disks
     const finalAreaId = `rift_final_${riftId}_${Date.now()}`;
     let finalAreaCreated = false;
     try {
@@ -190,7 +185,6 @@ export async function handleGlitchPouchUse(player, pouch) {
       }
     } catch { }
 
-    // Explosion particles + sounds
     try {
       dim.spawnParticle("minecraft:large_explosion", {
         x: loc.x + 0.5, y: loc.y + 0.5, z: loc.z + 0.5
@@ -201,7 +195,6 @@ export async function handleGlitchPouchUse(player, pouch) {
       dim.playSound("portal.travel", loc, { volume: 0.6, pitch: 0.55 });
     } catch { }
 
-    // Replace the port with the destroyed block
     try {
       const block = dim.getBlock(loc);
       if (block) block.setType("subo:destroyed_rift");
@@ -213,11 +206,10 @@ export async function handleGlitchPouchUse(player, pouch) {
   }
 
   // -------------------------------------------------------------------------
-  // 10. Clean up the temporary ticking area we created at the start
+  // 10. Clean up temporary ticking areas
   // -------------------------------------------------------------------------
   if (areaCreated) {
     try { world.tickingAreaManager.removeTickingArea(areaId); } catch { }
-    // Also remove the possible "_retry" area
     try { world.tickingAreaManager.removeTickingArea(areaId + "_retry"); } catch { }
   }
 }

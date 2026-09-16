@@ -1,18 +1,15 @@
 import { system, world, ItemStack } from "@minecraft/server";
-import { ModalFormData } from "@minecraft/server-ui";
 import { getStorageLocation, setTag } from "../spawner/spawnerHelpers.js";
 
 import {
   DIMENSION_ID, RIFT_BLOCK, RIFT_ENTITY,
-  LAPIS_ID, SECONDS_PER_LAPIS, MAX_OPEN_SECONDS, TICKS_PER_SECOND,
-  WARNING_15, WARNING_5
+  RIFT_KEY_ID, OPEN_DURATION_TICKS,
 } from "../config/riftConfig.js";
 
 import {
   trySetState, getNum, setNum, getRiftEntityAt,
   isActive, isBroken, clearRiftState, blockLoc,
   clearPlayerRiftTags, getPlayerRiftReturn,
-  countItem, removeItemAmount
 } from "./riftHelpers.js";
 
 import { getNextRiftId, ensureIsland, freeRiftId } from "./riftIsland.js";
@@ -61,7 +58,7 @@ function recoverSingleRift(entity) {
   const riftId = getNum(entity, "riftId:", 0);
   if (!riftId || recoveredRifts.has(riftId)) return;
 
-  // Never resume something that is already tracked OR currently being closed
+  // Already being tracked or currently closing → ignore
   if (activeRifts.has(riftId) || closingRifts.has(riftId)) {
     recoveredRifts.add(riftId);
     return;
@@ -76,13 +73,10 @@ function recoverSingleRift(entity) {
   let block = null;
   try { block = dim.getBlock(loc); } catch { }
 
-  // ---- permanently broken ----
+  // Permanently broken → convert to destroyed block & clean up
   if (isBroken(entity)) {
-    // convert old broken pads to the new destroyed block
     if (block?.typeId === RIFT_BLOCK) {
-      try {
-        block.setType("subo:destroyed_rift");
-      } catch { }
+      try { block.setType("subo:destroyed_rift"); } catch { }
     }
     if (riftId) freeRiftId(riftId);
     clearRiftState(entity);
@@ -90,55 +84,9 @@ function recoverSingleRift(entity) {
     return;
   }
 
-  const remaining = getNum(entity, "remaining:", 0);
-
-  // ---- still had time left → RESUME ----
-  if (remaining > 0) {
-    // cancel any leftover timer just in case
-    const old = activeRifts.get(riftId);
-    if (old) {
-      try { system.clearRun(old.timeoutId); } catch { }
-      activeRifts.delete(riftId);
-    }
-
-    const timeoutId = system.runTimeout(() => {
-      activeRifts.delete(riftId);
-      let ent = null;
-      try { ent = getRiftEntityAt(dim, loc); } catch { }
-      forceCloseRift(dim, ent, false, riftId, { ...loc });
-    }, remaining);
-
-    // re-schedule 15 s warning if still relevant
-    if (remaining > WARNING_15) {
-      system.runTimeout(() => {
-        if (!activeRifts.has(riftId)) return;
-        for (const p of world.getPlayers()) {
-          const data = getPlayerRiftReturn(p);
-          if (data && data.riftId === riftId && p.dimension.id === DIMENSION_ID) {
-            p.onScreenDisplay.setActionBar("§eRift closing in 15 seconds!");
-          }
-        }
-      }, remaining - WARNING_15);
-    }
-
-    activeRifts.set(riftId, {
-      timeoutId,
-      x: loc.x,
-      y: loc.y,
-      z: loc.z,
-      endTick: system.currentTick + remaining
-    });
-
-    if (block?.typeId === RIFT_BLOCK) trySetState(block, "active");
-    startStepOnTicker();
-    console.warn(`[Rift] Resumed rift #${riftId} with ${Math.ceil(remaining / TICKS_PER_SECOND)}s left`);
-    return;
-  }
-
-  // ---- remaining == 0 but block still says "active" → clean close ----
-  if (block?.permutation?.getState("subo:state") === "active") {
-    forceCloseRift(dim, entity, false, riftId, { ...loc });
-  }
+  // ANY previous open state is discarded on load / restart.
+  // Just force-close the port (players stay inside until they use a pouch).
+  forceCloseRift(dim, entity, false, riftId, { ...loc });
 }
 
 function recoverStuckPlayers() {
@@ -294,18 +242,18 @@ world.afterEvents.entitySpawn.subscribe((event) => {
 // =============================================================================
 const formOpenPlayers = new Set();
 
-export function openRiftForm(player, loc, dimId) {
+export function openRiftPort(player, loc, dimId) {
   const dim = world.getDimension(dimId);
   const block = dim.getBlock(loc);
   if (!block || block.typeId !== RIFT_BLOCK) return;
 
-  // Hard early-out for broken state (entity may already be gone)
   let entity = getRiftEntityAt(dim, loc);
-  if (isBroken(entity) || (block.permutation.getState("subo:state") === "broken")) {
+
+  // Already broken?
+  if (isBroken(entity) || block.permutation.getState("subo:state") === "broken") {
     player.onScreenDisplay.setActionBar("§cThis port is broken.");
-    // Clean up the broken/ghost port and return the item to the player
     try {
-      if (entity && entity.isValid) {
+      if (entity?.isValid) {
         clearRiftState(entity);
         entity.remove();
       }
@@ -318,98 +266,45 @@ export function openRiftForm(player, loc, dimId) {
     return;
   }
 
-  // Only create the entity if it truly does not exist AND the pad is not broken
-  if (!entity) {
+  // Already open?
+  const riftIdForUi = getNum(entity, "riftId:", 0);
+  if (activeRifts.has(riftIdForUi) || isActive(entity)) {
+    player.onScreenDisplay.setActionBar("§dRift is already open.");
+    return;
+  }
+
+  // Must be holding a Rift Key in the selected slot
+  const inv = player.getComponent("minecraft:inventory")?.container;
+  if (!inv) return;
+
+  const held = inv.getItem(player.selectedSlotIndex);
+  if (!held || held.typeId !== RIFT_KEY_ID) {
+    player.onScreenDisplay.setActionBar("§cYou need to hold a Rift Key to open a port.");
+    return;
+  }
+
+  // Consume one from the held stack
+  if (held.amount > 1) {
+    held.amount -= 1;
+    inv.setItem(player.selectedSlotIndex, held);
+  } else {
+    inv.setItem(player.selectedSlotIndex, undefined);
+  }
+
+  // Make sure the persistence entity exists
+  if (!entity || !entity.isValid) {
     entity = dim.spawnEntity(RIFT_ENTITY, getStorageLocation(block));
     setTag(entity, "bx:", loc.x);
     setTag(entity, "by:", loc.y);
     setTag(entity, "bz:", loc.z);
   }
 
-  const riftIdForUi = getNum(entity, "riftId:", 0);
-  const info = activeRifts.get(riftIdForUi);
-  if (info || isActive(entity)) {
-    const remaining = info
-      ? Math.max(0, info.endTick - system.currentTick)
-      : getNum(entity, "remaining:", 0);
-    const secs = Math.ceil(remaining / TICKS_PER_SECOND);
-    player.onScreenDisplay.setActionBar(`§dRift #${riftIdForUi} open – §f${secs}s §dremaining`);
-    return;
-  }
-
-  const lapisCount = countItem(player, LAPIS_ID);
-  if (lapisCount === 0) {
-    player.onScreenDisplay.setActionBar("§cYou need Lapis Lazuli to open a rift.");
-    return;
-  }
-
-  const maxSeconds = Math.min(MAX_OPEN_SECONDS, lapisCount * SECONDS_PER_LAPIS);
-
-  const title = riftIdForUi
-    ? `§5✦ Open Rift Port #${riftIdForUi} ✦`
-    : "§5✦ Open Rift Port ✦";
-
-  const form = new ModalFormData()
-    .title(title)
-    .slider(`§7Duration (seconds)  §8(1 Lapis = ${SECONDS_PER_LAPIS}s)`, 10, maxSeconds, {
-      valueStep: 10,
-      defaultValue: 10
-    });
-
-  form.show(player).then((res) => {
-    if (res.canceled) return;
-    const seconds = Math.floor(res.formValues[0] ?? 0);
-    if (seconds < 10) return;
-
-    // Re-validate everything after the async form – the original entity
-    // reference can become invalid if the port was broken/destroyed while
-    // the player still had the UI open.
-    const currentBlock = dim.getBlock(loc);
-    if (!currentBlock || currentBlock.typeId !== RIFT_BLOCK) {
-      player.onScreenDisplay.setActionBar("§cThe port is gone.");
-      return;
-    }
-
-    let currentEntity = getRiftEntityAt(dim, loc);
-    if (isBroken(currentEntity) || currentBlock.permutation.getState("subo:state") === "broken") {
-      player.onScreenDisplay.setActionBar("§cThis port is broken.");
-      // Clean up the broken/ghost port and return the item to the player
-      try {
-        if (currentEntity && currentEntity.isValid) {
-          clearRiftState(currentEntity);
-          currentEntity.remove();
-        }
-      } catch { }
-      try {
-        currentBlock.setType("minecraft:air");
-        const inv = player.getComponent("minecraft:inventory")?.container;
-        if (inv) inv.addItem(new ItemStack(RIFT_BLOCK, 1));
-      } catch { }
-      return;
-    }
-
-    if (!currentEntity || !currentEntity.isValid) {
-      currentEntity = dim.spawnEntity(RIFT_ENTITY, getStorageLocation(currentBlock));
-      setTag(currentEntity, "bx:", loc.x);
-      setTag(currentEntity, "by:", loc.y);
-      setTag(currentEntity, "bz:", loc.z);
-    }
-
-    const needed = Math.ceil(seconds / SECONDS_PER_LAPIS);
-    const removed = removeItemAmount(player, LAPIS_ID, needed);
-    if (removed < needed) {
-      player.onScreenDisplay.setActionBar("§cNot enough Lapis.");
-      return;
-    }
-
-    activateRift(dim, currentBlock, currentEntity, seconds * TICKS_PER_SECOND);
-    player.playSound("random.pop");
-    player.onScreenDisplay.setActionBar(`§dRift opened for §f${seconds}s`);
-  });
+  activateRift(dim, block, entity);
+  player.playSound("random.pop");
+  player.onScreenDisplay.setActionBar("§dRift opened for 10 seconds");
 }
 
-async function activateRift(dim, block, entity, totalTicks) {
-  // Final safety – never call getTags / setTag on an invalid entity
+async function activateRift(dim, block, entity) {
   if (!entity || !entity.isValid) {
     entity = getRiftEntityAt(dim, block.location);
     if (!entity || !entity.isValid) {
@@ -421,7 +316,7 @@ async function activateRift(dim, block, entity, totalTicks) {
   }
 
   let riftId = getNum(entity, "riftId:", 0);
-  let shouldBuildBox = true;          // safe default
+  let shouldBuildBox = true;
 
   if (!riftId) {
     const next = getNextRiftId();
@@ -430,6 +325,7 @@ async function activateRift(dim, block, entity, totalTicks) {
     setNum(entity, "riftId:", riftId);
   }
 
+  // Store return location (useful for pouch / recovery)
   setTag(entity, "returnX:", block.location.x);
   setTag(entity, "returnY:", block.location.y);
   setTag(entity, "returnZ:", block.location.z);
@@ -448,41 +344,30 @@ async function activateRift(dim, block, entity, totalTicks) {
     setNum(entity, "pouchTotal:", islandData.pouchCount);
     setNum(entity, "pouchOpened:", 0);
   }
-  setNum(entity, "total:", totalTicks);
-  setNum(entity, "remaining:", totalTicks);   // only for the action-bar display
 
-  // one-shot timer – survives chunk unload
+  // NO longer store remaining / total – the open timer is ephemeral
+  // (keep a tiny in-memory entry for the 10 s window)
+
   const timeoutId = system.runTimeout(() => {
     activeRifts.delete(riftId);
+    // Only close the port if the chunk is still loaded.
+    // If it unloaded, the next entityLoad will close it.
     const d = world.getDimension("minecraft:overworld");
     let ent = null;
     try { ent = getRiftEntityAt(d, block.location); } catch { }
     forceCloseRift(d, ent, false, riftId, { ...block.location });
-  }, totalTicks);
-
-  // 15s warning (only if the duration is long enough)
-  if (totalTicks > WARNING_15) {
-    system.runTimeout(() => {
-      if (!activeRifts.has(riftId)) return;   // already closed early
-      for (const p of world.getPlayers()) {
-        const data = getPlayerRiftReturn(p);
-        if (data && data.riftId === riftId && p.dimension.id === DIMENSION_ID) {
-          p.onScreenDisplay.setActionBar("§eRift closing in 15 seconds!");
-        }
-      }
-    }, totalTicks - WARNING_15);
-  }
+  }, OPEN_DURATION_TICKS);
 
   activeRifts.set(riftId, {
     timeoutId,
     x: block.location.x,
     y: block.location.y,
     z: block.location.z,
-    endTick: system.currentTick + totalTicks
+    endTick: system.currentTick + OPEN_DURATION_TICKS
   });
 
   trySetState(block, "active");
-  startStepOnTicker();          // only for step-on detection
+  startStepOnTicker();
   dim.playSound("portal.trigger", block.location);
 }
 
@@ -548,16 +433,6 @@ function startStepOnTicker() {
             { x: info.x + 0.5, y: info.y + 0.1, z: info.z + 0.5 }
           );
         } catch { }
-      }
-
-      // 5-second warning (does not need the overworld chunk)
-      if (remaining === WARNING_5) {
-        for (const p of world.getPlayers()) {
-          const data = getPlayerRiftReturn(p);
-          if (data && data.riftId === riftId && p.dimension.id === DIMENSION_ID) {
-            p.onScreenDisplay.setActionBar("§cRift closing in 5 seconds!");
-          }
-        }
       }
 
       // Step-on teleport only possible when the chunk is loaded
@@ -698,21 +573,12 @@ export async function forceCloseRift(dim, entity, wasDestroyed, forcedRiftId = n
   const riftId = forcedRiftId
     ?? (entity ? getNum(entity, "riftId:", 0) : 0);
 
-  console.warn(`[DBG forceClose] START  riftId=${riftId}  wasDestroyed=${wasDestroyed}  entityValid=${!!(entity && entity.isValid)}`);
+  if (!riftId) return;
 
-  if (!riftId) {
-    console.warn("[DBG forceClose] ABORT – no riftId");
-    return;
-  }
-
-  // Prevent re-entrancy / recovery race
-  if (closingRifts.has(riftId)) {
-    console.warn(`[DBG forceClose] already closing rift #${riftId} – skip`);
-    return;
-  }
+  if (closingRifts.has(riftId)) return;
   closingRifts.add(riftId);
 
-  // cancel the one-shot timer if it is still pending
+  // Cancel any pending 10 s timer
   const info = activeRifts.get(riftId);
   if (info) {
     try { system.clearRun(info.timeoutId); } catch { }
@@ -728,7 +594,7 @@ export async function forceCloseRift(dim, entity, wasDestroyed, forcedRiftId = n
       })
       : null);
 
-  // temporary load of the pad only
+  // Temporary load of the pad only (so we can change the block state)
   const areaId = `rift_close_${riftId}_${Date.now()}`;
   let areaCreated = false;
   if (loc) {
@@ -746,46 +612,48 @@ export async function forceCloseRift(dim, entity, wasDestroyed, forcedRiftId = n
     } catch { }
   }
 
-  // Always try to zero the tags, even if the original entity reference is stale
+  // Zero any leftover tags
   let targetEntity = (entity && entity.isValid) ? entity : null;
   if (!targetEntity && loc) {
-    try {
-      targetEntity = getRiftEntityAt(dim, loc);
-    } catch { }
+    try { targetEntity = getRiftEntityAt(dim, loc); } catch { }
   }
-  if (targetEntity && targetEntity.isValid) {
+  if (targetEntity?.isValid) {
+    // We no longer store remaining/total, but clear just in case
     setNum(targetEntity, "remaining:", 0);
     setNum(targetEntity, "total:", 0);
   }
 
-  const playersToReturn = [];
-  for (const p of world.getPlayers()) {
-    const data = getPlayerRiftReturn(p);
-    const match = data && data.riftId === riftId && p.dimension.id === DIMENSION_ID;
-    console.warn(`[DBG forceClose] check ${p.name}: data=${data ? data.riftId : "null"} dim=${p.dimension.id} → ${match ? "RETURN" : "skip"}`);
-    if (match) playersToReturn.push(p);
+  // This block mainly acts as a safety net
+  // Only return players when the rift is being *destroyed* (last pouch).
+  // A normal timer expiry / unload just closes the port; players stay inside.
+  if (wasDestroyed) {
+    const playersToReturn = [];
+    for (const p of world.getPlayers()) {
+      const data = getPlayerRiftReturn(p);
+      if (data && data.riftId === riftId && p.dimension.id === DIMENSION_ID) {
+        playersToReturn.push(p);
+      }
+    }
+    for (const p of playersToReturn) {
+      await returnPlayerHome(p, {
+        dim: "overworld",
+        x: loc.x,
+        y: loc.y,
+        z: loc.z
+      });
+      clearPlayerRiftTags(p);
+    }
   }
 
-  for (const p of playersToReturn) {
-    console.warn(`[DBG] returning ${p.name} home from rift #${riftId}`);
-    await returnPlayerHome(p, {
-      dim: "overworld",
-      x: loc.x,
-      y: loc.y,
-      z: loc.z
-    });
-    clearPlayerRiftTags(p);
-  }
-
+  // Set the block state
   if (loc) {
     try {
       const block = dim.getBlock(loc);
       if (block?.typeId === RIFT_BLOCK) {
-        // Only set inactive when the rift just timed out / was closed normally.
-        // Never set "broken" anymore – permanent destruction is handled by the caller.
         if (!wasDestroyed) {
           trySetState(block, "inactive");
         }
+        // (when wasDestroyed the caller will replace it with destroyed_rift)
       }
     } catch { }
   }
@@ -795,23 +663,16 @@ export async function forceCloseRift(dim, entity, wasDestroyed, forcedRiftId = n
   }
 
   if (wasDestroyed) {
-    // Free the ID so a future port can reuse the island slot.
-    // Structure load on the next ensureIsland will simply overwrite the old terrain –
-    // no manual air-fill / deleteIsland is required.
-    if (riftId) {
-      freeRiftId(riftId);
-    }
+    if (riftId) freeRiftId(riftId);
 
-    // Prefer the fresh targetEntity we resolved above
-    const toRemove = (targetEntity && targetEntity.isValid) ? targetEntity
-      : (entity && entity.isValid) ? entity : null;
+    const toRemove = (targetEntity?.isValid) ? targetEntity
+      : (entity?.isValid) ? entity : null;
     if (toRemove) {
       clearRiftState(toRemove);
       try { toRemove.remove(); } catch { }
     }
   }
 
-  console.warn(`[DBG forceClose] FINISHED for rift #${riftId}`);
   closingRifts.delete(riftId);
 }
 

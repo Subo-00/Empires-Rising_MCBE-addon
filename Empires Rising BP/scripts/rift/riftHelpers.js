@@ -1,4 +1,3 @@
-import { system } from "@minecraft/server";
 import { getStorageLocation, setTag, getTag } from "../spawner/spawnerHelpers.js";
 import { RIFT_ENTITY } from "../config/riftConfig.js";
 
@@ -124,35 +123,4 @@ export function getPlayerRiftReturn(player) {
   } catch {
     return null;
   }
-}
-
-// ----- Inventory -----
-export function countItem(player, itemId) {
-  const inv = player.getComponent("minecraft:inventory")?.container;
-  if (!inv) return 0;
-  let n = 0;
-  for (let i = 0; i < inv.size; i++) {
-    const it = inv.getItem(i);
-    if (it && it.typeId === itemId) n += it.amount;
-  }
-  return n;
-}
-
-export function removeItemAmount(player, itemId, amount) {
-  const inv = player.getComponent("minecraft:inventory")?.container;
-  if (!inv) return 0;
-  let left = amount;
-  for (let i = 0; i < inv.size && left > 0; i++) {
-    const it = inv.getItem(i);
-    if (!it || it.typeId !== itemId) continue;
-    if (it.amount <= left) {
-      left -= it.amount;
-      inv.setItem(i, undefined);
-    } else {
-      it.amount -= left;
-      inv.setItem(i, it);
-      left = 0;
-    }
-  }
-  return amount - left;
 }
