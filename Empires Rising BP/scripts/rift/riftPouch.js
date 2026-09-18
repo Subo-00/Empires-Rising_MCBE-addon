@@ -1,5 +1,5 @@
 import { system, world, ItemStack } from "@minecraft/server";
-import { DIMENSION_ID, RIFT_ENTITY } from "../config/riftConfig.js";
+import { RIFT_DIMENSION_ID, RIFT_ENTITY } from "../config/riftConfig.js";
 import {
   getNum, setNum, blockLoc, getRiftEntityAt,
   getPlayerRiftReturn, clearPlayerRiftTags

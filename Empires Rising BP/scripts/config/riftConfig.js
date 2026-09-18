@@ -1,4 +1,4 @@
-export const DIMENSION_ID = "subo:rift_realm";
+export const RIFT_DIMENSION_ID = "subo:rift_realm";
 export const RIFT_BLOCK = "subo:rift_port";
 export const RIFT_ENTITY = "subo:rift_port_entity";
 
@@ -8,7 +8,7 @@ export const OPEN_DURATION_TICKS = 10 * 20;   // 10 seconds
 // ────────────────────────────────────────────────
 //  Surrounding Box
 // ────────────────────────────────────────────────
-export const BOTTOM_BLOCK = "magma";    
+export const BOTTOM_BLOCK = "magma";
 export const WALL_BLOCK = "netherrack";
 
 export const BOX_SIZE = 160;         // exactly 100 chunks when aligned
@@ -158,12 +158,10 @@ export const BEACON_OFFSETS = [
   { x: 68, z: 138 }
 ]
 
+// ────────────────────────────────────────────────────────────────────────────────────────────────
 
 /** Mobs allowed to spawn in the Rift */
 export const ALLOWED_RIFT_MOBS = new Set([
-  "subo:vigor_spirit_entity",
-  "subo:pyro_spirit_entity",
-  "subo:frost_spirit_entity",
   "subo:fire_spirit",
   "minecraft:magma_cube",
   "minecraft:blaze",
@@ -171,7 +169,7 @@ export const ALLOWED_RIFT_MOBS = new Set([
   "minecraft:husk",
   "minecraft:parched",
   "minecraft:bogged",
-  "minecraft:spider",
+  "minecraft:spider"
 ]);
 
 /** Mobs we actively spawn around players */
@@ -190,24 +188,24 @@ export const VALID_SPAWN_BLOCKS = new Set([
 ]);
 
 export const DESTROYED_RIFT_MESSAGES = [
-    "§7The path is gone, yet the longing remains.",
-    "§7Some doors close so that the soul may learn to walk alone.",
-    "§7What once bridged the infinite now rests in quiet absence.",
-    "§7Memory is the only traveler that still crosses this threshold.",
-    "§7The island waits in a silence no living voice can answer.",
-    "§7All that remains is the shape of what was possible.",
-    "§7A wound between worlds, healed by time and forgetting.",
-    "§7The stars still remember the way, even if we no longer can.",
-    "§7Nothing is truly lost... only sealed beyond reach.",
-    "§7Echoes do not ask to be heard. They simply endure.",
-    "§7The rift has returned to the dark from which it was torn.",
-    "§7Journeys end. The longing for them does not.",
-    "§7What connected us now teaches the art of distance.",
-    "§7A doorway without a key is still a doorway in the mind.",
-    "§7The other side no longer answers. Perhaps it never did.",
-    "§7Ruins of light, scattered across the void.",
-    "§7Every ending is a threshold we cannot cross twice.",
-    "§7The silence between worlds has grown thick and final.",
-    "§7Somewhere, a forgotten shore still listens for footsteps.",
-    "§7The port has become a monument to what cannot return."
+  "§7The path is gone, yet the longing remains.",
+  "§7Some doors close so that the soul may learn to walk alone.",
+  "§7What once bridged the infinite now rests in quiet absence.",
+  "§7Memory is the only traveler that still crosses this threshold.",
+  "§7The island waits in a silence no living voice can answer.",
+  "§7All that remains is the shape of what was possible.",
+  "§7A wound between worlds, healed by time and forgetting.",
+  "§7The stars still remember the way, even if we no longer can.",
+  "§7Nothing is truly lost... only sealed beyond reach.",
+  "§7Echoes do not ask to be heard. They simply endure.",
+  "§7The rift has returned to the dark from which it was torn.",
+  "§7Journeys end. The longing for them does not.",
+  "§7What connected us now teaches the art of distance.",
+  "§7A doorway without a key is still a doorway in the mind.",
+  "§7The other side no longer answers. Perhaps it never did.",
+  "§7Ruins of light, scattered across the void.",
+  "§7Every ending is a threshold we cannot cross twice.",
+  "§7The silence between worlds has grown thick and final.",
+  "§7Somewhere, a forgotten shore still listens for footsteps.",
+  "§7The port has become a monument to what cannot return."
 ];

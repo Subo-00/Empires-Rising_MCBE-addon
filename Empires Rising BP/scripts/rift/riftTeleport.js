@@ -1,10 +1,10 @@
 import { system, world } from "@minecraft/server";
-import { DIMENSION_ID } from "../config/riftConfig.js";
+import { RIFT_DIMENSION_ID } from "../config/riftConfig.js";
 import { forceNearbyTroopsStay, restoreNearbyTroops } from "../sharedHelpers/troopTeleport.js";
 import { getTag } from "../spawner/spawnerHelpers.js";
 import { getNum, setPlayerRiftTags, isBroken } from "./riftHelpers.js";
 import { ensureIsland } from "./riftIsland.js";
-import { despawnSpiritsForPlayer } from "./riftSpirits.js";
+import { despawnSpiritsForPlayer, spawnSpiritsForPlayer } from "./riftSpirits.js";
 
 // playerId → tick until which they cannot be teleported again
 export const teleportLock = new Map();
@@ -21,7 +21,7 @@ export async function teleportPlayerToRift(player, entity, loc, forcedRiftId = n
         return;
     }
 
-    if (player.dimension.id === DIMENSION_ID) {
+    if (player.dimension.id === RIFT_DIMENSION_ID) {
         console.warn("[DBG] already inside rift dimension – abort");
         return;
     }
@@ -41,7 +41,7 @@ export async function teleportPlayerToRift(player, entity, loc, forcedRiftId = n
     forceNearbyTroopsStay(player);
     await system.waitTicks(5);
 
-    const riftDim = world.getDimension(DIMENSION_ID);
+    const riftDim = world.getDimension(RIFT_DIMENSION_ID);
     player.teleport(islandData.spawn, { dimension: riftDim, checkForBlocks: false });
 
     const fog = entity
@@ -82,7 +82,7 @@ export async function teleportPlayerToRift(player, entity, loc, forcedRiftId = n
         player.sendMessage("§cChunk took too long to load. Spirits will appear shortly...");
         // Optional fallback: try again a bit later
         system.runTimeout(() => {
-            if (player.isValid && player.dimension.id === DIMENSION_ID) {
+            if (player.isValid && player.dimension.id === RIFT_DIMENSION_ID) {
                 spawnSpiritsForPlayer(player);
             }
         }, 40);

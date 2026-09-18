@@ -2,7 +2,7 @@ import { system, world, ItemStack } from "@minecraft/server";
 import { getStorageLocation, setTag } from "../spawner/spawnerHelpers.js";
 
 import {
-  DIMENSION_ID, RIFT_BLOCK, RIFT_ENTITY,
+  RIFT_DIMENSION_ID, RIFT_BLOCK, RIFT_ENTITY,
   RIFT_KEY_ID, OPEN_DURATION_TICKS,
   VALID_SPAWN_BLOCKS, FORCED_SPAWN_MOBS, ALLOWED_RIFT_MOBS
 } from "../config/riftConfig.js";
@@ -31,7 +31,7 @@ const closingRifts = new Set();
 export function registerRiftComponents() {
   system.beforeEvents.startup.subscribe((ev) => {
     // Custom dimension
-    ev.dimensionRegistry.registerCustomDimension(DIMENSION_ID);
+    ev.dimensionRegistry.registerCustomDimension(RIFT_DIMENSION_ID);
 
     // Glitch pouch item component
     ev.itemComponentRegistry.registerCustomComponent("subo:glitch_pouch_use", {
@@ -105,7 +105,7 @@ function recoverSingleRift(entity) {
 
 function recoverStuckPlayers() {
   for (const p of world.getPlayers()) {
-    if (p.dimension.id !== DIMENSION_ID) continue;
+    if (p.dimension.id !== RIFT_DIMENSION_ID) continue;
 
     const data = getPlayerRiftReturn(p);
     if (!data) {
@@ -152,7 +152,7 @@ world.afterEvents.entityLoad.subscribe((ev) => {
 // PLACEMENT → spawn persistence entity
 // =============================================================================
 world.afterEvents.playerPlaceBlock.subscribe((ev) => {
-  if (ev.player?.dimension?.id === DIMENSION_ID) {
+  if (ev.player?.dimension?.id === RIFT_DIMENSION_ID) {
     const placedType = ev.block.type.id;      // capture the block type
 
     // Skip the multi-part portal – it handles itself
@@ -201,7 +201,7 @@ world.afterEvents.playerPlaceBlock.subscribe((ev) => {
 });
 
 world.beforeEvents.playerBreakBlock.subscribe((ev) => {
-  if (ev.player?.dimension?.id === DIMENSION_ID) {
+  if (ev.player?.dimension?.id === RIFT_DIMENSION_ID) {
     ev.cancel = true;
     system.run(() => {
       ev.player.onScreenDisplay.setActionBar("§cYou cannot break blocks inside a rift.");
@@ -214,21 +214,15 @@ world.beforeEvents.playerBreakBlock.subscribe((ev) => {
 // Only allow the explicit whitelist (everything else is removed)
 // =============================================================================
 
-
 world.afterEvents.entitySpawn.subscribe((event) => {
   const { entity } = event;
   if (!entity?.isValid) return;
-  if (entity.dimension.id !== DIMENSION_ID) return;
+  if (entity.dimension.id !== RIFT_DIMENSION_ID) return;
 
-  // Keep players, items, xp, and the whitelist; remove everything else
-  if (
-    entity.typeId === "minecraft:player" ||
-    entity.typeId === "minecraft:item" ||
-    entity.typeId === "minecraft:xp_orb" ||
-    ALLOWED_RIFT_MOBS.has(entity.typeId)
-  ) {
-    return;
-  }
+  // Only care about actual mobs / monsters
+  const familyComp = entity.getComponent("minecraft:type_family");
+  if (!familyComp?.hasTypeFamily("monster")) return;
+  if (ALLOWED_RIFT_MOBS.has(entity.typeId)) return;
 
   try { entity.remove(); } catch { }
 });
@@ -442,7 +436,7 @@ function startStepOnTicker() {
       for (const player of players) {
         const py = Math.floor(player.location.y);
         if (py < info.y || py > info.y + 1) continue;
-        if (player.dimension.id === DIMENSION_ID) continue;
+        if (player.dimension.id === RIFT_DIMENSION_ID) continue;
 
         const lockedUntil = teleportLock.get(player.id) ?? 0;
         if (now < lockedUntil) continue;
@@ -453,7 +447,8 @@ function startStepOnTicker() {
           if (now >= until) teleportLock.delete(id);
         }
 
-        teleportLock.set(player.id, now + 40);
+        //restrict the player from going through the same portal opening twice
+        teleportLock.set(player.id, now + 40 + OPEN_DURATION_TICKS);
 
         teleportPlayerToRift(
           player,
@@ -532,7 +527,7 @@ function startRiftDimensionTicker() {
   if (riftDimRunId !== null) return;
   // 200 ticks = 10 seconds
   riftDimRunId = system.runInterval(() => {
-    const playersInRift = world.getPlayers().filter(p => p.dimension.id === DIMENSION_ID);
+    const playersInRift = world.getPlayers().filter(p => p.dimension.id === RIFT_DIMENSION_ID);
     if (playersInRift.length === 0) return; // cheap early-out – no work when empty
 
     for (const player of playersInRift) {
@@ -648,7 +643,7 @@ export function handleRiftPortBreak(dim, loc) {
 }
 
 export function handleRiftPortPlace(event) {
-  if (event.dimension.id === DIMENSION_ID) {   // import DIMENSION_ID if needed
+  if (event.dimension.id === RIFT_DIMENSION_ID) {   // import RIFT_DIMENSION_ID if needed
     event.cancel = true;
     // player feedback
     system.run(() => {

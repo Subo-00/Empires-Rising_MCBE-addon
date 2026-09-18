@@ -1,7 +1,7 @@
 import { world, system, BlockPermutation, ItemStack } from "@minecraft/server";
 import { ModalFormData } from "@minecraft/server-ui";
 import { ACTIVE_SECONDS, TROOP_RADIUS } from "../config/itemsConfig.js";
-import { DIMENSION_ID } from "../config/riftConfig.js";
+import { RIFT_DIMENSION_ID } from "../config/riftConfig.js";
 import { getStorageLocation, setTag, getTag, isTroop } from "../spawner/spawnerHelpers.js";
 import { forceNearbyTroopsStay, restoreNearbyTroops } from "../sharedHelpers/troopTeleport.js";
 
@@ -246,7 +246,7 @@ world.afterEvents.playerPlaceBlock.subscribe(async (ev) => {
     const player = ev.player;
 
     // NEW – refuse any portal placement inside a rift
-    if (player.dimension.id === DIMENSION_ID) {
+    if (player.dimension.id === RIFT_DIMENSION_ID) {
         // Remove both halves without dropping items
         removePortalBlocksNoDrop(ev.block.dimension, ev.block.location);
         // Give exactly one portal item back

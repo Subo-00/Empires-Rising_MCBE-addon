@@ -1,5 +1,48 @@
 import { system, world, ItemStack, BlockPermutation } from "@minecraft/server";
-import { DIMENSION_ID } from "../config/riftConfig.js";
+import {
+    RIFT_DIMENSION_ID
+} from "../config/riftConfig.js";
+import {
+    MAX_LEVEL,
+    BOB_SPEED,
+    FOLLOW_DIST,
+    FOLLOW_HEIGHT,
+    SPIRIT_ITEMS,
+    SPIRIT_ENTITIES,
+    PYRO_PROJECTILE_ENTITY,
+    CLOSE_PRIORITY_DIST_SQ,
+    pyroTargetRange,
+    frostTargetRange,
+    FROST_SWITCH_SPEED,
+    FROST_FOLLOW_SPEED,
+    FROST_ARC_STRENGTH,
+    // Vigor
+    vigorHealAmount,
+    vigorHealInterval,
+    vigorRepelCooldownTicks,
+    vigorRepelForce,
+    vigorRepelRadius,
+    vigorRepelUpward,
+    // Pyro
+    pyroShootInterval,
+    pyroDamage,
+    pyroTargetCount,
+    pyroKnockbackHorizontal,
+    pyroKnockbackVertical,
+    pyroBurnSeconds,
+    // Frost
+    frostAbilityInterval,
+    frostDuration,
+    frostSize,
+    frostSlownessAmplifier,
+    frostSlownessDuration,
+    frostFireDamage,
+    frostLightLevel,
+    FROST_HOVER_HEIGHT,
+    FROST_SIDE_OFFSET,
+    FROST_SPIRAL_SPEED,
+    FROST_SPIRAL_RADIUS
+} from "../config/spiritsConfig.js";
 import {
     getNum, setNum, getPlayerRiftReturn, clearPlayerRiftTags
 } from "./riftHelpers.js";
@@ -9,25 +52,10 @@ import { returnPlayerHome } from "./riftTeleport.js";
 // ────────────────────────────────────────────────
 //  Constants
 // ────────────────────────────────────────────────
-export const SPIRIT_ITEMS = {
-    vigor: "subo:vigor_spirit",
-    pyro: "subo:pyro_spirit",
-    frost: "subo:frost_spirit"
-};
-
-export const SPIRIT_ENTITIES = {
-    vigor: "subo:vigor_spirit_entity",
-    pyro: "subo:pyro_spirit_entity",
-    frost: "subo:frost_spirit_entity"
-};
-
-export const PROJECTILE_ENTITY = "subo:pyro_spirit_projectile";
 
 const SCORE_VIGOR = "spirit_vigor";
 const SCORE_PYRO = "spirit_pyro";
 const SCORE_FROST = "spirit_frost";
-
-const MAX_LEVEL = 100;
 
 // Runtime
 const spiritLevels = new Map();   // playerId → {vigor, pyro, frost}
@@ -36,10 +64,7 @@ const activeProjectiles = new Map();
 const activeFrostZones = [];       // {x,y,z, size, endTick, level, lastEffectTick}
 const lastLightPos = new Map(); // spirit.id → {x,y,z, dim}
 const vigorRepelCooldown = new Map(); // playerId → next available tick
-
-const BOB_SPEED = 0.08;
-const FOLLOW_DIST = 1.8;
-const FOLLOW_HEIGHT = 1.6;
+const frostHoverState = new Map(); // spirit.id → { x, y, z, targetId }
 
 // ────────────────────────────────────────────────
 //  Scoreboard + level helpers (capped at 100)
@@ -71,7 +96,7 @@ export function getSpiritLevel(player, type) {
 }
 
 export function addSpiritLevel(player, type, amount) {
-    if (!player?.isValid || amount <= 0) return 0;
+    if (!player?.isValid) return 0;
 
     try {
         const obj = ensureScore(
@@ -92,7 +117,7 @@ export function addSpiritLevel(player, type, amount) {
             cur = 0;
         }
 
-        const next = Math.min(MAX_LEVEL, cur + amount);
+        const next = Math.max(0, Math.min(MAX_LEVEL, cur + amount));
 
         // Safe write
         try {
@@ -130,58 +155,10 @@ function loadPlayerLevels(player) {
 }
 
 // ────────────────────────────────────────────────
-//  Scaling helpers (level 1-100)
-// ────────────────────────────────────────────────
-function vigorHealAmount(lvl) {
-    // starts at 2 HP (1 heart), scales up
-    return 2 + Math.floor(lvl * 0.18);           // ~20 HP at 100
-}
-function vigorHealInterval(lvl) {
-    return Math.max(200, 1200 - lvl * 10);       // 60s → 10s
-}
-function vigorRepelCooldownTicks(lvl) {
-    return Math.max(80, 600 - lvl * 5);          // scales down
-}
-function vigorRepelForce(lvl) {
-    return 1.2 + lvl * 0.015;                    // mild → strong
-}
-
-function pyroShootInterval(lvl) {
-    return Math.max(10, 40 - Math.floor(lvl * 0.3));
-}
-function pyroDamage(lvl) {
-    return 4 + Math.floor(lvl * 0.22);           // 4 → ~26
-}
-function pyroTargetCount(lvl) {
-    return Math.min(6, 1 + Math.floor(lvl / 10)); // 1 → 6 (every 10 levels)
-}
-
-function frostAbilityInterval(lvl) {
-    return Math.max(20, 100 - Math.floor(lvl * 0.7));
-}
-function frostDuration(lvl) {
-    return 60 + Math.floor(lvl * 1.2);           // 3s → ~9s
-}
-function frostSize(lvl) {
-    // starts as ~2×2, grows
-    return 1.0 + Math.floor(lvl / 20) * 0.6;     // radius
-}
-function frostSlownessAmplifier(lvl) {
-    return Math.min(4, 1 + Math.floor(lvl / 25));
-}
-function frostFireDamage(lvl) {
-    if (lvl <= 5) return 0;
-    return 2 + Math.floor(lvl / 8);              // only when >5
-}
-function frostLightLevel(lvl) {
-    return Math.min(15, 4 + Math.floor(lvl / 7));
-}
-
-// ────────────────────────────────────────────────
 //  Spawn / despawn
 // ────────────────────────────────────────────────
 export function spawnSpiritsForPlayer(player) {
-    if (!player?.isValid || player.dimension.id !== DIMENSION_ID) return;
+    if (!player?.isValid || player.dimension.id !== RIFT_DIMENSION_ID) return;
     despawnSpiritsForPlayer(player);
 
 
@@ -214,12 +191,13 @@ export function despawnSpiritsForPlayer(player) {
     if (set) {
         for (const e of set) {
             cleanupLight(e);
+            frostHoverState.delete(e.id);
             try { if (e.isValid) e.remove(); } catch { }
         }
         activeSpirits.delete(player.id);
     }
     try {
-        for (const e of world.getDimension(DIMENSION_ID).getEntities({
+        for (const e of world.getDimension(RIFT_DIMENSION_ID).getEntities({
             tags: [`spirit_owner:${player.id}`]
         })) {
             cleanupLight(e);
@@ -235,7 +213,7 @@ export async function handleSpiritUse(player, item) {
     if (!player?.isValid || !item) return;
 
     // Spirits can only be consumed while inside the rift
-    if (player.dimension.id !== DIMENSION_ID) {
+    if (player.dimension.id !== RIFT_DIMENSION_ID) {
         player.sendMessage("§cSpirits can only be consumed inside a Rift.");
         return;
     }
@@ -265,7 +243,7 @@ export async function handleSpiritUse(player, item) {
 
     // 3. Only act as exit ticket if the player is actually inside a rift
     const returnData = getPlayerRiftReturn(player);
-    if (!returnData || player.dimension.id !== DIMENSION_ID) {
+    if (!returnData || player.dimension.id !== RIFT_DIMENSION_ID) {
         return; // just the level-up is enough
     }
 
@@ -313,7 +291,7 @@ export async function handleSpiritUse(player, item) {
     for (const p of world.getPlayers()) {
         if (p.id === player.id) continue;
         const data = getPlayerRiftReturn(p);
-        if (!data || data.riftId !== riftId || p.dimension.id !== DIMENSION_ID) continue;
+        if (!data || data.riftId !== riftId || p.dimension.id !== RIFT_DIMENSION_ID) continue;
 
         // Check if this other player still has any spirits
         const otherInv = p.getComponent("minecraft:inventory")?.container;
@@ -378,13 +356,14 @@ function updateFrostLight(spirit, level) {
     };
     const lightLvl = frostLightLevel(level);
 
-    // clean previous light
+    // Always remove previous light first (guarantees ≤1 light per spirit)
     const prev = lastLightPos.get(spirit.id);
-    if (prev && (prev.x !== pos.x || prev.y !== pos.y || prev.z !== pos.z)) {
+    if (prev) {
         try {
             const b = prev.dim.getBlock(prev);
-            if (b?.typeId === "minecraft:light_block") b.setType("minecraft:air");
+            if (b?.typeId.includes("minecraft:light_block")) b.setType("minecraft:air");
         } catch { }
+        lastLightPos.delete(spirit.id);
     }
 
     try {
@@ -410,6 +389,18 @@ function cleanupLight(spirit) {
     }
 }
 
+/** Remove every pyro projectile that is not currently tracked (covers reboot leftovers + desyncs). */
+function cleanupOrphanProjectiles() {
+    try {
+        const dim = world.getDimension(RIFT_DIMENSION_ID);
+        for (const e of dim.getEntities({ type: PYRO_PROJECTILE_ENTITY })) {
+            if (!activeProjectiles.has(e)) {
+                try { e.remove(); } catch { }
+            }
+        }
+    } catch { }
+}
+
 // ────────────────────────────────────────────────
 //  Main ticker
 // ────────────────────────────────────────────────
@@ -422,7 +413,7 @@ export function startSpiritTicker() {
     world.afterEvents.entityHurt.subscribe((ev) => {
         const player = ev.hurtEntity;
         if (!player || player.typeId !== "minecraft:player") return;
-        if (player.dimension.id !== DIMENSION_ID) return;
+        if (player.dimension.id !== RIFT_DIMENSION_ID) return;
 
         const levels = spiritLevels.get(player.id) ?? loadPlayerLevels(player);
         if (levels.vigor <= 20) return;
@@ -431,47 +422,68 @@ export function startSpiritTicker() {
         const next = vigorRepelCooldown.get(player.id) ?? 0;
         if (now < next) return;
 
-        // find nearby monsters
+        const radius = vigorRepelRadius(levels.vigor);
+        const force = vigorRepelForce(levels.vigor);
+        const upward = vigorRepelUpward(levels.vigor);
+
         const monsters = player.dimension.getEntities({
             location: player.location,
-            maxDistance: 6,
-            excludeTypes: ["minecraft:player", "minecraft:item", "minecraft:xp_orb",
-                ...Object.values(SPIRIT_ENTITIES), PROJECTILE_ENTITY]
-        }).filter(e => e.isValid);
+            maxDistance: radius,
+            families: ["monster"]
+        });
 
         if (monsters.length === 0) return;
 
-        const force = vigorRepelForce(levels.vigor);
         for (const m of monsters) {
             try {
                 const dx = m.location.x - player.location.x;
                 const dz = m.location.z - player.location.z;
-                m.applyKnockback(dx, dz, force, 0.35);
+                const len = Math.sqrt(dx * dx + dz * dz) || 1;
+
+                m.applyImpulse({
+                    x: (dx / len) * force,
+                    y: upward,
+                    z: (dz / len) * force
+                });
             } catch { }
         }
+
+        // Feedback
         player.dimension.spawnParticle("minecraft:critical_hit_emitter", player.location);
+        player.dimension.spawnParticle("minecraft:large_explosion", {
+            x: player.location.x,
+            y: player.location.y + 0.5,
+            z: player.location.z
+        });
+
         vigorRepelCooldown.set(player.id, now + vigorRepelCooldownTicks(levels.vigor));
     });
 
     spiritTickerId = system.runInterval(() => {
         const now = system.currentTick;
-        const dim = world.getDimension(DIMENSION_ID);
+        const dim = world.getDimension(RIFT_DIMENSION_ID);
 
         // ── clean dead spirits ──
         for (const [pid, set] of activeSpirits) {
             for (const e of [...set]) {
                 if (!e.isValid) {
                     cleanupLight(e);
+                    frostHoverState.delete(e.id);
                     set.delete(e);
                 }
             }
             if (set.size === 0) activeSpirits.delete(pid);
         }
 
+        // Periodic orphan projectile sweep (every 5 s)
+        if (now % 100 === 0) {
+            cleanupOrphanProjectiles();
+        }
+
         // ── process every living spirit ──
         for (const [pid, set] of activeSpirits) {
             const player = world.getPlayers().find(p => p.id === pid);
-            if (!player?.isValid || player.dimension.id !== DIMENSION_ID) {
+            if (!player?.isValid || player.dimension.id !== RIFT_DIMENSION_ID) {
                 for (const e of set) { cleanupLight(e); try { e.remove(); } catch { } }
                 activeSpirits.delete(pid);
                 continue;
@@ -497,9 +509,9 @@ export function startSpiritTicker() {
                 if (type === "vigor") {
                     const yaw = player.getRotation().y * Math.PI / 180;
                     const target = {
-                        x: player.location.x - Math.sin(yaw) * FOLLOW_DIST + bobX,
+                        x: player.location.x + Math.sin(yaw) * FOLLOW_DIST + bobX,
                         y: player.location.y + FOLLOW_HEIGHT + bobY,
-                        z: player.location.z + Math.cos(yaw) * FOLLOW_DIST + bobZ
+                        z: player.location.z - Math.cos(yaw) * FOLLOW_DIST + bobZ
                     };
                     try { spirit.teleport(target, { checkForBlocks: false }); } catch { }
 
@@ -523,9 +535,9 @@ export function startSpiritTicker() {
                     const yaw = player.getRotation().y * Math.PI / 180;
                     const orbit = Math.sin((now + phase) * 0.05) * 0.4;
                     const target = {
-                        x: player.location.x - Math.sin(yaw) * FOLLOW_DIST + bobX + Math.cos(yaw) * orbit,
+                        x: player.location.x + Math.sin(yaw) * FOLLOW_DIST + bobX + Math.cos(yaw) * orbit,
                         y: player.location.y + FOLLOW_HEIGHT + bobY,
-                        z: player.location.z + Math.cos(yaw) * FOLLOW_DIST + bobZ + Math.sin(yaw) * orbit
+                        z: player.location.z - Math.cos(yaw) * FOLLOW_DIST + bobZ + Math.sin(yaw) * orbit
                     };
                     try { spirit.teleport(target, { checkForBlocks: false }); } catch { }
 
@@ -536,27 +548,69 @@ export function startSpiritTicker() {
                 }
 
                 // ── FROST ──
+                // Slow spiral hover 1.9 above target; smooth curved travel when switching targets
                 else if (type === "frost") {
-                    // hang near nearest monster (or player)
+                    const range = frostTargetRange(level);
                     const monsters = dim.getEntities({
                         location: player.location,
-                        maxDistance: 24,
-                        excludeTypes: ["minecraft:player", "minecraft:item", "minecraft:xp_orb",
-                            ...Object.values(SPIRIT_ENTITIES), PROJECTILE_ENTITY]
-                    }).filter(e => e.isValid);
+                        maxDistance: range,
+                        families: ["monster"]
+                    });
 
-                    let targetEnt = null;
-                    let best = Infinity;
-                    for (const m of monsters) {
-                        const d = distSq(m.location, player.location);
-                        if (d < best) { best = d; targetEnt = m; }
+                    const targetEnt = pickSpiritTarget(player, monsters, range);
+                    const tLoc = targetEnt ? targetEnt.location : player.location;
+                    const targetId = targetEnt?.id ?? "player";
+
+                    // Ideal hover point (spiral + side offset)
+                    const angle = (now + phase) * FROST_SPIRAL_SPEED;
+                    const spiralX = Math.cos(angle) * FROST_SPIRAL_RADIUS;
+                    const spiralZ = Math.sin(angle) * FROST_SPIRAL_RADIUS;
+
+                    const toPlayerX = player.location.x - tLoc.x;
+                    const toPlayerZ = player.location.z - tLoc.z;
+                    const sideX = -toPlayerX;
+                    const sideZ = -toPlayerZ;
+                    const sideLen = Math.sqrt(sideX * sideX + sideZ * sideZ) || 1;
+                    const offsetX = (sideX / sideLen) * FROST_SIDE_OFFSET;
+                    const offsetZ = (sideZ / sideLen) * FROST_SIDE_OFFSET;
+
+                    const ideal = {
+                        x: tLoc.x + spiralX + offsetX,
+                        y: tLoc.y + FROST_HOVER_HEIGHT,
+                        z: tLoc.z + spiralZ + offsetZ
+                    };
+
+                    // Smooth non-straight travel
+                    let state = frostHoverState.get(spirit.id);
+                    if (!state) {
+                        state = { x: spirit.location.x, y: spirit.location.y, z: spirit.location.z, targetId };
+                        frostHoverState.set(spirit.id, state);
                     }
 
-                    const tLoc = targetEnt ? targetEnt.location : player.location;
+                    const switched = state.targetId !== targetId;
+                    state.targetId = targetId;
+
+                    // Max speed (blocks/tick). Lower = slower glide between targets.
+                    const maxSpeed = switched ? FROST_SWITCH_SPEED : FROST_FOLLOW_SPEED;
+                    const dx = ideal.x - state.x;
+                    const dy = ideal.y - state.y;
+                    const dz = ideal.z - state.z;
+                    const dist = Math.sqrt(dx * dx + dy * dy + dz * dz) || 1;
+
+                    // Move toward ideal, but add a gentle perpendicular arc so path isn't a straight line
+                    const step = Math.min(maxSpeed, dist);
+                    const nx = dx / dist, nz = dz / dist;
+                    // perpendicular wobble (stronger while travelling far)
+                    const arc = switched || dist > 2 ? Math.sin(now * 0.07 + phase) * FROST_ARC_STRENGTH : 0;
+
+                    state.x += nx * step + (-nz) * arc;
+                    state.y += (dy / dist) * step;
+                    state.z += nz * step + nx * arc;
+
                     const target = {
-                        x: tLoc.x + bobX * 2.2,
-                        y: tLoc.y + 1.3 + bobY,
-                        z: tLoc.z + bobZ * 2.2
+                        x: state.x + bobX * 0.6,
+                        y: state.y + bobY * 0.5,
+                        z: state.z + bobZ * 0.6
                     };
                     try { spirit.teleport(target, { checkForBlocks: false }); } catch { }
 
@@ -609,12 +663,15 @@ export function startSpiritTicker() {
                 });
 
                 const amp = frostSlownessAmplifier(zone.level);
+                const slowDur = frostSlownessDuration(zone.level);
                 const fireDmg = frostFireDamage(zone.level);
 
                 for (const e of ents) {
-                    if (!e.isValid || e.typeId === "minecraft:player") continue;
+                    if (!e.isValid) continue;
+                    const family = e.getComponent("minecraft:type_family");
+                    if (!family?.hasTypeFamily?.("monster")) continue;
                     try {
-                        e.addEffect("slowness", 30, { amplifier: amp, showParticles: true });
+                        e.addEffect("slowness", slowDur, { amplifier: amp, showParticles: true });
                     } catch { }
 
                     // extra damage to fire-related mobs when level > 5
@@ -631,10 +688,12 @@ export function startSpiritTicker() {
 
         // ── Projectiles (curved + tagged damage) ──
         for (const [proj, data] of [...activeProjectiles]) {
+
             if (!proj.isValid) {
                 activeProjectiles.delete(proj);
                 continue;
             }
+
             const target = world.getEntity(data.targetId);
             if (!target?.isValid) {
                 try { proj.remove(); } catch { }
@@ -642,7 +701,8 @@ export function startSpiritTicker() {
                 continue;
             }
 
-            const t = Math.min(1, (now - data.startTick) / 12);
+            const age = now - data.startTick;
+            const t = Math.min(1, age / 12);
             const p0 = data.startPos, p1 = data.controlPos, p2 = target.location;
             const x = (1 - t) * (1 - t) * p0.x + 2 * (1 - t) * t * p1.x + t * t * p2.x;
             const y = (1 - t) * (1 - t) * p0.y + 2 * (1 - t) * t * p1.y + t * t * p2.y;
@@ -650,18 +710,45 @@ export function startSpiritTicker() {
 
             try { proj.teleport({ x, y, z }, { checkForBlocks: false }); } catch { }
 
-            if (distSq({ x, y, z }, target.location) < 1.3) {
+            // Hit detection – slightly larger radius for reliability
+            if (distSq({ x, y, z }, target.location) < 2.25) {   // ~1.5 blocks
                 try {
+                    // 1. Damage
                     target.applyDamage(data.damage, { cause: "magic" });
-                    target.applyKnockback(x - target.location.x, z - target.location.z, 0.45, 0.3);
-                    target.setOnFire(1, true);
+
+                    // 2. Slight knockback
+                    const dx = target.location.x - data.startPos.x;
+                    const dz = target.location.z - data.startPos.z;
+                    const len = Math.sqrt(dx * dx + dz * dz) || 1;
+                    target.applyImpulse({
+                        x: (dx / len) * data.kbH,
+                        y: data.kbV,
+                        z: (dz / len) * data.kbH
+                    });
+
+                    // 3. Brief burn
+                    target.setOnFire(data.burnSec, true);
+
+                    // Visual feedback
                     proj.dimension.spawnParticle("minecraft:basic_flame_particle", target.location);
-                } catch { }
+                    proj.dimension.spawnParticle("minecraft:critical_hit_emitter", target.location);
+
+                } catch (err) {
+                    console.warn("[Pyro] Hit failed:", err);
+                }
+
+                try { proj.remove(); } catch { }
+                activeProjectiles.delete(proj);
+                continue;
+            }
+
+            // Missed / finished arc → remove so nothing can stick
+            if (age >= 20) {
                 try { proj.remove(); } catch { }
                 activeProjectiles.delete(proj);
             }
         }
-    }, 2);
+    }, 1);
 }
 
 // ────────────────────────────────────────────────
@@ -671,41 +758,39 @@ function firePyroProjectiles(spirit, player, level) {
     const dim = spirit.dimension;
     const count = pyroTargetCount(level);
     const dmg = pyroDamage(level);
+    const kbH = pyroKnockbackHorizontal(level);
+    const kbV = pyroKnockbackVertical(level);
+    const burnSec = pyroBurnSeconds(level);
+
+    const range = pyroTargetRange(level);
 
     const candidates = dim.getEntities({
-        location: spirit.location,
-        maxDistance: 16,
-        excludeTypes: ["minecraft:player", "minecraft:item", "minecraft:xp_orb",
-            ...Object.values(SPIRIT_ENTITIES), PROJECTILE_ENTITY]
-    }).filter(e => e.isValid);
+        location: player.location,          // from player, not spirit
+        maxDistance: range,
+        families: ["monster"]
+    });
 
-    // sort by distance + simple LOS
+    // Priority: anything < 1.5 blocks from player (no LOS).
+    // Others need player LOS only.
     const valid = [];
     for (const m of candidates) {
-        const d = distSq(m.location, spirit.location);
-        const dir = {
-            x: m.location.x - spirit.location.x,
-            y: m.location.y - spirit.location.y,
-            z: m.location.z - spirit.location.z
-        };
-        const len = Math.sqrt(dir.x * dir.x + dir.y * dir.y + dir.z * dir.z) || 1;
-        dir.x /= len; dir.y /= len; dir.z /= len;
-        try {
-            const hit = dim.getBlockFromRay(spirit.location, dir, { maxDistance: Math.sqrt(d) });
-            if (hit?.block && !hit.block.isAir) continue;
-        } catch { continue; }
-        valid.push({ ent: m, dist: d });
+        const dPlayer = distSq(m.location, player.location);
+        const close = dPlayer <= CLOSE_PRIORITY_DIST_SQ;
+
+        if (!close && !hasPlayerLOS(player, m)) continue;
+
+        valid.push({ ent: m, dist: dPlayer, close });
     }
-    valid.sort((a, b) => a.dist - b.dist);
+    // close threats first, then nearest
+    valid.sort((a, b) => (b.close - a.close) || (a.dist - b.dist));
 
     for (let i = 0; i < Math.min(count, valid.length); i++) {
         const target = valid[i].ent;
         let proj;
         try {
-            proj = dim.spawnEntity(PROJECTILE_ENTITY, spirit.location);
+            proj = dim.spawnEntity(PYRO_PROJECTILE_ENTITY, spirit.location);
         } catch { continue; }
 
-        // tag damage for clarity (also stored in map)
         proj.addTag(`damage:${dmg}`);
 
         const mid = {
@@ -723,9 +808,76 @@ function firePyroProjectiles(spirit, player, level) {
             startTick: system.currentTick,
             startPos: { ...spirit.location },
             controlPos: mid,
-            damage: dmg
+            damage: dmg,
+            kbH,
+            kbV,
+            burnSec
         });
     }
+}
+
+/** True if the player has clear line-of-sight to the entity (eye → body). */
+function hasPlayerLOS(player, entity) {
+    const dim = player.dimension;
+    const from = {
+        x: player.location.x,
+        y: player.location.y + 1.62,   // eye height
+        z: player.location.z
+    };
+    const to = {
+        x: entity.location.x,
+        y: entity.location.y + 0.9,    // roughly chest/center
+        z: entity.location.z
+    };
+    const dx = to.x - from.x, dy = to.y - from.y, dz = to.z - from.z;
+    const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+    if (dist < 0.15) return true;      // already overlapping
+
+    const dir = { x: dx / dist, y: dy / dist, z: dz / dist };
+
+    try {
+        const hit = dim.getBlockFromRay(from, dir, {
+            maxDistance: dist - 0.2,          // stop just before the target body
+            includePassableBlocks: false,
+            includeLiquidBlocks: false
+        });
+
+        // Any solid hit before the target = blocked
+        if (hit?.block) {
+            // Prefer isSolid when available; fall back to !isAir
+            const solid = typeof hit.block.isSolid === "boolean"
+                ? hit.block.isSolid
+                : !hit.block.isAir;
+            if (solid) return false;
+        }
+    } catch {
+        return false;
+    }
+    return true;
+}
+
+/**
+ * Pick best monster for a spirit.
+ * - Always prioritises anything < 1.5 blocks from the player (no LOS required).
+ * - Otherwise requires player LOS.
+ * Returns the entity or null.
+ */
+function pickSpiritTarget(player, candidates, maxDist = 24) {
+    let bestClose = null, bestCloseD = Infinity;
+    let bestFar = null, bestFarD = Infinity;
+
+    for (const m of candidates) {
+        if (!m.isValid) continue;
+        const d = distSq(m.location, player.location);
+        if (d > maxDist * maxDist) continue;
+
+        if (d <= CLOSE_PRIORITY_DIST_SQ) {
+            if (d < bestCloseD) { bestCloseD = d; bestClose = m; }
+        } else if (hasPlayerLOS(player, m)) {
+            if (d < bestFarD) { bestFarD = d; bestFar = m; }
+        }
+    }
+    return bestClose ?? bestFar;
 }
 
 function distSq(a, b) {
@@ -737,12 +889,14 @@ function distSq(a, b) {
 //  Recovery
 // ────────────────────────────────────────────────
 export function recoverSpirits() {
-    for (const p of world.getPlayers()) {
-        if (p.dimension.id === DIMENSION_ID) {
-            loadPlayerLevels(p);
-            console.warn("spawn spirits");
+    // Clear any projectiles left from a previous session / crash
+    cleanupOrphanProjectiles();
 
+    for (const p of world.getPlayers()) {
+        if (p.dimension.id === RIFT_DIMENSION_ID) {
+            loadPlayerLevels(p);
             spawnSpiritsForPlayer(p);
+            // const newLevel = addSpiritLevel(p, "pyro", -60);
         }
     }
 }

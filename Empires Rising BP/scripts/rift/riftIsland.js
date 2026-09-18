@@ -1,12 +1,11 @@
 import { system, world, ItemStack, BlockPermutation } from "@minecraft/server";
 import {
-  DIMENSION_ID, ISLAND_SPACING, BOTTOM_BLOCK, WALL_BLOCK,
+  RIFT_DIMENSION_ID, ISLAND_SPACING, BOTTOM_BLOCK, WALL_BLOCK,
   BOX_SIZE, BOX_HEIGHT_OFFSET, FORTRESS_Y_OFFSET,
   LAYOUTS, BEACON_OFFSETS
 } from "../config/riftConfig.js";
 import { getNum, setNum } from "./riftHelpers.js";
 import { CHEST_SPAWN_CHANCE, LOOT_TIERS } from "../config/riftChestLoot.js";
-import { spawnSpiritsForPlayer } from "./riftSpirits.js";
 
 export { getNextRiftId, ensureIsland, freeRiftId };
 
@@ -126,7 +125,7 @@ function fillChestWithLoot(container) {
 //  Main generation
 // ────────────────────────────────────────────────
 async function ensureIsland(riftId, entity = null, shouldBuildBox = true, player) {
-  const dim = world.getDimension(DIMENSION_ID);
+  const dim = world.getDimension(RIFT_DIMENSION_ID);
   const base = getIslandPos(riftId);
 
   // ── choose / restore layout (stored on the entity) ───────────────────
