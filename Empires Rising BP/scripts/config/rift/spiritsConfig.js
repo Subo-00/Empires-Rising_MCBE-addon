@@ -4,7 +4,7 @@
 // ────────────────────────────────────────────────
 
 // ── Core ──
-export const MAX_LEVEL = 100;
+export const MAX_LEVEL = 60;
 
 export const BOB_SPEED = 0.08;
 export const FOLLOW_DIST = 1.2;

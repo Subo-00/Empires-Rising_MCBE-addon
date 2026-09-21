@@ -172,13 +172,92 @@ export const ALLOWED_RIFT_MOBS = new Set([
   "minecraft:spider"
 ]);
 
-/** Mobs we actively spawn around players */
-export const FORCED_SPAWN_MOBS = [
-  "subo:fire_spirit",
-  "minecraft:magma_cube",
-  "minecraft:husk",
-  "minecraft:parched",
+/**
+ * Difficulty tiers built from ALLOWED_RIFT_MOBS (weak → strong).
+ * Weights are base weights; higher tiers start rare and become more common
+ * as the player's highest spirit level rises (see getSpawnWeights).
+ *
+ * Tier 0 – fodder (always common)
+ * Tier 1 – mid
+ * Tier 2 – strong (blaze / wither / fire_spirit)
+ */
+export const RIFT_MOB_TIERS = [
+  // Tier 0 – weak / volume
+  [
+    { id: "minecraft:spider", weight: 30 },
+    { id: "minecraft:husk", weight: 25 },
+    { id: "minecraft:parched", weight: 25 },
+    { id: "minecraft:bogged", weight: 20 },
+    { id: "minecraft:magma_cube", weight: 20 },
+  ],
+  // Tier 1 – mid
+  [
+    { id: "minecraft:magma_cube", weight: 25 },
+    { id: "minecraft:bogged", weight: 20 },
+    { id: "subo:fire_spirit", weight: 15 },
+    { id: "minecraft:husk", weight: 15 },
+  ],
+  // Tier 2 – strong (start rare, scale up with spirit level)
+  [
+    { id: "minecraft:blaze", weight: 20 },
+    { id: "minecraft:wither_skeleton", weight: 18 },
+    { id: "subo:fire_spirit", weight: 22 },
+  ],
 ];
+
+/**
+ * Forced-spawn curves vs the player's highest spirit level.
+ *
+ * `levelCap` must match spiritsConfig.MAX_LEVEL (currently 60).
+ * All *At0 / *AtMax values are lerped with:
+ *   t = clamp(highestSpiritLevel / levelCap, 0, 1)
+ *
+ * Goal: sparse at low level, constant pressure at max — without exploding
+ * cost when several players share a rift (soft caps + clustering).
+ */
+export const RIFT_SPAWN = {
+  // ── Spirit level that represents "max difficulty" ──────────────────────
+  // Keep in sync with spiritsConfig.MAX_LEVEL
+  levelCap: 60,
+
+  // ── Mobs attempted per player per ticker cycle ─────────────────────────
+  // Low level: small waves. Max level: large waves (Pyro needs volume).
+  countMinAt0: 1,       // min mobs at spirit level 0
+  countMaxAt0: 2,       // max mobs at spirit level 0
+  countMinAtMax: 6,     // min mobs at levelCap
+  countMaxAtMax: 12,    // max mobs at levelCap
+
+  // ── Ticker interval (ticks, 20 = 1 second) ──────────────────────────────
+  // Faster interval at high level → constant pressure.
+  // Empty dimension / low level stays slow to save CPU.
+  intervalAt0: 100,     // 5.0 s between waves at level 0
+  intervalAtMax: 30,    // 1.5 s between waves at levelCap
+
+  // ── Soft population cap (monsters already near the player) ─────────────
+  // If nearby count ≥ cap, skip this player for the cycle.
+  // Prevents unbounded growth with multiple players / slow kills.
+  maxNearbyAt0: 6,      // max living monsters near player at level 0
+  maxNearbyAtMax: 22,   // max living monsters near player at levelCap
+  nearbyCheckRadius: 14,// blocks radius used for the nearby count
+
+  // ── Cluster size (mobs placed per valid ground hit) ────────────────────
+  // Finding valid ground is the expensive part (getBlock loops).
+  // At high level we place several mobs on/around one good spot.
+  clusterSizeAt0: 1,    // 1 mob per successful ground find at level 0
+  clusterSizeAtMax: 3,  // up to 3 mobs per successful ground find at levelCap
+
+  // ── Spawn distance band (blocks from player) ───────────────────────────
+  // maxRange is fixed; minRange shrinks so high-level packs can spawn closer.
+  maxRange: 12,         // outer radius (always)
+  minRangeAt0: 3.5,     // inner radius at level 0 (keeps distance)
+  minRangeAtMax: 0.8,   // inner radius at levelCap (almost on top)
+
+  // ── Placement attempts per wave ────────────────────────────────────────
+  // More tries at high level so denser / closer spawns still succeed on
+  // sparse valid surfaces (obsidian / nether brick only).
+  attemptsAt0: 10,      // random ground probes at level 0
+  attemptsAtMax: 16,    // random ground probes at levelCap
+};
 
 /** Blocks that are valid spawn surfaces */
 export const VALID_SPAWN_BLOCKS = new Set([
