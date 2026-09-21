@@ -9,11 +9,17 @@
     },
     "components": {
       "minecraft:type_family": {
-        "family": ["projectile", "subo_projectile"]
+        "family": [
+          "projectile",
+          "subo_projectile"
+        ]
       },
       "minecraft:collision_box": {
         "width": 0.01,
         "height": 0.01
+      },
+      "minecraft:scale": {
+        "value": 0.8
       },
       "minecraft:physics": {
         "has_gravity": false,

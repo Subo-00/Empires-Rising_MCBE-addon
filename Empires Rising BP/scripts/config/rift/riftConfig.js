@@ -172,6 +172,16 @@ export const ALLOWED_RIFT_MOBS = new Set([
   "minecraft:spider"
 ]);
 
+/** Items that are removed when they appear as drops in the Rift */
+export const RIFT_ITEM_BLACKLIST = new Set([
+  "minecraft:coal",
+  "minecraft:bone",
+  "minecraft:string",
+  "minecraft:magma_cream",
+  "minecraft:arrow",
+  "minecraft:rotten_flesh"
+]);
+
 /**
  * Difficulty tiers built from ALLOWED_RIFT_MOBS (weak → strong).
  * Weights are base weights; higher tiers start rare and become more common

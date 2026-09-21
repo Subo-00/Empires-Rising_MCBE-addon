@@ -4,7 +4,7 @@ import { getStorageLocation, setTag } from "../spawner/spawnerHelpers.js";
 import {
   RIFT_DIMENSION_ID, RIFT_BLOCK, RIFT_ENTITY,
   RIFT_KEY_ID, OPEN_DURATION_TICKS,
-  ALLOWED_RIFT_MOBS
+  ALLOWED_RIFT_MOBS, RIFT_ITEM_BLACKLIST
 } from "../config/rift/riftConfig.js";
 
 import {
@@ -211,14 +211,21 @@ world.beforeEvents.playerBreakBlock.subscribe((ev) => {
 });
 
 // =============================================================================
-// Prevent natural mob spawns in the rift dimension
-// Only allow the explicit whitelist (everything else is removed)
+// Prevent natural mob spawns + blacklisted item drops in the rift dimension
 // =============================================================================
-
 world.afterEvents.entitySpawn.subscribe((event) => {
   const { entity } = event;
   if (!entity?.isValid) return;
   if (entity.dimension.id !== RIFT_DIMENSION_ID) return;
+
+  // Blacklisted item drops
+  if (entity.typeId === "minecraft:item") {
+    const itemComp = entity.getComponent("minecraft:item");
+    if (itemComp?.itemStack && RIFT_ITEM_BLACKLIST.has(itemComp.itemStack.typeId)) {
+      try { entity.remove(); } catch { }
+    }
+    return;
+  }
 
   // Only care about actual mobs / monsters
   const familyComp = entity.getComponent("minecraft:type_family");
