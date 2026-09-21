@@ -227,6 +227,146 @@
             "sounds": [
                 "sounds/mob/dragon/spit"
             ]
+        },
+        "subo.rift.open": {
+            "category": "neutral",
+            "sounds": [
+                {
+                    "name": "sounds/rift/rift_open",
+                    "volume": 0.9,
+                    "pitch": 1.0
+                }
+            ]
+        },
+        "subo.rift.enter": {
+            "category": "neutral",
+            "sounds": [
+                {
+                    "name": "sounds/rift/rift_enter",
+                    "volume": 0.8,
+                    "pitch": 1.0
+                }
+            ]
+        },
+        "subo.rift.close": {
+            "category": "neutral",
+            "sounds": [
+                {
+                    "name": "sounds/rift/rift_close",
+                    "volume": 2.0,
+                    "pitch": 1.0
+                }
+            ]
+        },
+        "subo.rift.destroy": {
+            "category": "neutral",
+            "sounds": [
+                {
+                    "name": "sounds/rift/rift_destroy",
+                    "volume": 2.0,
+                    "pitch": 0.9
+                }
+            ]
+        },
+        "subo.pouch.extract": {
+            "category": "neutral",
+            "sounds": [
+                {
+                    "name": "sounds/rift/pouch_extract",
+                    "volume": 0.85,
+                    "pitch": 1.05
+                }
+            ]
+        },
+        "subo.spirit.consume": {
+            "category": "neutral",
+            "sounds": [
+                {
+                    "name": "sounds/rift/spirit_consume",
+                    "volume": 0.85,
+                    "pitch": 1.0
+                }
+            ]
+        },
+        "subo.spirit.spin": {
+            "category": "neutral",
+            "sounds": [
+                {
+                    "name": "sounds/rift/spirit_spin",
+                    "volume": 0.4,
+                    "pitch": 1.0
+                }
+            ]
+        },
+        "subo.spirit.exit": {
+            "category": "neutral",
+            "sounds": [
+                {
+                    "name": "sounds/rift/spirit_exit",
+                    "volume": 0.95,
+                    "pitch": 1.1
+                }
+            ]
+        },
+        "subo.vigor.heal": {
+            "category": "neutral",
+            "sounds": [
+                {
+                    "name": "sounds/rift/vigor_heal",
+                    "volume": 0.45,
+                    "pitch": 1.1
+                }
+            ]
+        },
+        "subo.vigor.repel": {
+            "category": "neutral",
+            "sounds": [
+                {
+                    "name": "sounds/rift/vigor_repel",
+                    "volume": 0.8,
+                    "pitch": 0.95
+                }
+            ]
+        },
+        "subo.pyro.shoot": {
+            "category": "neutral",
+            "sounds": [
+                {
+                    "name": "sounds/rift/pyro_shoot",
+                    "volume": 2.0,
+                    "pitch": 1.1
+                }
+            ]
+        },
+        "subo.pyro.hit": {
+            "category": "neutral",
+            "sounds": [
+                {
+                    "name": "sounds/rift/pyro_hit",
+                    "volume": 2.3,
+                    "pitch": 1.0
+                }
+            ]
+        },
+        "subo.frost.zone": {
+            "category": "neutral",
+            "sounds": [
+                {
+                    "name": "sounds/rift/frost_zone",
+                    "volume": 0.45,
+                    "pitch": 1.05
+                }
+            ]
+        },
+        "subo.frost.hit": {
+            "category": "neutral",
+            "sounds": [
+                {
+                    "name": "sounds/rift/frost_hit",
+                    "volume": 0.5,
+                    "pitch": 1.05
+                }
+            ]
         }
     }
 }

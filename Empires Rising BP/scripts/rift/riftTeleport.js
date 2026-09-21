@@ -54,6 +54,13 @@ export async function teleportPlayerToRift(player, entity, loc, forcedRiftId = n
 
     player.sendMessage(`§dYou have entered Rift #${riftId}.`);
 
+    try {
+        player.playSound("subo.rift.enter", { volume: 0.8, pitch: 1.0 });
+        player.dimension.spawnParticle("subo:rift_enter", {
+            x: player.location.x, y: player.location.y + 0.1, z: player.location.z
+        });
+    } catch { }
+
 
     // ── Wait until the spawn chunk is loaded ──
     const spawnPos = islandData.spawn;
@@ -130,5 +137,13 @@ export async function returnPlayerHome(player, returnLoc) {
 
     restoreNearbyTroops(player);
     player.sendMessage("§aYou have returned from the rift.");
+
+    try {
+        player.playSound("subo.rift.close", { volume: 0.7, pitch: 1.05 });
+        player.dimension.spawnParticle("subo:rift_close", {
+            x: player.location.x, y: player.location.y + 0.5, z: player.location.z
+        });
+    } catch { }
+
     console.warn(`[DBG returnPlayerHome] finished for ${player.name}`);
 }

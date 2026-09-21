@@ -10,7 +10,7 @@ import {
 import {
   trySetState, getNum, setNum, getRiftEntityAt,
   isActive, isBroken, clearRiftState, blockLoc,
-  clearPlayerRiftTags, getPlayerRiftReturn,
+  clearPlayerRiftTags, getPlayerRiftReturn, playRiftFeedback
 } from "./riftHelpers.js";
 import { handleGlitchPouchUse } from "./riftPouch.js";
 
@@ -358,7 +358,11 @@ async function activateRift(dim, block, entity) {
 
   trySetState(block, "active");
   startStepOnTicker();
-  dim.playSound("portal.trigger", block.location);
+
+  // polished feedback
+  playRiftFeedback(dim, block.location, "subo:rift_open", "subo.rift.open", 0.9, 1.0);
+  // keep a quiet vanilla fallback if custom missing
+  try { dim.playSound("portal.trigger", block.location, { volume: 0.35 }); } catch { }
 }
 
 // =============================================================================
@@ -419,7 +423,7 @@ function startStepOnTicker() {
       if (chunkLoaded) {
         try {
           dim.spawnParticle(
-            "subo:rift_port",
+            "subo:rift_active",
             { x: info.x + 0.5, y: info.y + 0.1, z: info.z + 0.5 }
           );
         } catch { }
@@ -449,6 +453,10 @@ function startStepOnTicker() {
 
         //restrict the player from going through the same portal opening twice
         teleportLock.set(player.id, now + 40 + OPEN_DURATION_TICKS);
+
+        // visual + audio feedback for stepping in
+        playRiftFeedback(dim, { x: info.x, y: info.y, z: info.z }, "subo:rift_enter", "subo.rift.enter", 0.85, 1.05);
+        player.playSound("subo.rift.enter", { volume: 0.7, pitch: 1.0 });
 
         teleportPlayerToRift(
           player,
@@ -610,6 +618,13 @@ export async function forceCloseRift(dim, entity, wasDestroyed, forcedRiftId = n
         // (when wasDestroyed the caller will replace it with destroyed_rift)
       }
     } catch { }
+  }
+
+  // after the block state change block
+  if (wasDestroyed) {
+    playRiftFeedback(dim, loc, "subo:rift_destroy", "subo.rift.destroy", 1.1, 0.9);
+  } else {
+    playRiftFeedback(dim, loc, "subo:rift_close", "subo.rift.close", 0.7, 1.0);
   }
 
   if (areaCreated) {

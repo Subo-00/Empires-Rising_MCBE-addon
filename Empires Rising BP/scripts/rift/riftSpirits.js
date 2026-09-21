@@ -206,6 +206,116 @@ export function despawnSpiritsForPlayer(player) {
     } catch { }
 }
 
+/**
+ * Spirit-consume exit animation:
+ * 1. Ensure the chosen spirit exists (spawn if missing)
+ * 2. Float it to eye level directly in front of the player
+ * 3. Spin around the player 2 full circles
+ * 4. Flash + remove all spirits
+ */
+async function playSpiritExitAnimation(player, type) {
+    if (!player?.isValid) return;
+
+    const dim = player.dimension;
+    const levels = spiritLevels.get(player.id) ?? loadPlayerLevels(player);
+    const level = levels[type] || 1;
+
+    // 1. Make sure the spirit of this type is present
+    let spirit = null;
+    const set = activeSpirits.get(player.id);
+    if (set) {
+        for (const e of set) {
+            if (!e.isValid) continue;
+            const t = [...e.getTags()].find(tag => tag.startsWith("spirit_type:"));
+            if (t && t.slice(12) === type) {
+                spirit = e;
+                break;
+            }
+        }
+    }
+
+    if (!spirit) {
+        try {
+            spirit = dim.spawnEntity(SPIRIT_ENTITIES[type], {
+                x: player.location.x,
+                y: player.location.y + 1.6,
+                z: player.location.z
+            });
+            spirit.addTag(`spirit_owner:${player.id}`);
+            spirit.addTag(`spirit_type:${type}`);
+            spirit.addTag(`spirit_level:${level}`);
+            spirit.addTag(`temp_exit:1`);
+        } catch {
+            return;
+        }
+    }
+
+    // Feedback: start
+    try {
+        dim.spawnParticle("subo:spirit_consume_start", {
+            x: player.location.x, y: player.location.y + 1.5, z: player.location.z
+        });
+        player.playSound("subo.spirit.consume", { volume: 0.85, pitch: 1.0 });
+    } catch { }
+
+    // 2. Float to eye level, slightly in front 
+    const eyeY = player.location.y + 1.62;
+    const yaw = player.getRotation().y * Math.PI / 180;
+    const front = {
+        x: player.location.x - Math.sin(yaw) * 1.4,
+        y: eyeY,
+        z: player.location.z + Math.cos(yaw) * 1.4
+    };
+
+    for (let i = 1; i <= 8; i++) {
+        if (!spirit.isValid || !player.isValid) return;
+        const t = i / 8;
+        const pos = {
+            x: spirit.location.x + (front.x - spirit.location.x) * t,
+            y: spirit.location.y + (front.y - spirit.location.y) * t,
+            z: spirit.location.z + (front.z - spirit.location.z) * t
+        };
+        try { spirit.teleport(pos, { checkForBlocks: false }); } catch { }
+        await system.waitTicks(1);
+    }
+
+
+    // 3. Spin around the player twice (24 steps)
+    const radius = 1.35;
+    const totalSteps = 36;
+    const fullCircles = 3;
+    for (let i = 0; i < totalSteps; i++) {
+        if (!spirit.isValid || !player.isValid) return;
+
+        const angle = (i / totalSteps) * Math.PI * 2 * fullCircles + yaw;
+        const pos = {
+            x: player.location.x + Math.sin(angle) * radius,
+            y: eyeY + Math.sin(i * 0.4) * 0.15,
+            z: player.location.z - Math.cos(angle) * radius
+        };
+        try { spirit.teleport(pos, { checkForBlocks: false }); } catch { }
+
+        if (i % 3 === 0) {
+            try { dim.spawnParticle("subo:spirit_spin", pos); } catch { }
+        }
+        if (i === 6 || i === 18) {
+            try { player.playSound("subo.spirit.spin", { volume: 0.4, pitch: 1.0 }); } catch { }
+        }
+        await system.waitTicks(1);
+    }
+
+    // 4. Final flash + remove ALL spirits
+    try {
+        dim.spawnParticle("subo:spirit_exit", {
+            x: player.location.x, y: eyeY, z: player.location.z
+        });
+        player.playSound("subo.spirit.exit", { volume: 0.95, pitch: 1.1 });
+    } catch { }
+
+    await system.waitTicks(4);
+    despawnSpiritsForPlayer(player);
+}
+
 // ────────────────────────────────────────────────
 //  Item use (right-click)
 // ────────────────────────────────────────────────
@@ -249,6 +359,9 @@ export async function handleSpiritUse(player, item) {
 
     const riftId = returnData.riftId;
     const loc = { x: returnData.x, y: returnData.y, z: returnData.z };
+
+    // ─── Spirit Exit Animation ───────────────────────────────────────────────
+    await playSpiritExitAnimation(player, type);
 
     // 4. Count any remaining unopened glitch pouches this player is carrying
     //    and add them to the counter (so the last pouch can’t be “stolen”)
@@ -449,12 +562,8 @@ export function startSpiritTicker() {
         }
 
         // Feedback
-        player.dimension.spawnParticle("minecraft:critical_hit_emitter", player.location);
-        player.dimension.spawnParticle("minecraft:large_explosion", {
-            x: player.location.x,
-            y: player.location.y + 0.5,
-            z: player.location.z
-        });
+        player.dimension.spawnParticle("subo:vigor_repel", player.location);
+        try { player.playSound("subo.vigor.repel", { volume: 0.8, pitch: 0.95 }); } catch { }
 
         vigorRepelCooldown.set(player.id, now + vigorRepelCooldownTicks(levels.vigor));
     });
@@ -522,9 +631,10 @@ export function startSpiritTicker() {
                             if (health && health.currentValue < health.effectiveMax) {
                                 const amount = vigorHealAmount(level);
                                 health.setCurrentValue(Math.min(health.effectiveMax, health.currentValue + amount));
-                                player.dimension.spawnParticle("minecraft:heart_particle", {
+                                player.dimension.spawnParticle("subo:vigor_heal", {
                                     x: player.location.x, y: player.location.y + 1, z: player.location.z
                                 });
+                                try { player.playSound("subo.vigor.heal", { volume: 0.45, pitch: 1.1 }); } catch { }
                             }
                         } catch { }
                     }
@@ -630,6 +740,12 @@ export function startSpiritTicker() {
                             level,
                             lastEffectTick: 0
                         });
+                        try {
+                            dim.spawnParticle("subo:frost_zone", {
+                                x: spirit.location.x, y: spirit.location.y, z: spirit.location.z
+                            });
+                            dim.playSound("subo.frost.zone", spirit.location, { volume: 0.6, pitch: 1.05 });
+                        } catch { }
                     }
                 }
             }
@@ -729,9 +845,9 @@ export function startSpiritTicker() {
                     // 3. Brief burn
                     target.setOnFire(data.burnSec, true);
 
-                    // Visual feedback
-                    proj.dimension.spawnParticle("minecraft:basic_flame_particle", target.location);
-                    proj.dimension.spawnParticle("minecraft:critical_hit_emitter", target.location);
+                    // Player feedback
+                    proj.dimension.spawnParticle("subo:pyro_hit", target.location);
+                    try { proj.dimension.playSound("subo.pyro.hit", target.location, { volume: 0.7, pitch: 1.0 }); } catch { }
 
                 } catch (err) {
                     console.warn("[Pyro] Hit failed:", err);
@@ -792,6 +908,10 @@ function firePyroProjectiles(spirit, player, level) {
         } catch { continue; }
 
         proj.addTag(`damage:${dmg}`);
+        try {
+            dim.spawnParticle("subo:pyro_shoot", spirit.location);
+            spirit.dimension.playSound("subo.pyro.shoot", spirit.location, { volume: 0.55, pitch: 1.1 });
+        } catch { }
 
         const mid = {
             x: (spirit.location.x + target.location.x) / 2,

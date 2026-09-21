@@ -35,6 +35,15 @@ export async function handleGlitchPouchUse(player, pouch) {
   }
   player.sendMessage(`§dYou extracted ${count} spirit${count > 1 ? "s" : ""} from the pouch.`);
 
+  // feedback
+  const p_loc = player.location;
+  try {
+    player.dimension.spawnParticle("subo:pouch_extract", {
+      x: p_loc.x, y: p_loc.y + 1.2, z: p_loc.z
+    });
+    player.playSound("subo.pouch.extract", { volume: 0.9, pitch: 1.05 });
+  } catch { }
+
   // 4. Progress the correct rift’s counter (NO teleport)
   const dim = world.getDimension("minecraft:overworld");
   let loc = null;
@@ -51,7 +60,7 @@ export async function handleGlitchPouchUse(player, pouch) {
       const options = {
         dimension: dim,
         from: { x: loc.x - 2, y: loc.y - 2, z: loc.z - 2 },
-        to:   { x: loc.x + 2, y: loc.y + 2, z: loc.z + 2 }
+        to: { x: loc.x + 2, y: loc.y + 2, z: loc.z + 2 }
       };
       if (world.tickingAreaManager.hasCapacity(options)) {
         await world.tickingAreaManager.createTickingArea(areaId, options);
@@ -92,9 +101,7 @@ export async function handleGlitchPouchUse(player, pouch) {
   if (needDestroy && loc) {
     player.sendMessage("§5§lAll glitch energy extracted! The island collapses...");
     try {
-      dim.spawnParticle("minecraft:large_explosion", {
-        x: loc.x + 0.5, y: loc.y + 0.5, z: loc.z + 0.5
-      });
+      playRiftFeedback(dim, loc, "subo:rift_destroy", "subo.rift.destroy", 1.15, 0.85);
       dim.playSound("random.explode", loc, { volume: 1.1, pitch: 0.85 });
       dim.playSound("portal.travel", loc, { volume: 0.6, pitch: 0.55 });
       const block = dim.getBlock(loc);

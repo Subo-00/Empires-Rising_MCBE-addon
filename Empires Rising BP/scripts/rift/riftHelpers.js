@@ -124,3 +124,13 @@ export function getPlayerRiftReturn(player) {
     return null;
   }
 }
+
+// ----- Feedback helpers -----
+export function playRiftFeedback(dim, loc, particle, sound, volume = 1.0, pitch = 1.0) {
+  try {
+    if (particle) dim.spawnParticle(particle, { x: loc.x + 0.5, y: loc.y + 0.5, z: loc.z + 0.5 });
+  } catch {}
+  try {
+    if (sound) dim.playSound(sound, loc, { volume, pitch });
+  } catch {}
+}
