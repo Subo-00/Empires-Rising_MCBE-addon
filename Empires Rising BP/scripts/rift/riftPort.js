@@ -5,7 +5,7 @@ import {
   RIFT_DIMENSION_ID, RIFT_BLOCK, RIFT_ENTITY,
   RIFT_KEY_ID, OPEN_DURATION_TICKS,
   VALID_SPAWN_BLOCKS, FORCED_SPAWN_MOBS, ALLOWED_RIFT_MOBS
-} from "../config/riftConfig.js";
+} from "../config/rift/riftConfig.js";
 
 import {
   trySetState, getNum, setNum, getRiftEntityAt,
@@ -14,7 +14,7 @@ import {
 } from "./riftHelpers.js";
 import { handleGlitchPouchUse } from "./riftPouch.js";
 
-import { getNextRiftId, ensureIsland, freeRiftId } from "./riftIsland.js";
+import { getNextRiftId, ensureIsland, freeRiftId, setPortLocation } from "./riftIsland.js";
 import { teleportLock, teleportPlayerToRift, returnPlayerHome } from "./riftTeleport.js";
 import { handleSpiritUse, startSpiritTicker, recoverSpirits } from "./riftSpirits.js";
 
@@ -315,6 +315,9 @@ async function activateRift(dim, block, entity) {
     setNum(entity, "riftId:", riftId);
   }
 
+  // Persist port location on scoreboard (no more in-memory map needed)
+  setPortLocation(riftId, block.location);
+
   // Store return location (useful for pouch / recovery)
   setTag(entity, "returnX:", block.location.x);
   setTag(entity, "returnY:", block.location.y);
@@ -328,12 +331,6 @@ async function activateRift(dim, block, entity) {
   setTag(entity, "fog:", fogOptions[Math.floor(Math.random() * fogOptions.length)]);
 
   const islandData = await ensureIsland(riftId, entity, shouldBuildBox);
-
-  // only set / reset pouch counters when the island was just generated
-  if (islandData.pouchCount > 0) {
-    setNum(entity, "pouchTotal:", islandData.pouchCount);
-    setNum(entity, "pouchOpened:", 0);
-  }
 
   // NO longer store remaining / total – the open timer is ephemeral
   // (keep a tiny in-memory entry for the 10 s window)

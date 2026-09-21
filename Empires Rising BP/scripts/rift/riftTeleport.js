@@ -1,5 +1,5 @@
 import { system, world } from "@minecraft/server";
-import { RIFT_DIMENSION_ID } from "../config/riftConfig.js";
+import { RIFT_DIMENSION_ID } from "../config/rift/riftConfig.js";
 import { forceNearbyTroopsStay, restoreNearbyTroops } from "../sharedHelpers/troopTeleport.js";
 import { getTag } from "../spawner/spawnerHelpers.js";
 import { getNum, setPlayerRiftTags, isBroken } from "./riftHelpers.js";

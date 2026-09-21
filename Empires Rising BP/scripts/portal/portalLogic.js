@@ -1,7 +1,7 @@
 import { world, system, BlockPermutation, ItemStack } from "@minecraft/server";
 import { ModalFormData } from "@minecraft/server-ui";
 import { ACTIVE_SECONDS, TROOP_RADIUS } from "../config/itemsConfig.js";
-import { RIFT_DIMENSION_ID } from "../config/riftConfig.js";
+import { RIFT_DIMENSION_ID } from "../config/rift/riftConfig.js";
 import { getStorageLocation, setTag, getTag, isTroop } from "../spawner/spawnerHelpers.js";
 import { forceNearbyTroopsStay, restoreNearbyTroops } from "../sharedHelpers/troopTeleport.js";
 

@@ -1,7 +1,7 @@
 import { system, world, ItemStack, BlockPermutation } from "@minecraft/server";
 import {
     RIFT_DIMENSION_ID
-} from "../config/riftConfig.js";
+} from "../config/rift/riftConfig.js";
 import {
     MAX_LEVEL,
     BOB_SPEED,
@@ -42,11 +42,10 @@ import {
     FROST_SIDE_OFFSET,
     FROST_SPIRAL_SPEED,
     FROST_SPIRAL_RADIUS
-} from "../config/spiritsConfig.js";
+} from "../config/rift/spiritsConfig.js";
 import {
     getNum, setNum, getPlayerRiftReturn, clearPlayerRiftTags
 } from "./riftHelpers.js";
-import { forceCloseRift, activeRifts } from "./riftPort.js";
 import { returnPlayerHome } from "./riftTeleport.js";
 
 // ────────────────────────────────────────────────
@@ -328,11 +327,24 @@ export async function handleSpiritUse(player, item) {
         return;
     }
 
+    // Block if the player still has any Glitch Pouches – they must be extracted first
+    const invCheck = player.getComponent("minecraft:inventory")?.container;
+    if (invCheck) {
+        for (let i = 0; i < invCheck.size; i++) {
+            const stack = invCheck.getItem(i);
+            if (stack && stack.typeId === "subo:glitch_pouch") {
+                player.sendMessage("§cExtract all Glitch Pouches before consuming spirits.");
+                return;
+            }
+        }
+    }
+
     let type = null;
     if (item.typeId === SPIRIT_ITEMS.vigor) type = "vigor";
     else if (item.typeId === SPIRIT_ITEMS.pyro) type = "pyro";
     else if (item.typeId === SPIRIT_ITEMS.frost) type = "frost";
     if (!type) return;
+
     const inv = player.getComponent("minecraft:inventory")?.container;
     if (!inv) return;
 
@@ -363,42 +375,7 @@ export async function handleSpiritUse(player, item) {
     // ─── Spirit Exit Animation ───────────────────────────────────────────────
     await playSpiritExitAnimation(player, type);
 
-    // 4. Count any remaining unopened glitch pouches this player is carrying
-    //    and add them to the counter (so the last pouch can’t be “stolen”)
-    let extraPouches = 0;
-    for (let i = 0; i < inv.size; i++) {
-        const stack = inv.getItem(i);
-        if (stack && stack.typeId === "subo:glitch_pouch") {
-            extraPouches += stack.amount;
-            inv.setItem(i, undefined); // remove them – they are being accounted for
-        }
-    }
-
-    // 5. Apply the extra pouches to the correct rift
-    const dim = world.getDimension("minecraft:overworld");
-    let entity = null;
-    try {
-        for (const e of dim.getEntities({ type: "subo:rift_port_entity" })) {
-            if (getNum(e, "riftId:", 0) === riftId) {
-                entity = e;
-                break;
-            }
-        }
-    } catch { }
-
-    let needDestroy = false;
-    if (entity?.isValid && extraPouches > 0) {
-        const total = getNum(entity, "pouchTotal:", 0);
-        let opened = getNum(entity, "pouchOpened:", 0) + extraPouches;
-        setNum(entity, "pouchOpened:", opened);
-        needDestroy = opened >= total && total > 0;
-
-        if (extraPouches > 0) {
-            player.sendMessage(`§7(${extraPouches} unopened pouch${extraPouches > 1 ? "es" : ""} accounted for)`);
-        }
-    }
-
-    // 6. Decide who leaves with this player
+    // 4. Decide who leaves with this player
     const playersToReturn = [player]; // always the user
 
     for (const p of world.getPlayers()) {
@@ -429,7 +406,7 @@ export async function handleSpiritUse(player, item) {
         }
     }
 
-    // 7. Teleport everyone we decided to return
+    // 5. Teleport everyone we decided to return
     for (const p of playersToReturn) {
         await returnPlayerHome(p, {
             dim: "overworld",
@@ -439,20 +416,6 @@ export async function handleSpiritUse(player, item) {
         });
         clearPlayerRiftTags(p);
         despawnSpiritsForPlayer(p);
-    }
-
-    // 8. If the extra pouches (or previous ones) completed the counter → destroy the port
-    if (needDestroy) {
-        await forceCloseRift(dim, entity, true, riftId, loc);
-        // visual feedback only for the player who caused it
-        try {
-            dim.spawnParticle("minecraft:large_explosion", {
-                x: loc.x + 0.5, y: loc.y + 0.5, z: loc.z + 0.5
-            });
-            dim.playSound("random.explode", loc, { volume: 1.1, pitch: 0.85 });
-            const block = dim.getBlock(loc);
-            if (block) block.setType("subo:destroyed_rift");
-        } catch { }
     }
 }
 

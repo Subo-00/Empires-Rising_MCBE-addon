@@ -3,9 +3,9 @@ import {
   RIFT_DIMENSION_ID, ISLAND_SPACING, BOTTOM_BLOCK, WALL_BLOCK,
   BOX_SIZE, BOX_HEIGHT_OFFSET, FORTRESS_Y_OFFSET,
   LAYOUTS, BEACON_OFFSETS
-} from "../config/riftConfig.js";
+} from "../config/rift/riftConfig.js";
 import { getNum, setNum } from "./riftHelpers.js";
-import { CHEST_SPAWN_CHANCE, LOOT_TIERS } from "../config/riftChestLoot.js";
+import { CHEST_SPAWN_CHANCE, LOOT_TIERS } from "../config/rift/riftChestLoot.js";
 
 export { getNextRiftId, ensureIsland, freeRiftId };
 
@@ -43,6 +43,8 @@ function freeRiftId(id) {
   try {
     getTakenObjective().removeParticipant(String(id));
   } catch { }
+  clearPouchCounters(id);
+  clearPortLocation(id);
 }
 
 function getNextRiftId() {
@@ -61,6 +63,65 @@ function getNextRiftId() {
 
   // contiguous → brand-new highest ID
   return { id: max + 1, shouldBuildBox: true };
+}
+
+// ────────────────────────────────────────────────
+//  Pouch counters + port location (scoreboard)
+// ────────────────────────────────────────────────
+const POUCH_TOTAL_OBJ = "rift_pouch_total";
+const POUCH_OPENED_OBJ = "rift_pouch_opened";
+const PORT_X_OBJ = "rift_port_x";
+const PORT_Y_OBJ = "rift_port_y";
+const PORT_Z_OBJ = "rift_port_z";
+
+function getOrCreateObj(id, display) {
+  return world.scoreboard.getObjective(id)
+    ?? world.scoreboard.addObjective(id, display);
+}
+
+export function setPouchCounters(riftId, total) {
+  if (!riftId || total <= 0) return;
+  getOrCreateObj(POUCH_TOTAL_OBJ, "Rift Pouch Total").setScore(String(riftId), total);
+  getOrCreateObj(POUCH_OPENED_OBJ, "Rift Pouch Opened").setScore(String(riftId), 0);
+}
+
+export function incrementPouchOpened(riftId) {
+  if (!riftId) return { total: 0, opened: 0, needDestroy: false };
+  const totalObj = getOrCreateObj(POUCH_TOTAL_OBJ, "Rift Pouch Total");
+  const openedObj = getOrCreateObj(POUCH_OPENED_OBJ, "Rift Pouch Opened");
+  const total = totalObj.getScore(String(riftId)) ?? 0;
+  const opened = (openedObj.getScore(String(riftId)) ?? 0) + 1;
+  openedObj.setScore(String(riftId), opened);
+  return { total, opened, needDestroy: total > 0 && opened >= total };
+}
+
+export function clearPouchCounters(riftId) {
+  if (!riftId) return;
+  try { getOrCreateObj(POUCH_TOTAL_OBJ, "Rift Pouch Total").removeParticipant(String(riftId)); } catch { }
+  try { getOrCreateObj(POUCH_OPENED_OBJ, "Rift Pouch Opened").removeParticipant(String(riftId)); } catch { }
+}
+
+export function setPortLocation(riftId, loc) {
+  if (!riftId || !loc) return;
+  getOrCreateObj(PORT_X_OBJ, "Rift Port X").setScore(String(riftId), Math.floor(loc.x));
+  getOrCreateObj(PORT_Y_OBJ, "Rift Port Y").setScore(String(riftId), Math.floor(loc.y));
+  getOrCreateObj(PORT_Z_OBJ, "Rift Port Z").setScore(String(riftId), Math.floor(loc.z));
+}
+
+export function getPortLocation(riftId) {
+  if (!riftId) return null;
+  const x = getOrCreateObj(PORT_X_OBJ, "Rift Port X").getScore(String(riftId));
+  const y = getOrCreateObj(PORT_Y_OBJ, "Rift Port Y").getScore(String(riftId));
+  const z = getOrCreateObj(PORT_Z_OBJ, "Rift Port Z").getScore(String(riftId));
+  if (x == null || y == null || z == null) return null;
+  return { x, y, z };
+}
+
+export function clearPortLocation(riftId) {
+  if (!riftId) return;
+  try { getOrCreateObj(PORT_X_OBJ, "Rift Port X").removeParticipant(String(riftId)); } catch { }
+  try { getOrCreateObj(PORT_Y_OBJ, "Rift Port Y").removeParticipant(String(riftId)); } catch { }
+  try { getOrCreateObj(PORT_Z_OBJ, "Rift Port Z").removeParticipant(String(riftId)); } catch { }
 }
 
 // ────────────────────────────────────────────────
@@ -285,7 +346,12 @@ async function ensureIsland(riftId, entity = null, shouldBuildBox = true, player
       placedPouches++;
     }
   }
-  
+
+  // Persist pouch counters on scoreboard (survives reloads, no entity needed)
+  if (placedPouches > 0) {
+    setPouchCounters(riftId, placedPouches);
+  }
+
   // ── clean up ─────────────────────────────────────────────────
   if (areaCreated) {
     try { world.tickingAreaManager.removeTickingArea(taId); } catch { }

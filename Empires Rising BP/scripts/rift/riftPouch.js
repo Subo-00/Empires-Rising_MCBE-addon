@@ -1,11 +1,8 @@
 import { system, world, ItemStack } from "@minecraft/server";
-import { RIFT_DIMENSION_ID, RIFT_ENTITY } from "../config/riftConfig.js";
-import {
-  getNum, setNum, blockLoc, getRiftEntityAt,
-  getPlayerRiftReturn, clearPlayerRiftTags
-} from "./riftHelpers.js";
-import { forceCloseRift, activeRifts } from "./riftPort.js";
-import { returnPlayerHome } from "./riftTeleport.js";
+import { RIFT_ENTITY } from "../config/rift/riftConfig.js";
+import { getNum, playRiftFeedback } from "./riftHelpers.js";
+import { forceCloseRift } from "./riftPort.js";
+import { incrementPouchOpened, getPortLocation } from "./riftIsland.js";
 
 export async function handleGlitchPouchUse(player, pouch) {
   // 1. Extract riftId from lore
@@ -44,18 +41,23 @@ export async function handleGlitchPouchUse(player, pouch) {
     player.playSound("subo.pouch.extract", { volume: 0.9, pitch: 1.05 });
   } catch { }
 
-  // 4. Progress the correct rift’s counter (NO teleport)
+  // 4. Progress the correct rift’s counter (scoreboard – works after reload)
+  const { total, opened, needDestroy } = incrementPouchOpened(riftId);
+
+  if (total > 0) {
+    player.sendMessage(`§dGlitch energy extracted (${opened}/${total})`);
+  }
+
+  // Location is also on scoreboard now
+  const loc = getPortLocation(riftId);
   const dim = world.getDimension("minecraft:overworld");
-  let loc = null;
+
+  // Optional: still force-load only if we need to change the block state
   let entity = null;
-
-  const info = activeRifts.get(riftId);
-  if (info) loc = { x: info.x, y: info.y, z: info.z };
-
-  // Force-load pad
-  const areaId = `pouch_${riftId}_${Date.now()}`;
   let areaCreated = false;
-  if (loc) {
+  const areaId = `pouch_${riftId}_${Date.now()}`;
+
+  if (loc && needDestroy) {
     try {
       const options = {
         dimension: dim,
@@ -70,32 +72,18 @@ export async function handleGlitchPouchUse(player, pouch) {
     } catch { }
   }
 
-  // Find the persistence entity
-  try {
-    for (const e of dim.getEntities({ type: "subo:rift_port_entity" })) {
-      if (getNum(e, "riftId:", 0) === riftId) {
-        entity = e;
-        if (!loc) loc = blockLoc(e);
-        break;
+  // Find entity only when we are about to destroy
+  if (needDestroy && loc) {
+    try {
+      for (const e of dim.getEntities({ type: RIFT_ENTITY, location: loc, maxDistance: 1 })) {
+        if (getNum(e, "riftId:", 0) === riftId) {
+          entity = e;
+          break;
+        }
       }
-    }
-  } catch { }
-
-  // Update counters
-  let total = 0, opened = 0;
-  if (entity?.isValid) {
-    total = getNum(entity, "pouchTotal:", 0);
-    opened = getNum(entity, "pouchOpened:", 0) + 1;
-    setNum(entity, "pouchOpened:", opened);
+    } catch { }
   }
 
-  if (total > 0) {
-    player.sendMessage(`§dGlitch energy extracted (${opened}/${total})`);
-  }
-
-  const needDestroy = opened >= total && total > 0;
-
-  // Only destroy the port – do NOT force players out
   await forceCloseRift(dim, entity, needDestroy, riftId, loc);
 
   if (needDestroy && loc) {

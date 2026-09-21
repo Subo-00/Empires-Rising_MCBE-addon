@@ -1,5 +1,5 @@
 import { system } from "@minecraft/server";
-import { DESTROYED_RIFT_MESSAGES } from "../config/riftConfig";
+import { DESTROYED_RIFT_MESSAGES } from "../config/rift/riftConfig.js";
 
 const destroyedInteractCooldown = new Map(); // playerId → tick
 

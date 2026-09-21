@@ -1,5 +1,5 @@
 import { getStorageLocation, setTag, getTag } from "../spawner/spawnerHelpers.js";
-import { RIFT_ENTITY } from "../config/riftConfig.js";
+import { RIFT_ENTITY } from "../config/rift/riftConfig.js";
 
 export function trySetState(block, value) {
   try {
