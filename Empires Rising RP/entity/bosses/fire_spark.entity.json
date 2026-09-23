@@ -2,23 +2,23 @@
     "format_version": "1.20.0",
     "minecraft:client_entity": {
         "description": {
-            "identifier": "subo:fire_spirit",
+            "identifier": "subo:fire_spark",
             "materials": {
                 "default": "entity_emissive_alpha"
             },
             "textures": {
-                "default": "textures/entity/bosses/fire_spirit"
+                "default": "textures/entity/bosses/fire_spark"
             },
             "geometry": {
-                "default": "geometry.fire_spirit"
+                "default": "geometry.fire_spark"
             },
             "animations": {
-                "main": "controller.animation.fire_spirit.main",
-                "leap_controller": "controller.animation.fire_spirit.leap",
-                "idle": "animation.subo.fire_spirit.idle",
-                "walk": "animation.subo.fire_spirit.walk",
-                "leap": "animation.subo.fire_spirit.leap",
-                "burn": "animation.subo.fire_spirit.burn"
+                "main": "controller.animation.fire_spark.main",
+                "leap_controller": "controller.animation.fire_spark.leap",
+                "idle": "animation.subo.fire_spark.idle",
+                "walk": "animation.subo.fire_spark.walk",
+                "leap": "animation.subo.fire_spark.leap",
+                "burn": "animation.subo.fire_spark.burn"
             },
             "scripts": {
                 "animate": [
@@ -34,14 +34,14 @@
                 ]
             },
             "render_controllers": [
-                "controller.render.fire_spirit"
+                "controller.render.fire_spark"
             ],
             "spawn_egg": {
-                "texture": "fire_spirit_egg"
+                "texture": "fire_spark_egg"
             },
             "sound_effects": {
-                "leap": "mob.fire_spirit.leap",
-                "explode": "mob.fire_spirit.explode"
+                "leap": "mob.fire_spark.leap",
+                "explode": "mob.fire_spark.explode"
             }
         }
     }

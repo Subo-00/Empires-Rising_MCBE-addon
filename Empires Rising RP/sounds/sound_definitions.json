@@ -150,35 +150,35 @@
                 "sounds/mob/lava_golem/step2"
             ]
         },
-        "mob.fire_spirit.idle": {
+        "mob.fire_spark.idle": {
             "category": "neutral",
             "sounds": [
-                "sounds/mob/fire_spirit/idle1",
-                "sounds/mob/fire_spirit/idle2"
+                "sounds/mob/fire_spark/idle1",
+                "sounds/mob/fire_spark/idle2"
             ]
         },
-        "mob.fire_spirit.hurt": {
+        "mob.fire_spark.hurt": {
             "category": "neutral",
             "sounds": [
-                "sounds/mob/fire_spirit/hurt"
+                "sounds/mob/fire_spark/hurt"
             ]
         },
-        "mob.fire_spirit.death": {
+        "mob.fire_spark.death": {
             "category": "neutral",
             "sounds": [
-                "sounds/mob/fire_spirit/death"
+                "sounds/mob/fire_spark/death"
             ]
         },
-        "mob.fire_spirit.leap": {
+        "mob.fire_spark.leap": {
             "category": "neutral",
             "sounds": [
-                "sounds/mob/fire_spirit/leap"
+                "sounds/mob/fire_spark/leap"
             ]
         },
-        "mob.fire_spirit.explode": {
+        "mob.fire_spark.explode": {
             "category": "neutral",
             "sounds": [
-                "sounds/mob/fire_spirit/explode"
+                "sounds/mob/fire_spark/explode"
             ]
         },
         "mob.dragon.idle": {

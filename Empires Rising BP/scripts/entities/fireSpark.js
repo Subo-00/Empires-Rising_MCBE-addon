@@ -1,8 +1,8 @@
-import { system, world } from "@minecraft/server";
+import { world } from "@minecraft/server";
 import {
     LEAP_RANGE, DETECTION_RANGE, HIT_DISTANCE,
     LEAP_TIMEOUT_MS, EXPLOSION_DAMAGE, FIRE_SECONDS
-} from "../config/entities/fireSpiritConfig.js";
+} from "../config/entities/fireSparkConfig.js";
 import { isSimpleValidTarget, distSq3D } from "./entityHelpers.js";
 
 const leapedSpirits = new Map();  // Now stores {targetId, launchTime}
@@ -30,18 +30,18 @@ function getNearestTarget(spirit) {
 }
 
 world.afterEvents.entityDie.subscribe((event) => {
-    if (event.deadEntity.typeId === "subo:fire_spirit") {
+    if (event.deadEntity.typeId === "subo:fire_spark") {
         leapedSpirits.delete(event.deadEntity.id);
     }
 });
 
 // Called every 5 ticks
-export function fireSpiritTick() {
+export function fireSparkTick() {
     const overworld = world.getDimension("overworld");
 
     for (const player of world.getAllPlayers()) {
         const spirits = overworld.getEntities({
-            type: "subo:fire_spirit",
+            type: "subo:fire_spark",
             location: player.location,
             maxDistance: 80
         });
@@ -107,7 +107,7 @@ export function fireSpiritTick() {
                     launchTime: Date.now()
                 });
 
-                spirit.triggerEvent("fire_spirit:start_leap");
+                spirit.triggerEvent("fire_spark:start_leap");
 
                 // Stronger, more directed leap
                 const len = Math.max(0.001, dist);
@@ -151,6 +151,6 @@ function triggerExplosion(spirit, target = null) {
     }
 
     // Trigger despawn
-    spirit.triggerEvent("fire_spirit:explode");
+    spirit.triggerEvent("fire_spark:explode");
     leapedSpirits.delete(spirit.id);
 }

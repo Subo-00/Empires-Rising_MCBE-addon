@@ -62,7 +62,7 @@ export function hasLineOfSight(fromEntity, toEntity, opts = {}) {
 
 /**
  * Simple “is this a combat-valid player / troop?” check
- * (used by darkKnight, lavaGolem, fireSpirit – no faction logic).
+ * (used by darkKnight, lavaGolem, fireSpark – no faction logic).
  */
 export function isSimpleValidTarget(entity) {
     if (!entity?.isValid) return false;

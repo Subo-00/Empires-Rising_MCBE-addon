@@ -2,7 +2,7 @@ import { system, world } from "@minecraft/server";
 import { RIFT_DIMENSION_ID } from "../config/rift/riftConfig.js";
 import { forceNearbyTroopsStay, restoreNearbyTroops } from "../sharedHelpers/troopTeleport.js";
 import { getTag } from "../spawner/spawnerHelpers.js";
-import { getNum, setPlayerRiftTags, isBroken } from "./riftHelpers.js";
+import { getNum, setPlayerRiftTags, isBroken, playRiftFeedback } from "./riftHelpers.js";
 import { ensureIsland } from "./riftIsland.js";
 import { despawnSpiritsForPlayer, spawnSpiritsForPlayer } from "./riftSpirits.js";
 
@@ -138,11 +138,23 @@ export async function returnPlayerHome(player, returnLoc) {
     restoreNearbyTroops(player);
     player.sendMessage("§aYou have returned from the rift.");
 
+    // If the port was destroyed while the player was inside (all pouches extracted),
+    // play the destroy feedback now that they can see it – no extra area load needed.
     try {
-        player.playSound("subo.rift.close", { volume: 0.7, pitch: 1.05 });
-        player.dimension.spawnParticle("subo:rift_close", {
-            x: player.location.x, y: player.location.y + 0.5, z: player.location.z
-        });
+        const portBlock = targetDim.getBlock({ x: returnLoc.x, y: returnLoc.y, z: returnLoc.z });
+        if (portBlock?.typeId === "subo:destroyed_rift") {
+            playRiftFeedback(targetDim, { x: returnLoc.x, y: returnLoc.y, z: returnLoc.z }, "subo:rift_destroy", "subo.rift.destroy", 1.15, 0.85);
+            try {
+                targetDim.playSound("random.explode", { x: returnLoc.x, y: returnLoc.y, z: returnLoc.z }, { volume: 1.1, pitch: 0.85 });
+                targetDim.playSound("portal.travel", { x: returnLoc.x, y: returnLoc.y, z: returnLoc.z }, { volume: 0.6, pitch: 0.55 });
+            } catch { }
+        } else {
+            // Normal return close feedback
+            player.playSound("subo.rift.close", { volume: 0.7, pitch: 1.05 });
+            player.dimension.spawnParticle("subo:rift_close", {
+                x: player.location.x, y: player.location.y + 0.5, z: player.location.z
+            });
+        }
     } catch { }
 
     console.warn(`[DBG returnPlayerHome] finished for ${player.name}`);

@@ -1,7 +1,7 @@
 {
 	"format_version": "1.8.0",
 	"animations": {
-		"animation.subo.fire_spirit.idle": {
+		"animation.subo.fire_spark.idle": {
 			"loop": true,
 			"animation_length": 1.5,
 			"bones": {
@@ -19,7 +19,7 @@
 				}
 			}
 		},
-		"animation.subo.fire_spirit.walk": {
+		"animation.subo.fire_spark.walk": {
 			"loop": true,
 			"animation_length": 0.5,
 			"bones": {
@@ -46,7 +46,7 @@
 				}
 			}
 		},
-		"animation.subo.fire_spirit.leap": {
+		"animation.subo.fire_spark.leap": {
 			"animation_length": 0.4,
 			"sound_effects": {
 				"0.0": {
@@ -85,7 +85,7 @@
 				}
 			}
 		},
-		"animation.subo.fire_spirit.burn": {
+		"animation.subo.fire_spark.burn": {
 			"loop": true,
 			"animation_length": 0.5,
 			"bones": {

@@ -169,7 +169,7 @@ export function lavaGolemTick() {
                 golem.triggerEvent("lava_golem:start_spit");
                 spitCooldown.set(golemId, currentTick + SPIT_COOLDOWN_TICKS);
 
-                // Spawn 3 fire spirits one by one, staggered ~5 ticks apart
+                // Spawn 3 fire sparks one by one, staggered ~5 ticks apart
                 const spawnDelays = [10, 15, 20]; // ticks after spit starts
                 for (const delay of spawnDelays) {
                     system.runTimeout(() => {
@@ -187,7 +187,7 @@ export function lavaGolemTick() {
                         };
 
                         try {
-                            const spirit = golem.dimension.spawnEntity("subo:fire_spirit", spawnPos);
+                            const spirit = golem.dimension.spawnEntity("subo:fire_spark", spawnPos);
 
                             // Give it a small outward impulse so they pop out visually
                             const spread = (Math.random() - 0.5) * 0.4;

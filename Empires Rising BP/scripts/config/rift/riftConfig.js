@@ -162,7 +162,7 @@ export const BEACON_OFFSETS = [
 
 /** Mobs allowed to spawn in the Rift */
 export const ALLOWED_RIFT_MOBS = new Set([
-  "subo:fire_spirit",
+  "subo:fire_spark",
   "minecraft:magma_cube",
   "minecraft:blaze",
   "minecraft:wither_skeleton",
@@ -189,7 +189,7 @@ export const RIFT_ITEM_BLACKLIST = new Set([
  *
  * Tier 0 – fodder (always common)
  * Tier 1 – mid
- * Tier 2 – strong (blaze / wither / fire_spirit)
+ * Tier 2 – strong (blaze / wither / fire_spark)
  */
 export const RIFT_MOB_TIERS = [
   // Tier 0 – weak / volume
@@ -204,14 +204,14 @@ export const RIFT_MOB_TIERS = [
   [
     { id: "minecraft:magma_cube", weight: 25 },
     { id: "minecraft:bogged", weight: 20 },
-    { id: "subo:fire_spirit", weight: 15 },
+    { id: "subo:fire_spark", weight: 15 },
     { id: "minecraft:husk", weight: 15 },
   ],
   // Tier 2 – strong (start rare, scale up with spirit level)
   [
     { id: "minecraft:blaze", weight: 20 },
     { id: "minecraft:wither_skeleton", weight: 18 },
-    { id: "subo:fire_spirit", weight: 22 },
+    { id: "subo:fire_spark", weight: 22 },
   ],
 ];
 
@@ -273,7 +273,9 @@ export const RIFT_SPAWN = {
 export const VALID_SPAWN_BLOCKS = new Set([
   "minecraft:obsidian",
   "minecraft:nether_brick",
-  "minecraft:nether_bricks",
+  "minecraft:nether_brick_stairs",
+  "minecraft:nether_wart",
+  "obsidian"
 ]);
 
 export const DESTROYED_RIFT_MESSAGES = [

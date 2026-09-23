@@ -1,6 +1,6 @@
 import { system, world, ItemStack } from "@minecraft/server";
 import { RIFT_ENTITY } from "../config/rift/riftConfig.js";
-import { getNum, playRiftFeedback } from "./riftHelpers.js";
+import { getNum } from "./riftHelpers.js";
 import { forceCloseRift } from "./riftPort.js";
 import { incrementPouchOpened, getPortLocation } from "./riftIsland.js";
 
@@ -84,14 +84,13 @@ export async function handleGlitchPouchUse(player, pouch) {
     } catch { }
   }
 
-  await forceCloseRift(dim, entity, needDestroy, riftId, loc);
+  // playFeedback=false for destroy: visual feedback is deferred until the player returns to the port
+  await forceCloseRift(dim, entity, needDestroy, riftId, loc, !needDestroy);
 
   if (needDestroy && loc) {
     player.sendMessage("§5§lAll glitch energy extracted! The island collapses...");
     try {
-      playRiftFeedback(dim, loc, "subo:rift_destroy", "subo.rift.destroy", 1.15, 0.85);
-      dim.playSound("random.explode", loc, { volume: 1.1, pitch: 0.85 });
-      dim.playSound("portal.travel", loc, { volume: 0.6, pitch: 0.55 });
+      // Logical destroy only – no particles/sounds here (player is still inside the rift)
       const block = dim.getBlock(loc);
       if (block) block.setType("subo:destroyed_rift");
     } catch { }

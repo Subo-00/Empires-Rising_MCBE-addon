@@ -14,8 +14,8 @@
     "lava_golem_egg": {
       "textures": "textures/items/spawn_eggs/lava_golem_egg"
     },
-    "fire_spirit_egg": {
-      "textures": "textures/items/spawn_eggs/fire_spirit_egg"
+    "fire_spark_egg": {
+      "textures": "textures/items/spawn_eggs/fire_spark_egg"
     },
     "dark_knight_egg": {
       "textures": "textures/items/spawn_eggs/dark_knight_egg"

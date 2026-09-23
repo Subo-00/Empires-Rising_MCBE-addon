@@ -1,7 +1,7 @@
 {
     "format_version": "1.10.0",
     "render_controllers": {
-        "controller.render.fire_spirit": {
+        "controller.render.fire_spark": {
             "geometry": "Geometry.default",
             "materials": [{ "*": "Material.default" }],
             "textures": ["Texture.default"]

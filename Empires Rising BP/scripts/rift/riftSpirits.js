@@ -361,7 +361,7 @@ export async function handleSpiritUse(player, item) {
 
     // 2. Permanent level-up
     const newLevel = addSpiritLevel(player, type, consumed);
-    player.sendMessage(`§d${type.charAt(0).toUpperCase() + type.slice(1)} Spirit +${consumed} → Level ${newLevel}/100`);
+    player.sendMessage(`§d${type.charAt(0).toUpperCase() + type.slice(1)} Spirit +${consumed} → Level ${newLevel}/${MAX_LEVEL}`);
 
     // 3. Only act as exit ticket if the player is actually inside a rift
     const returnData = getPlayerRiftReturn(player);
@@ -757,7 +757,7 @@ export function startSpiritTicker() {
                     if (fireDmg > 0 && (
                         e.typeId === "minecraft:magma_cube" ||
                         e.typeId === "minecraft:blaze" ||
-                        e.typeId === "subo:fire_spirit"
+                        e.typeId === "subo:fire_spark"
                     )) {
                         try { e.applyDamage(fireDmg, { cause: "magic" }); } catch { }
                     }
@@ -862,6 +862,12 @@ function firePyroProjectiles(spirit, player, level) {
     }
     // close threats first, then nearest
     valid.sort((a, b) => (b.close - a.close) || (a.dist - b.dist));
+
+    if (valid.length === 0) return;
+
+    try {
+        spirit.playAnimation("animation.subo.pyro_spirit.shoot");
+    } catch { }
 
     for (let i = 0; i < Math.min(count, valid.length); i++) {
         const target = valid[i].ent;

@@ -2,7 +2,7 @@
     "format_version": "1.20.0",
     "minecraft:entity": {
         "description": {
-            "identifier": "subo:fire_spirit",
+            "identifier": "subo:fire_spark",
             "is_spawnable": true,
             "is_summonable": true,
             "properties": {
@@ -16,7 +16,7 @@
         "components": {
             "minecraft:type_family": {
                 "family": [
-                    "fire_spirit",
+                    "fire_spark",
                     "monster"
                 ]
             },
@@ -109,41 +109,41 @@
                 "time": 60,
                 "looping": false,
                 "time_down_event": {
-                    "event": "fire_spirit:explode",
+                    "event": "fire_spark:explode",
                     "target": "self"
                 }
             }
         },
         "component_groups": {
-            "fire_spirit:leaping": {
+            "fire_spark:leaping": {
                 "minecraft:timer": {
                     "time": 0.5,
                     "looping": false,
                     "time_down_event": {
-                        "event": "fire_spirit:explode",
+                        "event": "fire_spark:explode",
                         "target": "self"
                     }
                 }
             },
-            "fire_spirit:dead": {
+            "fire_spark:dead": {
                 "minecraft:instant_despawn": {}
             }
         },
         "events": {
-            "fire_spirit:start_leap": {
+            "fire_spark:start_leap": {
                 "set_property": {
                     "subo:is_leaping": true
                 },
                 "add": {
                     "component_groups": [
-                        "fire_spirit:leaping"
+                        "fire_spark:leaping"
                     ]
                 }
             },
-            "fire_spirit:explode": {
+            "fire_spark:explode": {
                 "add": {
                     "component_groups": [
-                        "fire_spirit:dead"
+                        "fire_spark:dead"
                     ]
                 }
             }

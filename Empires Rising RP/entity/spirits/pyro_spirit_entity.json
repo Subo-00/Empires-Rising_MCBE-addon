@@ -1,18 +1,27 @@
 {
-  "format_version": "1.10.0",
-  "minecraft:client_entity": {
-    "description": {
-      "identifier": "subo:pyro_spirit_entity",
-      "materials": {
-        "default": "entity_alphatest"
-      },
-      "textures": {
-        "default": "textures/entity/spirits/pyro_spirit"
-      },
-      "geometry": {
-        "default": "geometry.pyro_spirit"
-      },
-      "render_controllers": ["controller.render.default"]
-    }
-  }
+	"format_version": "1.10.0",
+	"minecraft:client_entity": {
+		"description": {
+			"identifier": "subo:pyro_spirit_entity",
+			"materials": {
+				"default": "entity_alphatest"
+			},
+			"textures": {
+				"default": "textures/entity/spirits/pyro_spirit"
+			},
+			"geometry": {
+				"default": "geometry.pyro_spirit"
+			},
+			"animations": {
+				"spin": "animation.subo.spirit.spin",
+				"shoot": "animation.subo.pyro_spirit.shoot"
+			},
+			"scripts": {
+				"animate": [
+					"spin"
+				]
+			},
+			"render_controllers": ["controller.render.default"]
+		}
+	}
 }

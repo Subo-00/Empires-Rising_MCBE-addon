@@ -1,18 +1,26 @@
 {
-  "format_version": "1.10.0",
-  "minecraft:client_entity": {
-    "description": {
-      "identifier": "subo:vigor_spirit_entity",
-      "materials": {
-        "default": "entity_alphatest"
-      },
-      "textures": {
-        "default": "textures/entity/spirits/vigor_spirit"
-      },
-      "geometry": {
-        "default": "geometry.vigor_spirit"
-      },
-      "render_controllers": ["controller.render.default"]
-    }
-  }
+	"format_version": "1.10.0",
+	"minecraft:client_entity": {
+		"description": {
+			"identifier": "subo:vigor_spirit_entity",
+			"materials": {
+				"default": "entity_alphatest"
+			},
+			"textures": {
+				"default": "textures/entity/spirits/vigor_spirit"
+			},
+			"geometry": {
+				"default": "geometry.vigor_spirit"
+			},
+			"animations": {
+				"spin": "animation.subo.spirit.spin"
+			},
+			"scripts": {
+				"animate": [
+					"spin"
+				]
+			},
+			"render_controllers": ["controller.render.default"]
+		}
+	}
 }

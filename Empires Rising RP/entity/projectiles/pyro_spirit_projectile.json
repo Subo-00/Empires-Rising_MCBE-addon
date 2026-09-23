@@ -12,7 +12,18 @@
       "geometry": {
         "default": "geometry.pyro_spirit_projectile"
       },
-      "render_controllers": ["controller.render.default"]
+      "animations": {
+        "spin": "animation.subo.spirit.spin",
+        "shoot": "animation.subo.pyro_spirit.shoot"
+      },
+      "scripts": {
+        "animate": [
+          "spin"
+        ]
+      },
+      "render_controllers": [
+        "controller.render.default"
+      ]
     }
   }
 }

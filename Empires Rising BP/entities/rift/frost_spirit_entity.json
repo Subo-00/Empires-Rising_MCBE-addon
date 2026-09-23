@@ -16,6 +16,9 @@
         "width": 0.01,
         "height": 0.01
       },
+      "minecraft:scale": {
+        "value": 0.9
+      },
       "minecraft:physics": {
         "has_gravity": false,
         "has_collision": false

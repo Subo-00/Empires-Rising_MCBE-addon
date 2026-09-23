@@ -94,16 +94,16 @@
 					}
 				}
 			},
-			"subo:fire_spirit": {
+			"subo:fire_spark": {
 				"volume": 0.8,
 				"pitch": [
 					1.1,
 					1.4
 				],
 				"events": {
-					"ambient": "mob.fire_spirit.idle",
-					"hurt": "mob.fire_spirit.hurt",
-					"death": "mob.fire_spirit.death"
+					"ambient": "mob.fire_spark.idle",
+					"hurt": "mob.fire_spark.hurt",
+					"death": "mob.fire_spark.death"
 				}
 			}
 		}

@@ -1,7 +1,7 @@
 {
     "format_version": "1.10.0",
     "animation_controllers": {
-        "controller.animation.fire_spirit.main": {
+        "controller.animation.fire_spark.main": {
             "initial_state": "idle",
             "states": {
                 "idle": {
@@ -18,7 +18,7 @@
                 }
             }
         },
-        "controller.animation.fire_spirit.leap": {
+        "controller.animation.fire_spark.leap": {
             "initial_state": "none",
             "states": {
                 "none": {

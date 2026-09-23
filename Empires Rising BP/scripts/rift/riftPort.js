@@ -101,7 +101,8 @@ function recoverSingleRift(entity) {
 
   // ANY previous open state is discarded on load / restart.
   // Just force-close the port (players stay inside until they use a pouch).
-  forceCloseRift(dim, entity, false, riftId, { ...loc });
+  // No feedback – this is a deferred/recovery close.
+  forceCloseRift(dim, entity, false, riftId, { ...loc }, false);
 }
 
 function recoverStuckPlayers() {
@@ -346,11 +347,19 @@ async function activateRift(dim, block, entity) {
   const timeoutId = system.runTimeout(() => {
     activeRifts.delete(riftId);
     // Only close the port if the chunk is still loaded.
-    // If it unloaded, the next entityLoad will close it.
+    // If it unloaded, the next entityLoad will close it (no feedback then).
     const d = world.getDimension("minecraft:overworld");
     let ent = null;
-    try { ent = getRiftEntityAt(d, block.location); } catch { }
-    forceCloseRift(d, ent, false, riftId, { ...block.location });
+    let chunkLoaded = false;
+    try {
+      const testBlock = d.getBlock(block.location);
+      chunkLoaded = !!testBlock;
+      if (chunkLoaded) {
+        ent = getRiftEntityAt(d, block.location);
+      }
+    } catch { }
+    // Feedback only when the pad was still loaded at close time (live close).
+    forceCloseRift(d, ent, false, riftId, { ...block.location }, chunkLoaded);
   }, OPEN_DURATION_TICKS);
 
   activeRifts.set(riftId, {
@@ -483,7 +492,7 @@ function stopStepOnTicker() {
 // =============================================================================
 // FORCE CLOSE / RETURN ALL PLAYERS
 // =============================================================================
-export async function forceCloseRift(dim, entity, wasDestroyed, forcedRiftId = null, forcedLoc = null) {
+export async function forceCloseRift(dim, entity, wasDestroyed, forcedRiftId = null, forcedLoc = null, playFeedback = true) {
   const riftId = forcedRiftId
     ?? (entity ? getNum(entity, "riftId:", 0) : 0);
 
@@ -550,10 +559,8 @@ export async function forceCloseRift(dim, entity, wasDestroyed, forcedRiftId = n
     } catch { }
   }
 
-  // after the block state change block
-  if (wasDestroyed) {
-    playRiftFeedback(dim, loc, "subo:rift_destroy", "subo.rift.destroy", 1.1, 0.9);
-  } else {
+  // Feedback: only for live closes (not recovery / deferred). Destroy feedback is deferred until the player returns.
+  if (playFeedback && !wasDestroyed && loc) {
     playRiftFeedback(dim, loc, "subo:rift_close", "subo.rift.close", 0.7, 1.0);
   }
 
@@ -582,8 +589,10 @@ export function handleRiftPortBreak(dim, loc) {
   system.run(async () => {
     const entity = getRiftEntityAt(dim, loc);
 
-    // Full cleanup only – no replacement, no visual explosion required
+    // Full cleanup only – no replacement required
     await forceCloseRift(dim, entity, true, null, loc);
+    // Player is at the port breaking it → play destroy feedback immediately
+    playRiftFeedback(dim, loc, "subo:rift_destroy", "subo.rift.destroy", 1.1, 0.9);
   });
 }
 
