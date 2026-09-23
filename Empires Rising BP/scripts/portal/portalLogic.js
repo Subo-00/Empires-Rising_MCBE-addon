@@ -8,7 +8,7 @@ import { forceNearbyTroopsStay, restoreNearbyTroops } from "../sharedHelpers/tro
 const PORTAL_BLOCK = "subo:portal";
 const PORTAL_ENTITY = "subo:portal_entity";
 
-// Used for decoding dynamic property data 
+// Used for compact portal storage on player tags
 const DIM_CODES = { "minecraft:overworld": 0, "minecraft:nether": 1, "minecraft:the_end": 2 };
 const DIM_NAMES = ["minecraft:overworld", "minecraft:nether", "minecraft:the_end"];
 const FACING_CODES = { north: 0, south: 1, west: 2, east: 3 };
@@ -50,17 +50,31 @@ system.runTimeout(() => {
     activePortals.clear();
 }, 20);
 
-function loadPortalRegistry() {
+function getPlayerPortals(player) {
+    if (!player?.isValid) return [];
+    const raw = getTag(player, "portals:", "[]");
     try {
-        const raw = world.getDynamicProperty("subo:portals");
-        return raw ? JSON.parse(raw) : {};
+        const arr = JSON.parse(raw);
+        return Array.isArray(arr) ? arr.map(expandPortal) : [];
     } catch {
-        return {};
+        return [];
     }
 }
 
-function savePortalRegistry(data) {
-    world.setDynamicProperty("subo:portals", JSON.stringify(data));
+function setPlayerPortals(player, portals) {
+    if (!player?.isValid) return;
+    setTag(player, "portals:", JSON.stringify(portals.map(compactPortal)));
+}
+
+function addPlayerPortal(player, portal) {
+    const list = getPlayerPortals(player);
+    list.push(portal);
+    setPlayerPortals(player, list);
+}
+
+function removePlayerPortalById(player, id) {
+    const list = getPlayerPortals(player).filter(p => p.id !== id);
+    setPlayerPortals(player, list);
 }
 
 /** Turn the compact array back into the object the rest of the code expects */
@@ -106,31 +120,12 @@ function getPortalEntity(block) {
 function findPortalAt(block) {
     if (!block) return null;
 
-    // Prefer the live entity when the chunk is loaded
     const entity = getPortalEntity(block);
     if (entity) {
         const portal = portalDataFromEntity(entity);
         if (portal?.id) return { owner: portal.owner, portal, entity };
     }
 
-    // Fallback to the persistent registry
-    const all = loadPortalRegistry();
-    const fx = Math.floor(block.location.x);
-    const fy = Math.floor(block.location.y);
-    const fz = Math.floor(block.location.z);
-    const dimensionId = block.dimension.id;
-
-    for (const owner in all) {
-        for (const arr of all[owner]) {
-            const p = expandPortal(arr);
-            if (p.dim === dimensionId &&
-                Math.floor(p.x) === fx &&
-                Math.floor(p.y) === fy &&
-                Math.floor(p.z) === fz) {
-                return { owner, portal: p, entity: null };
-            }
-        }
-    }
     return null;
 }
 
@@ -146,11 +141,6 @@ function portalDataFromEntity(entity) {
         dim: (getTag(entity, "dim:", null) || "").replace("_", ":"),   // back to "minecraft:overworld"
         facing: getTag(entity, "facing:", "north")
     };
-}
-
-function getPlayerPortals(playerName) {
-    const all = loadPortalRegistry();
-    return (all[playerName] || []).map(expandPortal);
 }
 
 function removePortalEntity(entity) {
@@ -292,7 +282,7 @@ world.afterEvents.playerPlaceBlock.subscribe(async (ev) => {
     }
 
     const name = response.formValues[0].trim();
-    const existing = getPlayerPortals(player.name);
+    const existing = getPlayerPortals(player);
     if (existing.some(p => p.name.toLowerCase() === name.toLowerCase())) {
         tryGivePortalItem(player);
         removePortalBlocksNoDrop(dim, lower.location);
@@ -314,10 +304,7 @@ world.afterEvents.playerPlaceBlock.subscribe(async (ev) => {
             setTag(entity, "dim:", dim.id.replace(":", "_"));
             setTag(entity, "facing:", facing);
 
-            // compact registry entry
-            const all = loadPortalRegistry();
-            if (!all[player.name]) all[player.name] = [];
-            all[player.name].push(compactPortal({
+            addPlayerPortal(player, {
                 id,
                 name,
                 x: lower.location.x,
@@ -325,8 +312,7 @@ world.afterEvents.playerPlaceBlock.subscribe(async (ev) => {
                 z: lower.location.z,
                 dim: dim.id,
                 facing
-            }));
-            savePortalRegistry(all);
+            });
         }
     });
 
@@ -378,7 +364,7 @@ function openPortalConnectForm(player, blockLoc, dimId) {
         return;
     }
 
-    const myPortals = getPlayerPortals(player.name);
+    const myPortals = getPlayerPortals(player);
     if (myPortals.length === 0) {
         player.sendMessage("§cYou have no portals to connect to.");
         return;
@@ -431,21 +417,11 @@ function lowerLocFromBrokenHalf(loc, half) {
 function unregisterPortal(found) {
     if (!found) return;
 
-    const all = loadPortalRegistry();
+    // Update owner’s tag only if they are currently online
+    const online = world.getPlayers().find(p => p.name === found.owner);
+    if (online) removePlayerPortalById(online, found.portal.id);
 
-    if (all[found.owner]) {
-        all[found.owner] = all[found.owner].filter(arr => arr[0] !== found.portal.id);
-
-        if (all[found.owner].length === 0) {
-            delete all[found.owner];
-        }
-
-        savePortalRegistry(all);
-    }
-
-    if (found.entity) {
-        removePortalEntity(found.entity);
-    }
+    if (found.entity) removePortalEntity(found.entity);
 }
 
 function removePortalBlocksNoDrop(dim, lowerLoc) {
@@ -711,12 +687,8 @@ function ensurePortalTicker() {
                     const lower = dim.getBlock({ x: +sx, y: +sy, z: +sz });
                     const found = lower ? findPortalAt(lower) : null;
                     if (found) {
-                        const all = loadPortalRegistry();
-                        if (all[found.owner]) {
-                            all[found.owner] = all[found.owner].filter(arr => arr[0] !== found.portal.id);
-                            if (all[found.owner].length === 0) delete all[found.owner];
-                            savePortalRegistry(all);
-                        }
+                        const online = world.getPlayers().find(p => p.name === found.owner);
+                        if (online) removePlayerPortalById(online, found.portal.id);
                         if (found.entity) removePortalEntity(found.entity);
                     }
 
