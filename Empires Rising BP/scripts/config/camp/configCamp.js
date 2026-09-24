@@ -24,7 +24,7 @@ export const TERRAIN_SCAN_DOWN = 110;
 export const MAX_STRUCTURE_Y_DELTA = 20; // How much higher or lower a structure can spawn from the camps ceter Y
 
 export const MAX_LOAD_WAIT_TICKS = 200;   // How long to wait for a chunk to load when creating a TA
-export const COMMANDS_PER_TICK = 180;
+export const COMMANDS_PER_TICK = 120;
 
 export const DEFOREST_PAD = 3;
 export const TOWER_MAX_FOOTPRINT = 15;
