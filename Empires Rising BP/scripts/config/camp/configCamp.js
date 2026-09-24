@@ -5,15 +5,15 @@
 export const REGION_BORDER_PADDING = 110;
 
 // Region size in chunks. 50x50 chunks = 800x800 blocks per region. Bigger regions = less camps placed worldwide.
-export const REGION_SIZE = 90;
+export const REGION_SIZE = 20;
 
 // How many regions outward from the player's current region to scan.
 // 1 = a 3x3 region grid centered on the player, = 9 regions per player.
-export const REGION_SCAN_RADIUS = 1;
+export const REGION_SCAN_RADIUS = 3;
 
 // Maximum ticking areas we allow ourselves to use globally
-// MCBE hard limit is 10; we cap at 9 to leave 1 slot of headroom.
-export const _MAX_REGION_TICKING_AREAS = 9;
+// MCBE hard limit is 10; we cap at 8-9 to leave headroom.
+export const _MAX_REGION_TICKING_AREAS = 8;
 
 export const MIN_BUILD_Y = -64;
 export const MAX_BUILD_Y = 319;

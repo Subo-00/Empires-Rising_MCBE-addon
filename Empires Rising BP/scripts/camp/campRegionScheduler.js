@@ -7,7 +7,7 @@ import { REGION_SCAN_RADIUS, REGION_SIZE } from "../config/camp/configCamp.js";
 // Maximum number of regions processed concurrently.
 // Each worker independently loads chunks and awaits results,
 // so they do not block each other.
-const MAX_CONCURRENT_WORKERS = 3;
+const MAX_CONCURRENT_WORKERS = 2;
 
 // -------------------------------------------------------
 // Queue + caches
@@ -148,6 +148,11 @@ async function processNextRegion() {
     const job = pendingRegions.shift();
     activeWorkers++;
 
+    console.warn(
+        `[scan] WORKER_START key=${job.key} activeWorkers=${activeWorkers}/${MAX_CONCURRENT_WORKERS} ` +
+        `queue=${pendingRegions.length} activeRegions=${activeRegions.size}`
+    );
+
     // Fire-and-forget: intentionally not awaited.
     (async () => {
         try {
@@ -174,6 +179,10 @@ async function processNextRegion() {
             // even if processRegion threw.
             activeRegions.delete(job.key);
             activeWorkers--;
+            console.warn(
+                `[scan] WORKER_END key=${job.key} activeWorkers=${activeWorkers}/${MAX_CONCURRENT_WORKERS} ` +
+                `queue=${pendingRegions.length}`
+            );
         }
     })();
 }

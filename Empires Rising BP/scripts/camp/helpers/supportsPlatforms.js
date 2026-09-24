@@ -6,6 +6,7 @@ import {
     clampY,
     budgetYield,
     placePillarDown,
+    incCmd, incFill
 } from "./smallHelpers.js";
 
 
@@ -18,22 +19,29 @@ export async function fillAreaSidesOnly(dimension, minX, minY, minZ, maxX, maxY,
     const suffix = replaceTarget ? ` replace ${replaceTarget}` : "";
     const y1 = clampY(minY), y2 = clampY(maxY);
 
-    // North face (full width, includes both NW/NE corners)
+    // North face (full width, includes both NW/NE corners)incFill();
+    incCmd();
     dimension.runCommand(`fill ${minX} ${y1} ${minZ} ${maxX} ${y2} ${minZ} ${blockType}${suffix}`);
     await budgetYield();
 
     // South face (full width, includes both SW/SE corners) — skip if it's the same row as North
     if (maxZ !== minZ) {
+        incFill();
+        incCmd();
         dimension.runCommand(`fill ${minX} ${y1} ${maxZ} ${maxX} ${y2} ${maxZ} ${blockType}${suffix}`);
         await budgetYield();
     }
 
     // West/East faces — only the interior Z range, corners already done above
     if (maxZ - minZ >= 2) {
+        incFill();
+        incCmd();
         dimension.runCommand(`fill ${minX} ${y1} ${minZ + 1} ${minX} ${y2} ${maxZ - 1} ${blockType}${suffix}`);
         await budgetYield();
 
         if (maxX !== minX) {
+            incFill();
+            incCmd();
             dimension.runCommand(`fill ${maxX} ${y1} ${minZ + 1} ${maxX} ${y2} ${maxZ - 1} ${blockType}${suffix}`);
             await budgetYield();
         }
@@ -51,7 +59,7 @@ export async function fillAreaSidesOnly(dimension, minX, minY, minZ, maxX, maxY,
  * 2 blocks under the lowest corner pillar — whichever is higher up.
  */
 export async function placeSupportPlatform(dimension, cx, topY, cz, sizeX, sizeZ, blockType, platformY) {
-    
+
     const minX = cx - Math.floor(sizeX / 2);
     const maxX = minX + sizeX - 1;
     const minZ = cz - Math.floor(sizeZ / 2);
@@ -59,6 +67,8 @@ export async function placeSupportPlatform(dimension, cx, topY, cz, sizeX, sizeZ
 
     // Top layer — exact structure footprint, only fills air gaps and marker blocks
     for (const replaceBlock of ["minecraft:air", "minecraft:emerald_block"]) {
+        incFill();
+        incCmd();
         dimension.runCommand(
             `fill ${minX} ${clampY(topY)} ${minZ} ${maxX} ${clampY(topY)} ${maxZ} ${blockType} replace ${replaceBlock}`
         );

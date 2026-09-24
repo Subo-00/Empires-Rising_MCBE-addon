@@ -6,6 +6,7 @@ import {
 import {
     clampY,
     budgetYield,
+    incFill, incCmd, incStructureLoad
 } from "./smallHelpers.js";
 import {
     getPlanHalfExtents,
@@ -57,6 +58,8 @@ export async function deforestArea(dimension, minX, minY, minZ, maxX, maxY, maxZ
 
                 for (const blockId of allBlocks) {
                     try {
+                        incFill();
+                        incCmd();
                         dimension.runCommand(
                             `fill ${cx} ${cy} ${cz} ${x2} ${y2s} ${z2} minecraft:air replace ${blockId}`
                         );
@@ -92,6 +95,8 @@ export async function deforestAreaCircle(dimension, cx, cz, radius, minY, maxY) 
 
             for (const blockId of allBlocks) {
                 try {
+                    incFill();
+                    incCmd();
                     dimension.runCommand(
                         `fill ${xMin} ${cy} ${z} ${xMax} ${y2s} ${z} minecraft:air replace ${blockId}`
                     );
