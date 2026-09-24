@@ -53,7 +53,7 @@ function tickEmptySoul(dim, soul) {
     if (tx === null) { soul.remove(); return; }
 
     const bLoc = { x: Number(tx), y: Number(ty), z: Number(tz) };
-    const target = { x: bLoc.x + 0.5, y: bLoc.y + 0.9, z: bLoc.z + 0.5 };
+    const target = { x: bLoc.x + 0.5, y: bLoc.y + 0.5, z: bLoc.z + 0.5 };
 
     // CHUNK LOADING FIX: null ≠ destroyed
     const block = dim.getBlock(bLoc);
@@ -103,14 +103,18 @@ function tickEmptySoul(dim, soul) {
         }
 
         soul.addTag("es_dead");
+        soul.addTag("es_destroying");
         trySetProp(soul, "subo:anim_state", "destroy");
         system.runTimeout(() => {
-            purifierDestroyedBySoul(dim, bLoc);
+            // only destroy the purifier if the soul was never player-killed
+            if (soul.isValid && soul.hasTag("es_destroying")) {
+                purifierDestroyedBySoul(dim, bLoc);
+            }
             if (soul.isValid) {
                 tryDropVoidShard(dim, soul.location);
                 soul.remove();
             }
-        }, 12);
+        }, 4);
         return;
     }
 
@@ -131,7 +135,15 @@ function tickEmptySoul(dim, soul) {
 world.afterEvents.entityHurt.subscribe((ev) => {
     const e = ev.hurtEntity;
     if (!e || !e.isValid || e.typeId !== "subo:empty_soul") return;
-    if (e.hasTag("es_dead")) return;
+
+    // already in a death sequence – cancel a pending destroy if present
+    if (e.hasTag("es_dead")) {
+        if (e.hasTag("es_destroying")) {
+            e.removeTag("es_destroying");
+            trySetProp(e, "subo:anim_state", "die");
+        }
+        return;
+    }
     e.addTag("es_dead");
     const dim = e.dimension;
     trySetProp(e, "subo:anim_state", "die");
@@ -152,6 +164,7 @@ world.afterEvents.entityHurt.subscribe((ev) => {
 function fadeOutSoul(soul) {
     if (soul.hasTag("es_dead")) return;
     soul.addTag("es_dead");
+    soul.removeTag("es_destroying");            // ← safety
     trySetProp(soul, "subo:anim_state", "die");
     system.runTimeout(() => {
         if (soul.isValid) {
