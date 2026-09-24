@@ -4,6 +4,7 @@ import {
     WALL_LAYER_SPACING,
     WALL_LAYER_COUNT,
     TERRAIN_SCAN_UP, TERRAIN_SCAN_DOWN,
+    BLOCKED_CAMP_BIOMES
 } from "../../config/camp/configCamp.js";
 import {
     clampY,
@@ -232,4 +233,32 @@ export function getGroundY(dimension, x, z, centerY, cache = null) {
     const res = { ok: false };
     if (cache) cache.set(k, res);
     return res;
+}
+
+/**
+ * Returns true if the camp footprint is safe to place given the reduced deforest list.
+ * Checks center + 4 corners of the clear radius (diameter/2 + pad).
+ */
+export function isCampBiomeAllowed(dimension, centerX, centerY, centerZ, halfExtent) {
+    const points = [
+        { x: centerX, z: centerZ },
+        { x: centerX - halfExtent, z: centerZ - halfExtent },
+        { x: centerX + halfExtent, z: centerZ - halfExtent },
+        { x: centerX - halfExtent, z: centerZ + halfExtent },
+        { x: centerX + halfExtent, z: centerZ + halfExtent },
+    ];
+
+    for (const p of points) {
+        let id = "minecraft:plains";
+        try {
+            id = dimension.getBiome({ x: p.x, y: centerY, z: p.z })?.id ?? "minecraft:plains";
+        } catch {
+            // treat failed read as unsafe so we don't clear half a jungle
+            return false;
+        }
+        if (BLOCKED_CAMP_BIOMES.has(id)) {
+            return false;
+        }
+    }
+    return true;
 }

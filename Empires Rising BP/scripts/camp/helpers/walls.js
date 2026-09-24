@@ -8,7 +8,6 @@ import {
     clampY,
     budgetYield,
     nextTick,
-    incFill, incCmd
 } from "./smallHelpers.js";
 import {
     placeSupportPlatform,
@@ -30,8 +29,6 @@ export async function placeWallPillar(dimension, x, groundY, z, height, platform
     // Fill gap downward to platform (air and water only)
     if (platformY < baseY) {
         for (const replaceBlock of ["minecraft:air", "minecraft:water", "minecraft:lava"]) {
-            incFill();
-            incCmd();
             dimension.runCommand(
                 `fill ${x} ${clampY(platformY)} ${z} ${x} ${clampY(baseY - 1)} ${z} ${WALL_BLOCK} replace ${replaceBlock}`
             );
@@ -41,8 +38,6 @@ export async function placeWallPillar(dimension, x, groundY, z, height, platform
 
     // Fill the main pillar body (excluding cap)
     if (baseY < topY) {
-        incFill();
-        incCmd();
         dimension.runCommand(`fill ${x} ${baseY} ${z} ${x} ${clampY(topY - 1)} ${z} ${WALL_BLOCK}`);
         await budgetYield();
     }
@@ -130,8 +125,6 @@ export async function placeWalls(dimension, plan, foundationBlock, platformY, wa
                 if (prevPoint && previousGroundY !== null) {
                     if (wallGroundY > previousGroundY) {
                         const extendedTopY = wallGroundY + adjustedHeight - 2;
-                        incFill();
-                        incCmd();
                         dimension.runCommand(
                             `fill ${int(prevPoint.x)} ${clampY(previousGroundY)} ${int(prevPoint.z)} ${int(prevPoint.x)} ${clampY(extendedTopY - 1)} ${int(prevPoint.z)} ${WALL_BLOCK}`
                         );

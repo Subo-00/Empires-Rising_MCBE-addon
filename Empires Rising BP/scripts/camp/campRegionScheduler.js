@@ -148,11 +148,6 @@ async function processNextRegion() {
     const job = pendingRegions.shift();
     activeWorkers++;
 
-    console.warn(
-        `[scan] WORKER_START key=${job.key} activeWorkers=${activeWorkers}/${MAX_CONCURRENT_WORKERS} ` +
-        `queue=${pendingRegions.length} activeRegions=${activeRegions.size}`
-    );
-
     // Fire-and-forget: intentionally not awaited.
     (async () => {
         try {
@@ -179,10 +174,6 @@ async function processNextRegion() {
             // even if processRegion threw.
             activeRegions.delete(job.key);
             activeWorkers--;
-            console.warn(
-                `[scan] WORKER_END key=${job.key} activeWorkers=${activeWorkers}/${MAX_CONCURRENT_WORKERS} ` +
-                `queue=${pendingRegions.length}`
-            );
         }
     })();
 }

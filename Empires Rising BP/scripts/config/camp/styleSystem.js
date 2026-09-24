@@ -215,8 +215,8 @@ export const STYLE_WEIGHTS = {
 };
 
 export const CAMP_SIZES = [
-    { key: "very_small", label: "Very Small Outpost", diameter: 27, wallHeight: 4, towerSpacing: 28, supportRadius: 1, weight: 1 },
-    { key: "small", label: "Small Camp", diameter: 39, wallHeight: 5, towerSpacing: 29, supportRadius: 1, weight: 1 },
+    // { key: "very_small", label: "Very Small Outpost", diameter: 27, wallHeight: 4, towerSpacing: 28, supportRadius: 1, weight: 1 },
+    // { key: "small", label: "Small Camp", diameter: 39, wallHeight: 5, towerSpacing: 29, supportRadius: 1, weight: 1 },
     { key: "medium", label: "Medium Camp", diameter: 69, wallHeight: 6, towerSpacing: 30, supportRadius: 2, weight: 10 },
     { key: "big", label: "Big Camp", diameter: 99, wallHeight: 7, towerSpacing: 30, supportRadius: 3, weight: 10 },
     { key: "very_big", label: "Very Big Camp", diameter: 135, wallHeight: 8, towerSpacing: 31, supportRadius: 3, weight: 25 },

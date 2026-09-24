@@ -5,11 +5,11 @@
 export const REGION_BORDER_PADDING = 110;
 
 // Region size in chunks. 50x50 chunks = 800x800 blocks per region. Bigger regions = less camps placed worldwide.
-export const REGION_SIZE = 20;
+export const REGION_SIZE = 90;
 
 // How many regions outward from the player's current region to scan.
 // 1 = a 3x3 region grid centered on the player, = 9 regions per player.
-export const REGION_SCAN_RADIUS = 3;
+export const REGION_SCAN_RADIUS = 1;
 
 // Maximum ticking areas we allow ourselves to use globally
 // MCBE hard limit is 10; we cap at 8-9 to leave headroom.
@@ -24,7 +24,7 @@ export const TERRAIN_SCAN_DOWN = 110;
 export const MAX_STRUCTURE_Y_DELTA = 20; // How much higher or lower a structure can spawn from the camps ceter Y
 
 export const MAX_LOAD_WAIT_TICKS = 200;   // How long to wait for a chunk to load when creating a TA
-export const COMMANDS_PER_TICK = 220;
+export const COMMANDS_PER_TICK = 180;
 
 export const DEFOREST_PAD = 3;
 export const TOWER_MAX_FOOTPRINT = 15;
@@ -103,3 +103,14 @@ export const TA_SAFE_MAX_SPAN = [
     { strips: 2, maxSpan: 193 },
     { strips: 3, maxSpan: 241 },
 ];
+
+/** Biomes we no longer fully deforest — reject if center or any corner is in these. */
+export const BLOCKED_CAMP_BIOMES = new Set([
+    "minecraft:jungle",
+    "minecraft:bamboo_jungle",
+    "minecraft:sparse_jungle",
+    "minecraft:mangrove_swamp",
+    "minecraft:cherry_grove",
+    "minecraft:pale_garden",
+    "minecraft:mushroom_fields",
+]);

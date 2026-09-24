@@ -6,29 +6,35 @@ import {
 import {
     clampY,
     budgetYield,
-    incFill, incCmd, incStructureLoad
 } from "./smallHelpers.js";
 import {
     getPlanHalfExtents,
 } from "./geometry.js";
 
 
+// Reduced set: common temperate / taiga / savanna only.
+// Jungles, mangrove, cherry, pale garden, mushroom islands are blocked at placement.
 const DEFOREST_LOGS = [
-    "minecraft:oak_log", "minecraft:spruce_log", "minecraft:birch_log",
-    "minecraft:jungle_log", "minecraft:acacia_log", "minecraft:dark_oak_log",
-    "minecraft:mangrove_log", "minecraft:cherry_log", "minecraft:pale_oak_log"
+    "minecraft:oak_log",
+    "minecraft:spruce_log",
+    "minecraft:birch_log",
+    "minecraft:acacia_log",
+    "minecraft:dark_oak_log",
 ];
 
 const DEFOREST_LEAVES = [
-    "minecraft:oak_leaves", "minecraft:spruce_leaves", "minecraft:birch_leaves",
-    "minecraft:jungle_leaves", "minecraft:acacia_leaves", "minecraft:dark_oak_leaves",
-    "minecraft:mangrove_leaves", "minecraft:cherry_leaves", "minecraft:pale_oak_leaves",
-    "minecraft:azalea_leaves", "minecraft:azalea_leaves_flowered"
+    "minecraft:oak_leaves",
+    "minecraft:spruce_leaves",
+    "minecraft:birch_leaves",
+    "minecraft:acacia_leaves",
+    "minecraft:dark_oak_leaves",
 ];
 
 const DEFOREST_MISC = [
-    "minecraft:red_mushroom_block", "minecraft:brown_mushroom_block", "minecraft:mushroom_stem", "minecraft:tall_grass", "minecraft:large_fern", "minecraft:fern",
-    "minecraft:reeds", "minecraft:bamboo", "minecraft:vine", "minecraft:mangrove_roots", "minecraft:creaking_heart"
+    "minecraft:tall_grass",
+    "minecraft:large_fern",
+    "minecraft:fern",
+    "minecraft:vine",
 ];
 
 const DEFOREST_CHUNK_XZ = 48; // chunk size per fillBlocks call
@@ -58,8 +64,6 @@ export async function deforestArea(dimension, minX, minY, minZ, maxX, maxY, maxZ
 
                 for (const blockId of allBlocks) {
                     try {
-                        incFill();
-                        incCmd();
                         dimension.runCommand(
                             `fill ${cx} ${cy} ${cz} ${x2} ${y2s} ${z2} minecraft:air replace ${blockId}`
                         );
@@ -95,8 +99,6 @@ export async function deforestAreaCircle(dimension, cx, cz, radius, minY, maxY) 
 
             for (const blockId of allBlocks) {
                 try {
-                    incFill();
-                    incCmd();
                     dimension.runCommand(
                         `fill ${xMin} ${cy} ${z} ${xMax} ${y2s} ${z} minecraft:air replace ${blockId}`
                     );

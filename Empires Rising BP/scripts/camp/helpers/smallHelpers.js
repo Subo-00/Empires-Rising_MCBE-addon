@@ -25,30 +25,6 @@ export const now = () => Date.now();
 
 let _commandBudget = 0;
 
-// ---- lag instrumentation (temporary) ----
-let _cmdCount = 0;
-let _structureLoadCount = 0;
-let _fillCount = 0;
-let _activeBuilds = 0;
-let _lastBudgetYieldMs = 0;
-
-export function getLagCounters() {
-    return {
-        cmds: _cmdCount,
-        structureLoads: _structureLoadCount,
-        fills: _fillCount,
-        activeBuilds: _activeBuilds,
-        lastBudgetYieldMs: _lastBudgetYieldMs,
-    };
-}
-
-// Call with no args from deforest/walls/etc.
-export function incCmd(n = 1) { _cmdCount += n; }
-export function incFill(n = 1) { _fillCount += n; }
-export function incStructureLoad(n = 1) { _structureLoadCount += n; }
-
-export function incActiveBuilds(delta) { _activeBuilds += delta; }
-
 export function createPoolQueues(activePools) {
     const queues = {};
     for (const [key, pool] of Object.entries(activePools)) {
@@ -165,9 +141,7 @@ export async function budgetYield() {
     _commandBudget++;
     if (_commandBudget >= COMMANDS_PER_TICK) {
         _commandBudget = 0;
-        const t0 = now();
         await nextTick();
-        _lastBudgetYieldMs = now() - t0;
     }
 }
 

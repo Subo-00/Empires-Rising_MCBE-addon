@@ -20,9 +20,7 @@ import {
     isPlayerNearby,
     isVillageNearby,
     clearDropsInArea,
-    structureCornersHaveSupport,
-    getLagCounters,
-    incActiveBuilds,
+    structureCornersHaveSupport
 } from "./helpers/smallHelpers.js";
 
 import {
@@ -38,12 +36,9 @@ import {
 } from "./helpers/tickingAreas.js";
 
 import {
-    getActiveAreaCount
-} from "./helpers/tickingAreaTracker.js";
-
-import {
     getGroundY,
     chooseCampPlan,
+    isCampBiomeAllowed,
 } from "./helpers/planValidation.js";
 
 import {
@@ -67,31 +62,29 @@ import {
 
 export async function buildCamp(dimension, centerX, centerY, centerZ, bypassDistCheck = false) {
     const start = now();
-    const lagStart = getLagCounters();   // snapshot for this camp
-    incActiveBuilds(1);
     let persistentAreas = null;
 
+    // Abort early if a player could see the generation
+    if (isPlayerNearby(dimension, centerX, centerY, centerZ, 500, bypassDistCheck)) {
+        console.warn(
+            `[camp] EARLY SKIP: player within 500 blocks of ${centerX},${centerY},${centerZ}`
+        );
+        return { placed: false, reason: "player_nearby" };
+    }
+
+    const requestedSize = chooseRandomCampSize();
+    const loadSpan = getCampLoadSpan(requestedSize);
+    const stripCount = getRequiredStripCount(loadSpan);
+    if (stripCount === null) { /* ... */ }
+
+    const scanRadius = (loadSpan - 1) / 2;
+
+    // ---- wait for slot ----
+    const tSlot = now();
+    await waitForBuildSlot(stripCount);
+    const slotMs = now() - tSlot;
+
     try {
-        // Abort early if a player could see the generation
-        if (isPlayerNearby(dimension, centerX, centerY, centerZ, 500, bypassDistCheck)) {
-            console.warn(
-                `[camp] EARLY SKIP: player within 500 blocks of ${centerX},${centerY},${centerZ}`
-            );
-            return { placed: false, reason: "player_nearby" };
-        }
-
-        const requestedSize = chooseRandomCampSize();
-        const loadSpan = getCampLoadSpan(requestedSize);
-        const stripCount = getRequiredStripCount(loadSpan);
-        if (stripCount === null) { /* ... */ }
-
-        const scanRadius = (loadSpan - 1) / 2;
-
-        // ---- wait for slot ----
-        const tSlot = now();
-        await waitForBuildSlot(stripCount);
-        const slotMs = now() - tSlot;
-
         // ---- ticking area ----
         const tArea = now();
         persistentAreas = await addTickingArea(
@@ -127,12 +120,7 @@ export async function buildCamp(dimension, centerX, centerY, centerZ, bypassDist
             return { placed: false, reason: "player_nearby" };
         }
 
-        console.warn(
-            `[camp] START_HEAVY size=${requestedSize.key} ` +
-            `activeBuilds=${getLagCounters().activeBuilds} TA=${getActiveAreaCount()}`
-        );
-
-        // style / pools
+        // style / pools must be chosen before planning, because planning now uses real structure sizes
         let biomeId = "plains";
         try {
             biomeId = dimension.getBiome({ x: centerX, y: centerY, z: centerZ })?.id ?? "plains";
@@ -143,13 +131,18 @@ export async function buildCamp(dimension, centerX, centerY, centerZ, bypassDist
         const activePools = buildActivePools(styleKey);
         const poolQueues = createPoolQueues(activePools);
 
-        // ---- plan ----
+        // ---- plan / terrain validation ----
         const tPlan = now();
         const candidateSizes = getCandidateSizes(requestedSize);
         const groundCache = new Map();
         const choice = await chooseCampPlan(
-            dimension, centerX, centerY, centerZ,
-            candidateSizes, groundCache, activePools
+            dimension,
+            centerX,
+            centerY,
+            centerZ,
+            candidateSizes,
+            groundCache,
+            activePools
         );
         const planMs = now() - tPlan;
 
@@ -159,7 +152,17 @@ export async function buildCamp(dimension, centerX, centerY, centerZ, bypassDist
         }
         const { plan } = choice;
 
+
+
         const halfD = Math.floor(plan.size.diameter / 2) + TOWER_MAX_FOOTPRINT + DEFOREST_PAD;
+
+        // Reject if any corner (or center) sits in a biome we no longer deforest.
+        if (!isCampBiomeAllowed(dimension, centerX, centerY, centerZ, halfD)) {
+            console.warn(
+                `[camp] SKIP biome-blocked at ${centerX},${centerY},${centerZ} halfD=${halfD}`
+            );
+            return { placed: false, reason: "biome_blocked" };
+        }
 
         if (isVillageNearby(dimension, centerX, centerY, centerZ, halfD + 15)) {
             console.warn(`[CampBuilder] Skipped camp at ${centerX},${centerY},${centerZ} — village nearby.`);
@@ -185,7 +188,7 @@ export async function buildCamp(dimension, centerX, centerY, centerZ, bypassDist
         await placeInteriorPlatformPillars(dimension, plan, platformY);
         const platformMs = now() - tPlatform;
 
-        // revalidate invalid spots
+        // revalidate invalid spots (usually cheap)
         const tReval = now();
         for (const spot of plan.invalidStructureSpots) {
             const top = getGroundY(dimension, spot.x, spot.z, plan.center.y);
@@ -195,8 +198,14 @@ export async function buildCamp(dimension, centerX, centerY, centerZ, bypassDist
 
             const baseY = top.y + 1;
             const cornerSupport = structureCornersHaveSupport(
-                dimension, spot.x, baseY, spot.z, spot.fw, spot.fd
+                dimension,
+                spot.x,
+                baseY,
+                spot.z,
+                spot.fw,
+                spot.fd
             );
+
             if (!cornerSupport.ok) continue;
 
             plan.validStructureSpots.push({
@@ -208,7 +217,7 @@ export async function buildCamp(dimension, centerX, centerY, centerZ, bypassDist
         }
         const revalMs = now() - tReval;
 
-        // ---- walls / gates / towers / structs ----
+        // ---- walls / gates / towers / structs (you already have these) ----
         const t0 = now();
         for (let li = 0; li < plan.wallLayers.length; li++) {
             await placeWalls(dimension, plan, foundationBlock, platformY, plan.wallLayers[li]);
@@ -241,21 +250,12 @@ export async function buildCamp(dimension, centerX, centerY, centerZ, bypassDist
             wallMs + gateMs + towerMs + structMs + dropsMs;
         const unaccounted = totalMs - accounted;
 
-        // delta since this camp started (works with concurrent camps)
-        const lagEnd = getLagCounters();
-        const cmds = lagEnd.cmds - lagStart.cmds;
-        const structureLoads = lagEnd.structureLoads - lagStart.structureLoads;
-        const fills = lagEnd.fills - lagStart.fills;
-
         console.warn(
             `[camp] DONE requested=${requestedSize.key} actual=${plan.size.key} in ${totalMs}ms | ` +
             `slot=${slotMs} area=${areaMs} plan=${planMs} deforest=${deforestMs} ` +
             `platform=${platformMs} reval=${revalMs} ` +
             `walls=${wallMs} gates=${gateMs} towers=${towerMs} structs=${structMs} ` +
-            `drops=${dropsMs} unaccounted=${unaccounted} | ` +
-            `cmds=${cmds} structs=${structureLoads} fills=${fills} ` +
-            `activeBuilds=${lagEnd.activeBuilds} lastYieldMs=${lagEnd.lastBudgetYieldMs} ` +
-            `TA=${getActiveAreaCount()}`
+            `drops=${dropsMs} unaccounted=${unaccounted}`
         );
 
         return { placed: true, ms: totalMs };
@@ -266,6 +266,5 @@ export async function buildCamp(dimension, centerX, centerY, centerZ, bypassDist
     } finally {
         if (persistentAreas) removeTickingArea(dimension, persistentAreas);
         releaseBuildSlot();
-        incActiveBuilds(-1);
     }
 }

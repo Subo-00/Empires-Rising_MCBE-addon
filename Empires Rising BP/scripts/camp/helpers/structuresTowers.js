@@ -22,7 +22,6 @@ import {
     fillAroundStructure,
     structureCornersHaveSupport,
     dist2D,
-    incStructureLoad, incCmd, incFill
 } from "./smallHelpers.js";
 import {
     isAirType,
@@ -61,8 +60,6 @@ export async function placeStructureFromPool(dimension, poolKey, x, groundY, z, 
     const placeY = int(groundY + yOffset);
     const placeZ = int(z - Math.floor(fd / 2));
 
-    incStructureLoad();
-    incCmd();
     dimension.runCommand(
         `structure load ${picked.id} ${placeX} ${placeY} ${placeZ} ${rotation} none`
     );
@@ -218,8 +215,6 @@ export async function placeGates(dimension, plan, platformY) {
             const placeX = px - Math.floor(fw / 2);
             const placeZ = pz - Math.floor(fd / 2);
 
-            incStructureLoad();
-            incCmd();
             dimension.runCommand(
                 `structure load ${GATE_STRUCTURE_ID} ${placeX} ${gateBaseY} ${placeZ} ${rotation} none`
             );
@@ -330,8 +325,6 @@ export async function placeTowers(dimension, plan, foundationBlock, platformY, a
                 const gapMaxX = Math.max(innerEdgeX, p.x) + 1;
                 const gapMinZ = Math.min(innerEdgeZ, p.z) - 1;
                 const gapMaxZ = Math.max(innerEdgeZ, p.z) + 1;
-                incFill();
-                incCmd();
                 dimension.runCommand(
                     `fill ${gapMinX} ${clampY(y)} ${gapMinZ} ${gapMaxX} ${clampY(y)} ${gapMaxZ} ${INTERIOR_PLATFORM_BLOCK}`
                 );
