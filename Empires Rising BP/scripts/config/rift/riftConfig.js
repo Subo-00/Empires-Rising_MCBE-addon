@@ -227,7 +227,6 @@ export const RIFT_MOB_TIERS = [
  */
 export const RIFT_SPAWN = {
   // ── Spirit level that represents "max difficulty" ──────────────────────
-  // Keep in sync with spiritsConfig.MAX_LEVEL
   levelCap: 60,
 
   // ── Mobs attempted per player per ticker cycle ─────────────────────────
@@ -235,19 +234,19 @@ export const RIFT_SPAWN = {
   countMinAt0: 1,       // min mobs at spirit level 0
   countMaxAt0: 2,       // max mobs at spirit level 0
   countMinAtMax: 6,     // min mobs at levelCap
-  countMaxAtMax: 12,    // max mobs at levelCap
+  countMaxAtMax: 10,    // max mobs at levelCap
 
   // ── Ticker interval (ticks, 20 = 1 second) ──────────────────────────────
   // Faster interval at high level → constant pressure.
   // Empty dimension / low level stays slow to save CPU.
   intervalAt0: 100,     // 5.0 s between waves at level 0
-  intervalAtMax: 30,    // 1.5 s between waves at levelCap
+  intervalAtMax: 40,    // 2.0 s between waves at levelCap
 
   // ── Soft population cap (monsters already near the player) ─────────────
   // If nearby count ≥ cap, skip this player for the cycle.
   // Prevents unbounded growth with multiple players / slow kills.
   maxNearbyAt0: 6,      // max living monsters near player at level 0
-  maxNearbyAtMax: 22,   // max living monsters near player at levelCap
+  maxNearbyAtMax: 15,   // max living monsters near player at levelCap
   nearbyCheckRadius: 14,// blocks radius used for the nearby count
 
   // ── Cluster size (mobs placed per valid ground hit) ────────────────────

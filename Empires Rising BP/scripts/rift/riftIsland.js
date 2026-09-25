@@ -239,8 +239,27 @@ async function ensureIsland(riftId, entity = null, shouldBuildBox = true, player
       areaCreated = true;
     }
   } catch { }
-
   await system.waitTicks(1);
+
+  // ── silently remove all entities in the fortress volume (except players) ──
+  const center = {
+    x: base.x + BOX_SIZE / 2,
+    y: base.y,
+    z: base.z + BOX_SIZE / 2
+  };
+
+  // Sphere that comfortably covers the whole box
+  const radius = Math.ceil(Math.sqrt(3) * (BOX_SIZE / 2)) + 8;
+
+  for (const entity of dim.getEntities({
+    location: center,
+    maxDistance: radius
+  })) {
+    if (entity.typeId === "minecraft:player") continue;
+    try {
+      entity.remove();          // silent, no drops / particles / sounds
+    } catch { /* already gone or invalid */ }
+  }
 
   // ── load the chosen layout’s structures ──────────────────────
   for (const p of layout.pieces) {

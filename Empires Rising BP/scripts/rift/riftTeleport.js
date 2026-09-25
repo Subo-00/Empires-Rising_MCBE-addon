@@ -2,12 +2,36 @@ import { system, world } from "@minecraft/server";
 import { RIFT_DIMENSION_ID } from "../config/rift/riftConfig.js";
 import { forceNearbyTroopsStay, restoreNearbyTroops } from "../sharedHelpers/troopTeleport.js";
 import { getTag } from "../spawner/spawnerHelpers.js";
-import { getNum, setPlayerRiftTags, isBroken, playRiftFeedback } from "./riftHelpers.js";
+import { getNum, setPlayerRiftTags, isBroken, playRiftFeedback, clearPlayerRiftTags } from "./riftHelpers.js";
 import { ensureIsland } from "./riftIsland.js";
 import { despawnSpiritsForPlayer, spawnSpiritsForPlayer } from "./riftSpirits.js";
 
 // playerId → tick until which they cannot be teleported again
 export const teleportLock = new Map();
+
+/** Clean fog + tags + spirits after death/respawn or forced exit. */
+export function cleanupPlayerRiftState(player) {
+    if (!player?.isValid) return;
+
+    // Fog (command path you already use)
+    try {
+        player.runCommand("fog @s remove rift_fog");
+    } catch { }
+
+    // Modern API fallback (works on newer Script API versions)
+    try {
+        if (player.fogSettings) {
+            player.fogSettings.remove("rift_fog");
+            // or player.fogSettings.remove(); to clear everything if needed
+        }
+    } catch { }
+
+    clearPlayerRiftTags(player);
+    despawnSpiritsForPlayer(player);
+
+    // Clear teleport lock so they are not blocked after respawn
+    teleportLock.delete(player.id);
+}
 
 export async function teleportPlayerToRift(player, entity, loc, forcedRiftId = null) {
     const riftId = forcedRiftId ?? (entity ? getNum(entity, "riftId:", 0) : 0);
@@ -103,9 +127,7 @@ export async function returnPlayerHome(player, returnLoc) {
     despawnSpiritsForPlayer(player);
     await system.waitTicks(5);
 
-    try {
-        player.runCommand("fog @s remove rift_fog");
-    } catch { }
+    cleanupPlayerRiftState(player);
 
     if (!returnLoc) {
         console.warn("[DBG returnPlayerHome] no returnLoc!");

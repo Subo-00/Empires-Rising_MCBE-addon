@@ -15,7 +15,7 @@ import {
 import { handleGlitchPouchUse } from "./riftPouch.js";
 
 import { getNextRiftId, ensureIsland, freeRiftId, setPortLocation } from "./riftIsland.js";
-import { teleportLock, teleportPlayerToRift, returnPlayerHome } from "./riftTeleport.js";
+import { teleportLock, teleportPlayerToRift, cleanupPlayerRiftState } from "./riftTeleport.js";
 import { handleSpiritUse, startSpiritTicker, recoverSpirits } from "./riftSpirits.js";
 import { startRiftDimensionTicker } from "./riftMobSpawn.js";
 
@@ -112,6 +112,7 @@ function recoverStuckPlayers() {
     const data = getPlayerRiftReturn(p);
     if (!data) {
       // no return tag at all → true emergency (should never happen in normal play)
+      cleanupPlayerRiftState(p);
       p.teleport({ x: 0, y: 100, z: 0 }, { dimension: world.getDimension("minecraft:overworld") });
       p.sendMessage("§cYou were stuck in a rift. Returned to spawn.");
     }
@@ -234,6 +235,35 @@ world.afterEvents.entitySpawn.subscribe((event) => {
   if (ALLOWED_RIFT_MOBS.has(entity.typeId)) return;
 
   try { entity.remove(); } catch { }
+});
+
+// =============================================================================
+// CLEANUP on player death in the Rift
+// =============================================================================
+
+// Death in rift → early spirit/tag cleanup (player still valid)
+world.afterEvents.entityDie.subscribe((ev) => {
+    const dead = ev.deadEntity;
+    if (!dead || dead.typeId !== "minecraft:player") return;
+    if (dead.dimension?.id !== RIFT_DIMENSION_ID) return;
+
+    // Spirits + tags while the entity is still readable
+    try {
+        despawnSpiritsForPlayer(dead);
+        clearPlayerRiftTags(dead);
+        teleportLock.delete(dead.id);
+    } catch { }
+}, { entityTypes: ["minecraft:player"] });
+
+// Respawn → guaranteed fog + remaining state cleanup
+world.afterEvents.playerSpawn.subscribe((ev) => {
+    if (ev.initialSpawn) return;          // join, not death-respawn
+    const player = ev.player;
+    if (!player?.isValid) return;
+
+    // Only clean if they still carry rift state or just came from the dimension
+    // (safe even if they died elsewhere – remove is a no-op)
+    cleanupPlayerRiftState(player);
 });
 
 // =============================================================================
