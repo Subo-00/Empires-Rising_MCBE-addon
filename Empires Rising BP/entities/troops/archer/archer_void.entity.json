@@ -359,7 +359,7 @@
                     "speed_multiplier": 1.5,
                     "attack_interval": 1.8,
                     "attack_radius": 28.0,
-                    "attack_radius_min": 9.0,
+                    "attack_radius_min": 2.0,
                     "ranged_fov": 180.0,
                     "x_max_rotation": 40.0,
                     "burst_shots": 1
