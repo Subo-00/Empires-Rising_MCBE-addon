@@ -50,20 +50,73 @@ system.runTimeout(() => {
     activePortals.clear();
 }, 20);
 
+// When a portal entity loads (chunk reload, dimension change, server start, etc.)
+// → always force it closed. A portal that was unloaded should never stay visually open.
+world.afterEvents.entityLoad.subscribe((ev) => {
+    const e = ev.entity;
+    if (e.typeId !== PORTAL_ENTITY) return;
+
+    // Run next tick so tags / location are fully available
+    system.run(() => {
+        if (!e.isValid) return;
+
+        // Clear any leftover timer tag
+        for (const t of [...e.getTags()]) {
+            if (t.startsWith("activeUntil:")) e.removeTag(t);
+        }
+
+        const loc = {
+            x: Number(getTag(e, "x:", 0)),
+            y: Number(getTag(e, "y:", 0)),
+            z: Number(getTag(e, "z:", 0))
+        };
+
+        // Prefer the dimension stored on the entity, fall back to current
+        let dimId = (getTag(e, "dim:", "") || "").replace("_", ":");
+        if (!dimId) dimId = e.dimension.id;
+
+        try {
+            const lower = world.getDimension(dimId).getBlock(loc);
+            if (lower?.typeId === PORTAL_BLOCK) {
+                setActive(lower, false);
+            }
+        } catch { /* chunk may still be settling */ }
+
+        // Also drop it from the in-memory map
+        const key = `${dimId}|${Math.floor(loc.x)}|${Math.floor(loc.y)}|${Math.floor(loc.z)}`;
+        activePortals.delete(key);
+    });
+});
+
+// Instead of one big list, store each portal as its own tag:
+// "portal:<id>:<name>:<x>:<y>:<z>:<dimCode>:<facingCode>"
 function getPlayerPortals(player) {
     if (!player?.isValid) return [];
-    const raw = getTag(player, "portals:", "[]");
-    try {
-        const arr = JSON.parse(raw);
-        return Array.isArray(arr) ? arr.map(expandPortal) : [];
-    } catch {
-        return [];
+    const result = [];
+    for (const tag of player.getTags()) {
+        if (!tag.startsWith("portal:")) continue;
+        const parts = tag.slice(7).split(":");
+        if (parts.length < 7) continue;
+        result.push(expandPortal([
+            parts[0],          // id
+            parts[1],          // name
+            +parts[2], +parts[3], +parts[4],
+            +parts[5], +parts[6]
+        ]));
     }
+    return result;
 }
 
 function setPlayerPortals(player, portals) {
-    if (!player?.isValid) return;
-    setTag(player, "portals:", JSON.stringify(portals.map(compactPortal)));
+    // wipe old ones
+    for (const t of [...player.getTags()]) {
+        if (t.startsWith("portal:")) player.removeTag(t);
+    }
+    for (const p of portals) {
+        const c = compactPortal(p);
+        // keep under 256 easily
+        player.addTag(`portal:${c[0]}:${c[1]}:${c[2]}:${c[3]}:${c[4]}:${c[5]}:${c[6]}`);
+    }
 }
 
 function addPlayerPortal(player, portal) {
@@ -708,6 +761,34 @@ function ensurePortalTicker() {
                     activePortals.delete(key);
                 }
 
+                // Fully deactivate the DESTINATION portal as soon as someone arrives
+                {
+                    const destKey = `${data.dest.dim}|${Math.floor(data.dest.x)}|${Math.floor(data.dest.y)}|${Math.floor(data.dest.z)}`;
+
+                    // Remove from the live timer map
+                    activePortals.delete(destKey);
+
+                    try {
+                        const destLower = destDim.getBlock({
+                            x: Math.floor(data.dest.x),
+                            y: Math.floor(data.dest.y),
+                            z: Math.floor(data.dest.z)
+                        });
+
+                        if (destLower?.typeId === PORTAL_BLOCK) {
+                            setActive(destLower, false);          // visual off
+
+                            const destEnt = getPortalEntity(destLower);
+                            if (destEnt) {
+                                // clear any remaining timer tag
+                                for (const t of [...destEnt.getTags()]) {
+                                    if (t.startsWith("activeUntil:")) destEnt.removeTag(t);
+                                }
+                            }
+                        }
+                    } catch { /* destination chunk may not be fully ready yet */ }
+                }
+
                 const isOverworldOnly =
                     dimId === "minecraft:overworld" && data.dest.dim === "minecraft:overworld";
 
@@ -746,6 +827,23 @@ function ensurePortalTicker() {
                                     } catch { }
                                 }, 10);
                             }
+
+                            // 1 second later: snap back if the game put the player too far away
+                            system.runTimeout(() => {
+                                if (!player.isValid) return;
+                                try {
+                                    const pos = player.location;
+                                    const dx = pos.x - destLoc.x;
+                                    const dy = pos.y - destLoc.y;
+                                    const dz = pos.z - destLoc.z;
+                                    const distSq = dx * dx + dy * dy + dz * dz;
+
+                                    if (distSq > 4) {          // > 2 blocks
+                                        player.teleport(destLoc, { dimension: destDim });
+                                    }
+                                } catch { }
+                            }, 20);
+
                         } catch { }
 
                         // Bring the troops (same dimension – safe)
@@ -781,6 +879,23 @@ function ensurePortalTicker() {
                                     } catch { }
                                 }, 10);
                             }
+
+                            // 1 second later: snap back if the game put the player too far away
+                            system.runTimeout(() => {
+                                if (!player.isValid) return;
+                                try {
+                                    const pos = player.location;
+                                    const dx = pos.x - destLoc.x;
+                                    const dy = pos.y - destLoc.y;
+                                    const dz = pos.z - destLoc.z;
+                                    const distSq = dx * dx + dy * dy + dz * dz;
+
+                                    if (distSq > 3) {          // > ~1.5 blocks
+                                        player.teleport(destLoc, { dimension: destDim });
+                                    }
+                                } catch { }
+                            }, 20);
+
                         } catch { }
 
                         // Resume any troops that were previously left at this destination
