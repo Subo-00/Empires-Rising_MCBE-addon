@@ -45,7 +45,7 @@
 				"value": 0.35
 			},
 			"minecraft:water_movement": {
-				"drag_factor": 0.98
+				"drag_factor": 0.55
 			},
 			"minecraft:follow_range": {
 				"value": 35,
@@ -71,8 +71,7 @@
 				"family": [
 					"barbarian",
 					"subo_troop",
-					 "player"
-					 
+					"player"
 				]
 			},
 			"minecraft:nameable": {
@@ -121,17 +120,63 @@
 			},
 			"barbarian:follow_mode": {
 				"minecraft:behavior.follow_owner": {
-					"priority": 2,
-					"speed_multiplier": 1.2,
-					"start_distance": 11,
-					"stop_distance": 2
+					"priority": 1,
+					"speed_multiplier": 1.3,
+					"start_distance": 5,
+					"stop_distance": 1
 				},
 				"minecraft:behavior.owner_hurt_by_target": {
-					"priority": 1
+					"priority": 1,
+					"entity_types": [
+						{
+							"filters": {
+								"test": "is_family",
+								"subject": "other",
+								"value": "monster"
+							},
+							"max_dist": 4
+						},
+						{
+							"filters": {
+								"all_of": [
+									{
+										"test": "is_family",
+										"subject": "other",
+										"value": "subo_troop"
+									},
+									{
+										"test": "has_tag",
+										"subject": "other",
+										"value": "faction:void",
+										"operator": "!="
+									}
+								]
+							},
+							"max_dist": 4
+						},
+						{
+							"filters": {
+								"all_of": [
+									{
+										"test": "is_family",
+										"subject": "other",
+										"value": "player"
+									},
+									{
+										"test": "has_tag",
+										"subject": "other",
+										"value": "faction:void",
+										"operator": "!="
+									}
+								]
+							},
+							"max_dist": 4
+						}
+					]
 				},
 				"minecraft:behavior.nearest_attackable_target": {
 					"priority": 3,
-					"within_radius": 10,
+					"within_radius": 4,
 					"reselect_targets": true,
 					"must_see": true,
 					"must_see_forget_duration": 4.0,
@@ -217,7 +262,53 @@
 					"speed_multiplier": 0.8
 				},
 				"minecraft:behavior.owner_hurt_by_target": {
-					"priority": 1
+					"priority": 1,
+					"entity_types": [
+						{
+							"filters": {
+								"test": "is_family",
+								"subject": "other",
+								"value": "monster"
+							},
+							"max_dist": 4
+						},
+						{
+							"filters": {
+								"all_of": [
+									{
+										"test": "is_family",
+										"subject": "other",
+										"value": "subo_troop"
+									},
+									{
+										"test": "has_tag",
+										"subject": "other",
+										"value": "faction:void",
+										"operator": "!="
+									}
+								]
+							},
+							"max_dist": 4
+						},
+						{
+							"filters": {
+								"all_of": [
+									{
+										"test": "is_family",
+										"subject": "other",
+										"value": "player"
+									},
+									{
+										"test": "has_tag",
+										"subject": "other",
+										"value": "faction:void",
+										"operator": "!="
+									}
+								]
+							},
+							"max_dist": 4
+						}
+					]
 				},
 				"minecraft:behavior.nearest_attackable_target": {
 					"priority": 3,

@@ -38,10 +38,10 @@
         },
         "components": {
             "minecraft:underwater_movement": {
-                "value": 0.15
+                "value": 0.30
             },
             "minecraft:water_movement": {
-                "drag_factor": 0.3
+                "drag_factor": 0.60
             },
             "minecraft:buoyant": {
                 "base_buoyancy": 0.2,
@@ -266,10 +266,10 @@
             },
             "dragon:follow_mode": {
                 "minecraft:behavior.follow_owner": {
-                    "priority": 2,
+                    "priority": 1,
                     "speed_multiplier": 1.0,
-                    "start_distance": 7,
-                    "stop_distance": 3
+                    "start_distance": 3,
+                    "stop_distance": 1
                 },
                 "minecraft:interact": {
                     "interactions": [
