@@ -28,7 +28,7 @@ world.afterEvents.entityDie.subscribe((ev) => {
     const damager = ev.damageSource?.damagingEntity;
 
     // Only when killed by another entity
-    if (!damager) return;
+    if (!damager || !dead?.isValid) return;
 
     const families = dead.getComponent("minecraft:type_family");
     if (!families || !families.hasTypeFamily("monster")) return;

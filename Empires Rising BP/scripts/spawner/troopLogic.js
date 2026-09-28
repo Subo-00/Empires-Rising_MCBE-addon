@@ -149,6 +149,7 @@ const names = {
 };
 
 // Give troops their real nameTags before death so they display a proper death message
+// Temporarily renames §r Pillagers only for troops (where cancel + re-apply is safe)
 world.beforeEvents.entityHurt.subscribe((ev) => {
     const entity = ev.hurtEntity;
 
@@ -159,10 +160,12 @@ world.beforeEvents.entityHurt.subscribe((ev) => {
 
     if (health.currentValue <= 0) {
         const source = ev.damageSource;
-        const killer = source.damagingEntity;
+        const damagingEntity = source.damagingEntity;
+        const damagingProjectile = source.damagingProjectile;
+        const cause = source.cause;
 
-        // ---------- Custom troops (subo:) ----------
-        if (entity.typeId.startsWith("subo:")) {
+        // ---------- Custom troops only ----------
+        if (isTroop(entity.typeId)) {
             ev.cancel = true;
 
             system.run(() => {
@@ -170,39 +173,63 @@ world.beforeEvents.entityHurt.subscribe((ev) => {
                     if (!entity.isValid) return;
 
                     entity.addTag("dying");
-                    entity.nameTag = getTroopName(entity.typeId);   // ← fixed
-                    entity.kill();
-                } catch (e) { }
+                    entity.nameTag = getTroopName(entity.typeId);
+
+                    // Temporarily rename so the death message shows "Pillager"
+                    let originalNameTag = null;
+                    if (damagingEntity?.isValid && damagingEntity.nameTag === "§r") {
+                        originalNameTag = "§r";
+                        damagingEntity.nameTag = "Pillager";
+                    }
+
+                    let options;
+                    if (cause === "projectile" && damagingProjectile?.isValid) {
+                        options = { damagingProjectile };
+                        if (damagingEntity?.isValid) options.damagingEntity = damagingEntity;
+                    } else {
+                        options = { cause: cause || "entityAttack" };
+                        if (damagingEntity?.isValid) options.damagingEntity = damagingEntity;
+                    }
+
+                    entity.applyDamage(99999, options);
+
+                    // Restore
+                    if (originalNameTag !== null && damagingEntity?.isValid) {
+                        damagingEntity.nameTag = originalNameTag;
+                    }
+                } catch (e) {
+                    console.warn(`Failed to apply lethal damage: ${e}`);
+                }
             });
             return;
         }
 
-        // ---------- Players & vanilla tamed entities (wolf, etc.) ----------
-        // We do NOT cancel damage here – let them die normally
-        // If the killer is a Pillager with a §r nameTag we notify the killed player or the killed tamed entity's owner
-        if (killer?.isValid && killer.nameTag === "§r") {
+        // ---------- Players & tamed entities ----------
+        // Do NOT cancel – let the original damage kill them.
+        // Custom message when the killer is a §r Pillager:
+        //   • Player death  → notify EVERY player on the server
+        //   • Tamed mob     → notify only the owner
+        if (damagingEntity?.isValid && damagingEntity.nameTag === "§r") {
             system.run(() => {
                 try {
-                    // Wait until the entity is actually dead / has the dying state
-                    if (!entity.isValid) return;          // already gone
+                    if (!entity.isValid) return;
 
-                    let targetPlayer = null;
+                    const victimName = entity.nameTag || entity.typeId.split(":")[1] || "Entity";
+                    const message = `§c${victimName} was killed by a Pillager`;
 
-                    // Case 1: the victim is a player
                     if (entity.typeId === "minecraft:player") {
-                        targetPlayer = entity;
-                    }
-                    // Case 2: tamed wolf (or any other tameable)
-                    else {
-                        const tameable = entity.getComponent("minecraft:tameable");
-                        if (tameable?.tamedToPlayer) {
-                            targetPlayer = tameable.tamedToPlayer;
+                        // Notify every player
+                        for (const player of world.getPlayers()) {
+                            if (player.isValid) {
+                                player.sendMessage(message);
+                            }
                         }
-                    }
-
-                    if (targetPlayer?.isValid) {
-                        const victimName = entity.nameTag || entity.typeId.split(":")[1] || "Entity";
-                        targetPlayer.sendMessage(`§c${victimName} was killed by a Pillager`);
+                    } else {
+                        // Tamed entity → only the owner
+                        const tameable = entity.getComponent("minecraft:tameable");
+                        if (tameable?.tamedToPlayer?.isValid) {
+                            tameable.tamedToPlayer.sendMessage(message);
+                        }
                     }
                 } catch (e) { }
             });
@@ -237,6 +264,33 @@ world.beforeEvents.entityHurt.subscribe(ev => {
                 } catch { }
             });
         }
+    }
+});
+
+
+// Notify owner when they toggle a troop between Follow / Stay (Patrol)
+world.beforeEvents.playerInteractWithEntity.subscribe((ev) => {
+    const player = ev.player;
+    const entity = ev.target;
+
+    if (!entity?.isValid || !isTroop(entity.typeId)) return;
+    if (!player.isSneaking) return;          // only the sneak-interact switches mode
+
+    // Must be the owner
+    const tameable = entity.getComponent("minecraft:tameable");
+    if (!tameable?.tamedToPlayer || tameable.tamedToPlayer.id !== player.id) return;
+
+    // mark_variant: 1 = currently Follow → switching to Stay/Patrol
+    //               0 = currently Patrol → switching to Follow
+    const mark = entity.getComponent("minecraft:mark_variant");
+    const current = mark?.value ?? 0;
+
+    const troopName = getTroopName(entity.typeId);
+
+    if (current === 1) {
+        player.sendMessage(`§e${troopName} is now on §6Stay / Patrol`);
+    } else {
+        player.sendMessage(`§e${troopName} is now §aFollowing you`);
     }
 });
 
