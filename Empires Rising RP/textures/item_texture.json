@@ -54,7 +54,7 @@
       "textures": "textures/items/weapons/milk_potion"
     },
     "potion_blaster": {
-      "textures": "textures/items/weapons/potion_blaster"
+      "textures": "textures/items/weapons/potion_blaster_2D"
     },
     "subo_trumpet": {
       "textures": "textures/items/weapons/trumpet"

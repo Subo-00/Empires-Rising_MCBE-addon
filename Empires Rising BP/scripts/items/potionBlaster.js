@@ -5,6 +5,8 @@ import { MAX_POTIONS, SPLASH_RADIUS, BASE_POTIONS, BASE_COLORS } from "../config
 const ITEM_ID = "subo:potion_blaster";
 const PROJECTILE_ID = "subo:potion_blaster_projectile";
 
+const SHOOT_ANIM = "animation.subo.potion_blaster.shoot";
+const RELOAD_ANIM = "animation.subo.potion_blaster.reload";
 
 // Generate POTION_TYPES / POTION_COLORS with distinct keys for the "II" (strong_) and
 // extended (long_) variants, matching the raw ids Minecraft reports (e.g. "strong_poison",
@@ -87,7 +89,25 @@ function writePotionData(itemStack, type, count) {
     // Type lives only in the name so it is visible in the hotbar
     itemStack.nameTag = `§rPotion Blaster\n§b${POTION_TYPES[type].name}`;
 }
-// -----------------------------------------------------------------------
+
+// ---------- ANIMATION HELPERS ----------
+function playShootAnim(player) {
+    try {
+        player.playAnimation(SHOOT_ANIM, {
+            blendOutTime: 0.15,
+            // Optional: force a clean controller so it doesn't fight other anims
+            // controller: "controller.animation.subo.potion_blaster"
+        });
+    } catch (_) {}
+}
+
+function playReloadAnim(player) {
+    try {
+        player.playAnimation(RELOAD_ANIM, {
+            blendOutTime: 0.25
+        });
+    } catch (_) {}
+}
 
 // ---------- INVENTORY <-> POTION TYPE MATCHING ----------
 
@@ -175,8 +195,8 @@ function removePotionsFromInventory(player, key, amountNeeded) {
 }
 // -----------------------------------------------------------------------
 
-/** Tops off the Potion BLaster with `key` potions, consuming them from the player's inventory. */
-function fillPotionBLaster(source, itemStack, equippable, key) {
+/** Tops off the Potion Blaster with `key` potions, consuming them from the player's inventory. */
+function fillPotionBlaster(source, itemStack, equippable, key) {
     const { type, count } = readPotionData(itemStack);
     const currentCount = type === key ? count : 0;
 
@@ -199,6 +219,8 @@ function fillPotionBLaster(source, itemStack, equippable, key) {
     const newCount = currentCount + removed;
     writePotionData(itemStack, key, newCount);
     equippable.setEquipment(EquipmentSlot.Mainhand, itemStack);
+
+    playReloadAnim(source);
 
     // Feedback when loading
     const dim = source.dimension;
@@ -223,7 +245,7 @@ function openFillMenu(source, current) {
     // Already holding a type -> just top it up, no need to choose.
     if (currentType && currentCount > 0) {
         const equippable = source.getComponent(EntityComponentTypes.Equippable);
-        if (equippable) fillPotionBLaster(source, current, equippable, currentType);
+        if (equippable) fillPotionBlaster(source, current, equippable, currentType);
         return;
     }
 
@@ -231,13 +253,13 @@ function openFillMenu(source, current) {
     const availableKeys = POTION_KEYS.filter((k) => (inventoryCounts[k] ?? 0) > 0);
 
     if (availableKeys.length === 0) {
-        source.sendMessage("§cYou don't have any splash potions (or milk buckets) to fill the Potion BLaster with.");
+        source.sendMessage("§cYou don't have any splash potions (or milk buckets) to fill the Potion Blaster with.");
         return;
     }
 
     const form = new ActionFormData()
         .title("Potion Blaster")
-        .body("Choose a potion type to fill the Potion BLaster with:");
+        .body("Choose a potion type to fill the Potion Blaster with:");
     for (const key of availableKeys) {
         form.button(`${POTION_TYPES[key].name} (${inventoryCounts[key]} available)`);
     }
@@ -251,7 +273,7 @@ function openFillMenu(source, current) {
         if (!freshCurrent || freshCurrent.typeId !== ITEM_ID) return;
 
         const chosenKey = availableKeys[response.selection];
-        fillPotionBLaster(source, freshCurrent, equippable, chosenKey);
+        fillPotionBlaster(source, freshCurrent, equippable, chosenKey);
     });
 }
 
@@ -282,6 +304,8 @@ export function fireBlaster(player, itemStack) {
             } catch {}
         }
     }
+
+    playShootAnim(player);
 
     const equippable = player.getComponent(EntityComponentTypes.Equippable);
     if (equippable) equippable.setEquipment(EquipmentSlot.Mainhand, itemStack);

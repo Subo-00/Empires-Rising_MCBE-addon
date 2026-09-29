@@ -1,0 +1,36 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:attachable": {
+    "description": {
+      "identifier": "subo:potion_blaster",
+      "materials": {
+        "default": "entity_alphatest",
+        "enchanted": "entity_alphatest_glint"
+      },
+      "textures": {
+        "default": "textures/items/weapons/potion_blaster",
+        "enchanted": "textures/misc/enchanted_item_glint"
+      },
+      "geometry": {
+        "default": "geometry.subo.potion_blaster"
+      },
+      "animations": {
+        "hold_first_person": "animation.subo.potion_blaster.hold_first_person",
+        "hold_third_person": "animation.subo.potion_blaster.hold_third_person",
+        "shoot": "animation.subo.potion_blaster.shoot",
+        "reload": "animation.subo.potion_blaster.reload"
+      },
+      "scripts": {
+        "animate": [
+          {
+            "hold_first_person": "c.is_first_person"
+          },
+          {
+            "hold_third_person": "!c.is_first_person"
+          }
+        ]
+      },
+      "render_controllers": [ "controller.render.item_default" ]
+    }
+  }
+}
