@@ -1,15 +1,16 @@
 import { world } from "@minecraft/server";
 import {
     LEAP_RANGE, DETECTION_RANGE, HIT_DISTANCE,
-    LEAP_TIMEOUT_MS, EXPLOSION_DAMAGE, FIRE_SECONDS
+    LEAP_TIMEOUT_MS, EXPLOSION_DAMAGE, FIRE_SECONDS,
+    FIRE_SPARK_DIMENSIONS
 } from "../config/entities/fireSparkConfig.js";
 import { isSimpleValidTarget, distSq3D } from "./entityHelpers.js";
 
-const leapedSpirits = new Map();  // Now stores {targetId, launchTime}
+const leapedSparks = new Map();  // Now stores {targetId, launchTime}
 
-function getNearestTarget(spirit) {
-    const entities = spirit.dimension.getEntities({
-        location: spirit.location,
+function getNearestTarget(spark) {
+    const entities = spark.dimension.getEntities({
+        location: spark.location,
         maxDistance: DETECTION_RANGE,
         excludeTypes: ["minecraft:item"]
     });
@@ -18,9 +19,9 @@ function getNearestTarget(spirit) {
     let bestDistSq = Infinity;
 
     for (const e of entities) {
-        if (e.id === spirit.id || !isSimpleValidTarget(e)) continue;
+        if (e.id === spark.id || !isSimpleValidTarget(e)) continue;
 
-        const distSq = distSq3D(spirit.location, e.location);
+        const distSq = distSq3D(spark.location, e.location);
         if (distSq < bestDistSq) {
             bestDistSq = distSq;
             nearest = e;
@@ -31,87 +32,87 @@ function getNearestTarget(spirit) {
 
 world.afterEvents.entityDie.subscribe((event) => {
     if (event.deadEntity.typeId === "subo:fire_spark") {
-        leapedSpirits.delete(event.deadEntity.id);
+        leapedSparks.delete(event.deadEntity.id);
     }
 });
 
 // Called every 5 ticks
 export function fireSparkTick() {
-    const overworld = world.getDimension("overworld");
+    for (const dimId of FIRE_SPARK_DIMENSIONS) {
+        let sparks;
+        try {
+            sparks = world.getDimension(dimId).getEntities({ type: "subo:fire_spark" });
+        } catch {
+            // Dimension may not exist / not be loaded yet
+            continue;
+        }
 
-    for (const player of world.getAllPlayers()) {
-        const spirits = overworld.getEntities({
-            type: "subo:fire_spark",
-            location: player.location,
-            maxDistance: 80
-        });
+        for (const spark of sparks) {
+            if (!spark.isValid) continue;
 
-        for (const spirit of spirits) {
-            if (!spirit.isValid) continue;
-
-            const spiritLoc = spirit.location;
-            const isLeaping = spirit.getProperty("subo:is_leaping");
+            const sparkLoc = spark.location;
+            const isLeaping = spark.getProperty("subo:is_leaping");
 
             // === EMIT SMOKE ===
             if (Math.random() < 0.25) {
                 try {
-                    spirit.dimension.spawnParticle("minecraft:basic_smoke_particle", {
-                        x: spiritLoc.x,
-                        y: spiritLoc.y + 0.5,
-                        z: spiritLoc.z
+                    spark.dimension.spawnParticle("minecraft:basic_smoke_particle", {
+                        x: sparkLoc.x,
+                        y: sparkLoc.y + 0.5,
+                        z: sparkLoc.z
                     });
-                } catch {}
+                } catch { }
             }
 
-            // === HANDLE LEAPING SPIRITS (collision + stop) ===
+            // === HANDLE LEAPING SPARKS (collision + stop) ===
             if (isLeaping) {
-                const data = leapedSpirits.get(spirit.id);
+                const data = leapedSparks.get(spark.id);
                 if (!data) continue;
 
                 const target = data.targetId ? world.getEntity(data.targetId) : null;
 
                 if (target?.isValid) {
-                    const dx = target.location.x - spiritLoc.x;
-                    const dy = target.location.y - spiritLoc.y;
-                    const dz = target.location.z - spiritLoc.z;
-                    const dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
+                    const dx = target.location.x - sparkLoc.x;
+                    const dy = target.location.y - sparkLoc.y;
+                    const dz = target.location.z - sparkLoc.z;
+                    const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
                     // Hit detected
-                    if (dist < HIT_DISTANCE) {  
-                        triggerExplosion(spirit, target);
+                    if (dist < HIT_DISTANCE) {
+                        triggerExplosion(spark, target);
                         continue;
                     }
                 }
 
                 // Safety timeout (max 2 seconds in air)
                 if (Date.now() - data.launchTime > LEAP_TIMEOUT_MS) {
-                    triggerExplosion(spirit);
+                    triggerExplosion(spark);
                 }
                 continue;
             }
 
             // === NORMAL BEHAVIOR (find target + leap) ===
-            if (leapedSpirits.has(spirit.id)) continue;
+            if (leapedSparks.has(spark.id)) continue;
 
-            const target = getNearestTarget(spirit);
+            const target = getNearestTarget(spark);
             if (!target) continue;
 
-            const dx = target.location.x - spiritLoc.x;
-            const dy = target.location.y - spiritLoc.y;
-            const dz = target.location.z - spiritLoc.z;
-            const dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
+            const dx = target.location.x - sparkLoc.x;
+            const dy = target.location.y - sparkLoc.y;
+            const dz = target.location.z - sparkLoc.z;
+            const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
             if (dist <= LEAP_RANGE) {
-                leapedSpirits.set(spirit.id, {
+                leapedSparks.set(spark.id, {
                     targetId: target.id,
                     launchTime: Date.now()
                 });
 
-                spirit.triggerEvent("fire_spark:start_leap");
+                spark.triggerEvent("fire_spark:start_leap");
 
                 // Stronger, more directed leap
                 const len = Math.max(0.001, dist);
-                spirit.applyImpulse({
+                spark.applyImpulse({
                     x: (dx / len) * 1.1,
                     y: 0.25,
                     z: (dz / len) * 1.1
@@ -121,36 +122,36 @@ export function fireSparkTick() {
     }
 }
 
-function triggerExplosion(spirit, target = null) {
-    if (!spirit?.isValid) return;
+function triggerExplosion(spark, target = null) {
+    if (!spark?.isValid) return;
 
-    const loc = spirit.location;
+    const loc = spark.location;
 
     // Stop all momentum
     try {
-        spirit.setVelocity({ x: 0, y: 0, z: 0 });
-    } catch {}
+        spark.setVelocity({ x: 0, y: 0, z: 0 });
+    } catch { }
 
     // Visual explosion
     try {
-        spirit.dimension.spawnParticle("minecraft:explosion_emitter", loc);
-        spirit.dimension.spawnParticle("minecraft:large_explosion", {
+        spark.dimension.spawnParticle("minecraft:explosion_emitter", loc);
+        spark.dimension.spawnParticle("minecraft:large_explosion", {
             x: loc.x, y: loc.y + 0.3, z: loc.z
         });
-    } catch {}
+    } catch { }
 
     // Damage target if we actually hit
     if (target?.isValid) {
         try {
             target.applyDamage(EXPLOSION_DAMAGE, {
                 cause: "entityExplosion",
-                damagingEntity: spirit
+                damagingEntity: spark
             });
             target.setOnFire(FIRE_SECONDS, true);
-        } catch {}
+        } catch { }
     }
 
     // Trigger despawn
-    spirit.triggerEvent("fire_spark:explode");
-    leapedSpirits.delete(spirit.id);
+    spark.triggerEvent("fire_spark:explode");
+    leapedSparks.delete(spark.id);
 }

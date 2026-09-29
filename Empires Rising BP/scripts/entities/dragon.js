@@ -6,7 +6,7 @@ import {
     BITE_COOLDOWN_TICKS, SPIT_COOLDOWN_TICKS, BITE_RANGE, SPIT_RANGE,
     FOLLOW_LEASH, MAX_HSPEED, MAX_VSPEED, MAX_IMPULSE,
     COMBAT_FLY_HEIGHT, COMBAT_FLY_RADIUS, COMBAT_LAND_DELAY,
-    scaleCooldown, FIREBALL_SPEED
+    scaleCooldown, FIREBALL_SPEED, DRAGON_DIMENSIONS
 } from "../config/entities/dragonConfig.js";
 import {
     distSq3D, clamp, hasLineOfSight
@@ -490,10 +490,18 @@ world.afterEvents.projectileHitBlock.subscribe(ev => {
 // ─── Main Tick (called every 5 ticks from main.js) ────────────────────────
 export function dragonTick() {
     const now = system.currentTick;
-    // NOTE: currently only Overworld dragons are processed
-    const dragons = world.getDimension("overworld")
-        .getEntities()
-        .filter(entity => isDragon(entity.typeId));
+
+    const dragons = [];
+    for (const dimId of DRAGON_DIMENSIONS) {
+        try {
+            const dim = world.getDimension(dimId);
+            for (const entity of dim.getEntities()) {
+                if (isDragon(entity.typeId)) dragons.push(entity);
+            }
+        } catch {
+            // Dimension may not exist / not be loaded yet
+        }
+    }
 
     for (const dragon of dragons) {
         if (!dragon.isValid) continue;

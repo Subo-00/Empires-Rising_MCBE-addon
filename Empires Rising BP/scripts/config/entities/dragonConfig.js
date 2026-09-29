@@ -20,6 +20,9 @@ export const COMBAT_FLY_HEIGHT = 6;
 export const COMBAT_FLY_RADIUS = 8;
 export const COMBAT_LAND_DELAY = 40;
 
+// Dimensions where dragons can exist / be ticked
+export const DRAGON_DIMENSIONS = ["overworld", "nether", "the_end"];
+
 /** Level → cooldown scale (L1 = 100 %, L5 ≈ 40 %). */
 export function scaleCooldown(baseTicks, level) {
     const factor = Math.max(0.4, 1 - (level - 1) * 0.15);
