@@ -6,9 +6,11 @@ import { dragonTick } from "./entities/dragon.js";
 
 export function initEntityTicks() {
     system.runInterval(() => {
-        lavaGolemTick();
+        const tick = system.currentTick;
+
+        lavaGolemTick(tick);
         fireSparkTick();
-        darkKnightTick();
-        dragonTick();
+        darkKnightTick(tick);
+        dragonTick(tick);
     }, 5);
 }

@@ -488,15 +488,13 @@ world.afterEvents.projectileHitBlock.subscribe(ev => {
 });
 
 // ─── Main Tick (called every 5 ticks from main.js) ────────────────────────
-export function dragonTick() {
-    const now = system.currentTick;
-
+export function dragonTick(now) {
     const dragons = [];
     for (const dimId of DRAGON_DIMENSIONS) {
         try {
             const dim = world.getDimension(dimId);
-            for (const entity of dim.getEntities()) {
-                if (isDragon(entity.typeId)) dragons.push(entity);
+            for (const entity of dim.getEntities({ families: ["subo_dragon"] })) {
+                dragons.push(entity);
             }
         } catch {
             // Dimension may not exist / not be loaded yet

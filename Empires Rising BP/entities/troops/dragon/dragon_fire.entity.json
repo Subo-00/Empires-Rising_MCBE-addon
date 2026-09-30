@@ -57,7 +57,7 @@
             },
             "minecraft:type_family": {
                 "family": [
-                    "dragon",
+                    "subo_dragon",
                     "subo_troop",
                     "player"
                 ]

@@ -6,4 +6,4 @@ export const EXPLOSION_DAMAGE = 7;
 export const FIRE_SECONDS     = 5;   // how long to set the target on fire
 
 // Dimensions where fire sparks can exist / be ticked
-export const FIRE_SPARK_DIMENSIONS = ["overworld", "nether", "the_end", "subo:rift_realm"];
+export const FIRE_SPARK_DIMENSIONS = ["overworld", "subo:rift_realm"];
