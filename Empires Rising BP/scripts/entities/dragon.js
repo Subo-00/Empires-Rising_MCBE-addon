@@ -630,8 +630,8 @@ export function dragonTick(now) {
             let vy = jump ? MAX_VSPEED : 0;
 
             if (near_ground) {
-                applyImpulseTowardVelocity(dragon, { x: vx, y: vy, z: vz }, MAX_IMPULSE);
-                if (jump) dragon.applyImpulse({ x: 0, y: 0.5, z: 0 }); // extra takeoff boost
+                // applyImpulseTowardVelocity(dragon, { x: vx, y: vy, z: vz }, MAX_IMPULSE);
+                if (jump) dragon.applyImpulse({ x: 0, y: 0.70, z: 0 }); // extra takeoff boost
             } else {
                 applyImpulseTowardVelocity(dragon, { x: vx, y: vy, z: vz }, MAX_IMPULSE);
             }

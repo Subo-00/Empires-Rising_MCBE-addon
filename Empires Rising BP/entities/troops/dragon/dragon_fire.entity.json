@@ -466,10 +466,10 @@
                 "minecraft:movement.fly": {},
                 "minecraft:can_fly": {},
                 "minecraft:flying_speed": {
-                    "value": 0.25
+                    "value": 0.15
                 },
                 "minecraft:movement": {
-                    "value": 0.25
+                    "value": 0.15
                 }
             },
             "dragon:grounded": {
@@ -485,7 +485,7 @@
                     "can_breach": true
                 },
                 "minecraft:movement": {
-                    "value": 0.5
+                    "value": 0.2
                 },
                 "minecraft:movement.basic": {},
                 "minecraft:jump.static": {

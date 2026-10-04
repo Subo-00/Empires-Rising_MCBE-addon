@@ -12,9 +12,9 @@ export const SPIT_RANGE          = 40;
 export const FIREBALL_SPEED = 1.8;   // blocks per tick
 
 export const FOLLOW_LEASH  = 6;
-export const MAX_HSPEED    = 2.0;
-export const MAX_VSPEED    = 0.8;
-export const MAX_IMPULSE   = 0.8;
+export const MAX_HSPEED    = 0.75;
+export const MAX_VSPEED    = 0.50;
+export const MAX_IMPULSE   = 0.18;  // acceleration
 
 export const COMBAT_FLY_HEIGHT = 6;
 export const COMBAT_FLY_RADIUS = 8;
