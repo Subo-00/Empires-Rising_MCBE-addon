@@ -728,10 +728,19 @@ function ensurePortalTicker() {
 
             for (const player of players) {
                 const destDim = world.getDimension(data.dest.dim);
+                const FACING_OFFSET = {
+                    north: { x: 0, z: -1.2 },
+                    south: { x: 0, z: 1.2 },
+                    west: { x: -1.2, z: 0 },
+                    east: { x: 1.2, z: 0 }
+                };
+
+                const off = FACING_OFFSET[data.dest.facing] ?? { x: 0, z: 0 };
+
                 const destLoc = {
-                    x: data.dest.x + 0.5,
-                    y: data.dest.y,
-                    z: data.dest.z + 0.5
+                    x: data.dest.x + 0.5 + off.x,
+                    y: data.dest.y + 0.05,
+                    z: data.dest.z + 0.5 + off.z
                 };
 
                 let needDropPortal = false;
@@ -789,10 +798,9 @@ function ensurePortalTicker() {
                     } catch { /* destination chunk may not be fully ready yet */ }
                 }
 
-                const isOverworldOnly =
-                    dimId === "minecraft:overworld" && data.dest.dim === "minecraft:overworld";
+                const isSameDimension = dimId === data.dest.dim;
 
-                if (isOverworldOnly) {
+                if (isSameDimension) {
                     // Same-dimension: collect the following troops so we can move them with the player
                     const troopsToBring = [];
 
@@ -802,7 +810,6 @@ function ensurePortalTicker() {
                     });
 
                     for (const ent of nearby) {
-                        // We need isTroop again for this path
                         if (!isTroop(ent.typeId)) continue;
 
                         const ownerTag = ent.getTags().find(t => t.startsWith("owner:"));
@@ -828,7 +835,7 @@ function ensurePortalTicker() {
                                 }, 10);
                             }
 
-                            // 1 second later: snap back if the game put the player too far away
+                            // 0.5 seconds later: snap back if the game put the player too far away
                             system.runTimeout(() => {
                                 if (!player.isValid) return;
                                 try {
@@ -838,28 +845,42 @@ function ensurePortalTicker() {
                                     const dz = pos.z - destLoc.z;
                                     const distSq = dx * dx + dy * dy + dz * dz;
 
-                                    if (distSq > 4) {          // > 2 blocks
+                                    if (distSq > 0.5) {   // > 1 block
                                         player.teleport(destLoc, { dimension: destDim });
                                     }
                                 } catch { }
-                            }, 20);
+                            }, 10);
 
                         } catch { }
 
-                        // Bring the troops (same dimension – safe)
-                        for (const ent of troopsToBring) {
-                            if (!ent.isValid) continue;
+                        // Bring the troops a few ticks AFTER the player has arrived
+                        system.runTimeout(() => {
+                            for (const ent of troopsToBring) {
+                                if (!ent.isValid) continue;
 
-                            const targetLoc = {
-                                x: destLoc.x + (Math.random() - 0.5) * 1.5,
-                                y: destLoc.y,
-                                z: destLoc.z + (Math.random() - 0.5) * 1.5
-                            };
+                                const targetLoc = {
+                                    x: destLoc.x + (Math.random() - 0.5) * 1.5,
+                                    y: destLoc.y,
+                                    z: destLoc.z + (Math.random() - 0.5) * 1.5
+                                };
 
-                            try {
-                                ent.teleport(targetLoc); // no dimension change
-                            } catch { }
-                        }
+                                try {
+                                    ent.teleport(targetLoc);
+
+                                    // Nudge 3 ticks later – forces client entity update so the owner can see them
+                                    system.runTimeout(() => {
+                                        if (!ent.isValid) return;
+                                        try {
+                                            ent.teleport({
+                                                x: targetLoc.x + 0.01,
+                                                y: targetLoc.y,
+                                                z: targetLoc.z
+                                            });
+                                        } catch { }
+                                    }, 3);
+                                } catch { }
+                            }
+                        }, 5);   // 5 ticks after the player teleport
                     }, 2);
 
                 } else {
@@ -880,7 +901,7 @@ function ensurePortalTicker() {
                                 }, 10);
                             }
 
-                            // 1 second later: snap back if the game put the player too far away
+                            // 0.5 seconds later: snap back if the game put the player too far away
                             system.runTimeout(() => {
                                 if (!player.isValid) return;
                                 try {
@@ -890,11 +911,11 @@ function ensurePortalTicker() {
                                     const dz = pos.z - destLoc.z;
                                     const distSq = dx * dx + dy * dy + dz * dz;
 
-                                    if (distSq > 3) {          // > ~1.5 blocks
+                                    if (distSq > 0.5) {   // > 1 block
                                         player.teleport(destLoc, { dimension: destDim });
                                     }
                                 } catch { }
-                            }, 20);
+                            }, 10);
 
                         } catch { }
 
