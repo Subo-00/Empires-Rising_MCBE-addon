@@ -15,6 +15,26 @@ function getTroopName(typeId) {
 }
 
 /**
+ * Updates a troop's nameTag to show current HP % (empty at 100%).
+ */
+function updateTroopNameTag(entity) {
+    if (!entity?.isValid || !isTroop(entity.typeId) || entity.hasTag("dying")) return;
+
+    const health = entity.getComponent("minecraft:health");
+    if (!health) return;
+
+    const max = health.effectiveMax;
+    const cur = health.currentValue;
+
+    if (cur >= max || max <= 0) {
+        entity.nameTag = "";
+    } else {
+        const pct = Math.max(0, Math.round((cur / max) * 100));
+        entity.nameTag = `${pct}%`;
+    }
+}
+
+/**
  * Processes one unit from a spawner's queue, then schedules the next if needed.
  */
 export function processSpawnerQueue(spawner) {
@@ -122,6 +142,10 @@ world.afterEvents.entityDie.subscribe(ev => {
     decrementSpawnerAlive(id, 1);
 });
 
+// Keep troop nameTag in sync with current health % (damage + heal)
+world.afterEvents.entityHealthChanged.subscribe(ev => {
+    updateTroopNameTag(ev.entity);
+});
 
 // Handle barbarian "hit" animation
 world.afterEvents.entityHitEntity.subscribe(ev => {
@@ -148,9 +172,44 @@ const names = {
     "subo:dragon": "Dragon"
 };
 
+// Disable all friendly fire between same-faction troops and players
+// + handle custom death names / messages
+world.beforeEvents.entityHurt.subscribe(ev => {
+    const { damageSource, hurtEntity: target } = ev;
+    const attacker = damageSource.damagingEntity;
+
+    // --- Friendly-fire protection ---
+    if (attacker?.isValid && target?.isValid) {
+        const attackerIsRelevant = isTroop(attacker.typeId) || attacker.typeId === "minecraft:player";
+        const targetIsRelevant = isTroop(target.typeId) || target.typeId === "minecraft:player";
+
+        if (attackerIsRelevant && targetIsRelevant) {
+            const attackerFaction = getFactionTag(attacker);
+            const targetFaction = getFactionTag(target);
+
+            if (attackerFaction && attackerFaction === targetFaction) {
+                ev.cancel = true;
+
+                const projectile = damageSource.damagingProjectile;
+                if (projectile?.isValid) {
+                    system.run(() => {
+                        try {
+                            if (projectile.isValid) projectile.remove();
+                        } catch { }
+                    });
+                }
+                return; // only return when we cancelled
+            }
+        }
+    }
+
+    // All other cases (zombie → troop, different faction, etc.) → death logic
+    handleCustomDeath(ev);
+});
+
 // Give troops their real nameTags before death so they display a proper death message
 // Temporarily renames §r Pillagers only for troops (where cancel + re-apply is safe)
-world.beforeEvents.entityHurt.subscribe((ev) => {
+function handleCustomDeath(ev) {
     const entity = ev.hurtEntity;
 
     if (entity.hasTag("dying")) return;
@@ -235,38 +294,7 @@ world.beforeEvents.entityHurt.subscribe((ev) => {
             });
         }
     }
-});
-
-// Disable archer friendly fire for entities in the same faction
-world.beforeEvents.entityHurt.subscribe(ev => {
-    const { damageSource, hurtEntity: target } = ev;
-    const attacker = damageSource.damagingEntity;
-
-    if (!attacker || !isArcher(attacker.typeId)) return;
-
-    // Only protect faction players and faction troops
-    if (!isTroop(target.typeId) && target.typeId !== "minecraft:player") return;
-
-    const attackerFaction = getFactionTag(attacker);
-    const targetFaction = getFactionTag(target);
-
-    // Same faction → cancel damage and remove the fired arrow
-    if (attackerFaction && attackerFaction === targetFaction) {
-        ev.cancel = true;
-
-        const projectile = damageSource.damagingProjectile;
-        if (projectile) {
-            system.run(() => {
-                try {
-                    if (projectile.isValid) {
-                        projectile.remove();
-                    }
-                } catch { }
-            });
-        }
-    }
-});
-
+};
 
 // Notify owner when they toggle a troop between Follow / Stay (Patrol)
 world.beforeEvents.playerInteractWithEntity.subscribe((ev) => {

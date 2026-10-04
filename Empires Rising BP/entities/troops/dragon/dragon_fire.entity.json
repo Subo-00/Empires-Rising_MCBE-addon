@@ -195,42 +195,101 @@
                 },
                 "minecraft:behavior.hurt_by_target": {
                     "priority": 1,
-                    "filters": {
-                        "none_of": [
-                            {
+                    "entity_types": [
+                        {
+                            "filters": {
                                 "test": "is_family",
                                 "subject": "other",
-                                "value": "subo_troop"
+                                "value": "monster"
                             },
-                            {
-                                "test": "is_owner",
-                                "subject": "other",
-                                "value": true
+                            "max_dist": 35
+                        },
+                        {
+                            "filters": {
+                                "all_of": [
+                                    {
+                                        "test": "is_family",
+                                        "subject": "other",
+                                        "value": "subo_troop"
+                                    },
+                                    {
+                                        "test": "has_tag",
+                                        "subject": "other",
+                                        "value": "faction:fire",
+                                        "operator": "!="
+                                    }
+                                ]
                             },
-                            {
-                                "test": "has_tag",
-                                "subject": "other",
-                                "value": "faction:fire"
-                            }
-                        ]
-                    }
+                            "max_dist": 35
+                        },
+                        {
+                            "filters": {
+                                "all_of": [
+                                    {
+                                        "test": "is_family",
+                                        "subject": "other",
+                                        "value": "player"
+                                    },
+                                    {
+                                        "test": "has_tag",
+                                        "subject": "other",
+                                        "value": "faction:fire",
+                                        "operator": "!="
+                                    }
+                                ]
+                            },
+                            "max_dist": 35
+                        }
+                    ]
                 },
                 "minecraft:behavior.owner_hurt_by_target": {
                     "priority": 1,
-                    "filters": {
-                        "none_of": [
-                            {
+                    "entity_types": [
+                        {
+                            "filters": {
                                 "test": "is_family",
                                 "subject": "other",
-                                "value": "subo_troop"
+                                "value": "monster"
                             },
-                            {
-                                "test": "has_tag",
-                                "subject": "other",
-                                "value": "faction:fire"
-                            }
-                        ]
-                    }
+                            "max_dist": 35
+                        },
+                        {
+                            "filters": {
+                                "all_of": [
+                                    {
+                                        "test": "is_family",
+                                        "subject": "other",
+                                        "value": "subo_troop"
+                                    },
+                                    {
+                                        "test": "has_tag",
+                                        "subject": "other",
+                                        "value": "faction:fire",
+                                        "operator": "!="
+                                    }
+                                ]
+                            },
+                            "max_dist": 35
+                        },
+                        {
+                            "filters": {
+                                "all_of": [
+                                    {
+                                        "test": "is_family",
+                                        "subject": "other",
+                                        "value": "player"
+                                    },
+                                    {
+                                        "test": "has_tag",
+                                        "subject": "other",
+                                        "value": "faction:fire",
+                                        "operator": "!="
+                                    }
+                                ]
+                            },
+                            "max_dist": 35
+                        }
+                    ]
                 }
             },
             "dragon:mounted": {

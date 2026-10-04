@@ -97,7 +97,53 @@
 				"cooldown_time": 0.9
 			},
 			"minecraft:behavior.hurt_by_target": {
-				"priority": 4
+				"priority": 4,
+				"entity_types": [
+					{
+						"filters": {
+							"test": "is_family",
+							"subject": "other",
+							"value": "monster"
+						},
+						"max_dist": 35
+					},
+					{
+						"filters": {
+							"all_of": [
+								{
+									"test": "is_family",
+									"subject": "other",
+									"value": "subo_troop"
+								},
+								{
+									"test": "has_tag",
+									"subject": "other",
+									"value": "faction:void",
+									"operator": "!="
+								}
+							]
+						},
+						"max_dist": 35
+					},
+					{
+						"filters": {
+							"all_of": [
+								{
+									"test": "is_family",
+									"subject": "other",
+									"value": "player"
+								},
+								{
+									"test": "has_tag",
+									"subject": "other",
+									"value": "faction:void",
+									"operator": "!="
+								}
+							]
+						},
+						"max_dist": 35
+					}
+				]
 			},
 			"minecraft:behavior.look_at_player": {
 				"priority": 7,
