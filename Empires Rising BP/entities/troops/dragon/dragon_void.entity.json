@@ -37,6 +37,13 @@
             }
         },
         "components": {
+            "minecraft:type_family": {
+                "family": [
+                    "subo_dragon",
+                    "subo_troop",
+                    "irongolem"
+                ]
+            },
             "minecraft:underwater_movement": {
                 "value": 0.30
             },
@@ -54,13 +61,6 @@
             "minecraft:nameable": {
                 "always_show": false,
                 "allow_name_tag_renaming": true
-            },
-            "minecraft:type_family": {
-                "family": [
-                    "subo_dragon",
-                    "subo_troop",
-                    "player"
-                ]
             },
             "minecraft:health": {
                 "value": 20,

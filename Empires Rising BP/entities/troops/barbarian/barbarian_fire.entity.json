@@ -27,6 +27,13 @@
 			}
 		},
 		"components": {
+			"minecraft:type_family": {
+				"family": [
+					"barbarian",
+					"subo_troop",
+					"irongolem"
+				]
+			},
 			"minecraft:persistent": {},
 			"minecraft:behavior.float": {
 				"priority": 0
@@ -67,13 +74,6 @@
 			},
 			"minecraft:jump.static": {},
 			"minecraft:physics": {},
-			"minecraft:type_family": {
-				"family": [
-					"barbarian",
-					"subo_troop",
-					"player"
-				]
-			},
 			"minecraft:nameable": {
 				"allow_name_tag_renaming": true,
 				"always_show": false
