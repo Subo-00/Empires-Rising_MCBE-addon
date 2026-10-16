@@ -32,14 +32,12 @@
       },
       "scripts": {
         "pre_animation": [
-          "variable.is_attacking = query.property('subo:is_attacking');",
           "variable.armor_material = query.property('subo:armor_material');",
           "variable.weapon_material = query.property('subo:weapon_material');"
         ],
         "initialize": [
-          "variable.is_attacking = 0.0;",
-          "variable.armor_material = 0.0;",
-          "variable.weapon_material = 0.0;"
+          "variable.armor_material = 0;",
+          "variable.weapon_material = 0;"
         ],
         "animate": [
           {

@@ -57,16 +57,16 @@
         "none": {
           "transitions": [
             {
-              "basic": "query.property('subo:attack_state') == 1.0"
+              "basic": "query.property('subo:attack_state') == 1"
             },
             {
-              "spin": "query.property('subo:attack_state') == 2.0"
+              "spin": "query.property('subo:attack_state') == 2"
             },
             {
-              "leap": "query.property('subo:attack_state') == 3.0"
+              "leap": "query.property('subo:attack_state') == 3"
             },
             {
-              "heal": "query.property('subo:attack_state') == 4.0"
+              "heal": "query.property('subo:attack_state') == 4"
             }
           ]
         },
@@ -82,7 +82,7 @@
           ],
           "transitions": [
             {
-              "none": "query.property('subo:attack_state') == 0.0"
+              "none": "query.property('subo:attack_state') == 0"
             }
           ]
         },
@@ -93,7 +93,7 @@
           ],
           "transitions": [
             {
-              "none": "query.property('subo:attack_state') == 0.0"
+              "none": "query.property('subo:attack_state') == 0"
             }
           ]
         },
@@ -104,7 +104,7 @@
           ],
           "transitions": [
             {
-              "none": "query.property('subo:attack_state') == 0.0"
+              "none": "query.property('subo:attack_state') == 0"
             }
           ]
         },
@@ -115,7 +115,7 @@
           ],
           "transitions": [
             {
-              "none": "query.property('subo:attack_state') == 0.0"
+              "none": "query.property('subo:attack_state') == 0"
             }
           ]
         }

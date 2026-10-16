@@ -23,41 +23,41 @@
       "states": {
         "none": {
           "transitions": [
-            { "slam": "query.property('subo:attack_state') == 1.0" },
-            { "spin": "query.property('subo:attack_state') == 2.0" },
-            { "spit": "query.property('subo:attack_state') == 3.0" }
+            { "slam": "query.property('subo:attack_state') == 1" },
+            { "spin": "query.property('subo:attack_state') == 2" },
+            { "spit": "query.property('subo:attack_state') == 3" }
           ]
         },
         "slam": {
           "animations": ["slam"],
           "transitions": [
-            { "spin": "query.property('subo:attack_state') == 2.0" },
-            { "spit": "query.property('subo:attack_state') == 3.0" },
-            { "none": "query.property('subo:attack_state') == 0.0" }
+            { "spin": "query.property('subo:attack_state') == 2" },
+            { "spit": "query.property('subo:attack_state') == 3" },
+            { "none": "query.property('subo:attack_state') == 0" }
           ]
         },
         "spin": {
             "animations": ["spin"],
             "transitions": [
-                { "spin_recovery": "query.property('subo:attack_state') == 0.0" },
-                { "slam": "query.property('subo:attack_state') == 1.0" },
-                { "spit": "query.property('subo:attack_state') == 3.0" }
+                { "spin_recovery": "query.property('subo:attack_state') == 0" },
+                { "slam": "query.property('subo:attack_state') == 1" },
+                { "spit": "query.property('subo:attack_state') == 3" }
             ]
         },
         "spin_recovery": {
             "animations": ["spin_recovery"],
             "transitions": [
                 { "none": "query.anim_time >= 0.5" },
-                { "slam": "query.property('subo:attack_state') == 1.0" },
-                { "spit": "query.property('subo:attack_state') == 3.0" }
+                { "slam": "query.property('subo:attack_state') == 1" },
+                { "spit": "query.property('subo:attack_state') == 3" }
             ]
         },
         "spit": {
           "animations": ["spit"],
           "transitions": [
-            { "slam": "query.property('subo:attack_state') == 1.0" },
-            { "spin": "query.property('subo:attack_state') == 2.0" },
-            { "none": "query.property('subo:attack_state') == 0.0" }
+            { "slam": "query.property('subo:attack_state') == 1" },
+            { "spin": "query.property('subo:attack_state') == 2" },
+            { "none": "query.property('subo:attack_state') == 0" }
           ]
         }
       }

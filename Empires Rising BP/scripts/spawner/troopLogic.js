@@ -154,11 +154,11 @@ world.afterEvents.entityHitEntity.subscribe(ev => {
     if (!attacker || !isBarbarian(attacker.typeId)) return;
 
     // SET variable to trigger swing
-    attacker.setProperty("subo:is_attacking", 1.0);
+    attacker.setProperty("subo:is_attacking", true);
 
     system.runTimeout(() => {
         try {
-            attacker.setProperty("subo:is_attacking", 0.0);
+            attacker.setProperty("subo:is_attacking", false);
         }
         catch { }
 

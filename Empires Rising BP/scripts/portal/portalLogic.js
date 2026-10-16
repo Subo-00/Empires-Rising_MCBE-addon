@@ -1,5 +1,5 @@
 import { world, system, BlockPermutation, ItemStack } from "@minecraft/server";
-import { ModalFormData } from "@minecraft/server-ui";
+import { ModalFormData, ActionFormData } from "@minecraft/server-ui";
 import { ACTIVE_SECONDS, TROOP_RADIUS } from "../config/itemsConfig.js";
 import { RIFT_DIMENSION_ID } from "../config/rift/riftConfig.js";
 import { getStorageLocation, setTag, getTag, isTroop } from "../spawner/spawnerHelpers.js";
@@ -7,6 +7,10 @@ import { forceNearbyTroopsStay, restoreNearbyTroops } from "../sharedHelpers/tro
 
 const PORTAL_BLOCK = "subo:portal";
 const PORTAL_ENTITY = "subo:portal_entity";
+
+const BASE_MARKER = "§0§0PORTAL";
+const NAME_MARKER = "NAME";
+const LIST_MARKER = "LIST";
 
 // Used for compact portal storage on player tags
 const DIM_CODES = { "minecraft:overworld": 0, "minecraft:nether": 1, "minecraft:the_end": 2 };
@@ -323,7 +327,7 @@ world.afterEvents.playerPlaceBlock.subscribe(async (ev) => {
         .withState("subo:active", false));
 
     const form = new ModalFormData()
-        .title("Name Your Portal")
+        .title(BASE_MARKER + NAME_MARKER + "§sName Your Portal")   // or any dynamic string
         .textField("Portal name (must be unique for you)", "e.g. Home Base");
 
     const response = await form.show(player);
@@ -430,7 +434,7 @@ function openPortalConnectForm(player, blockLoc, dimId) {
     }
 
     const form = new ModalFormData()
-        .title("Portal: " + found.portal.name)
+        .title(BASE_MARKER + LIST_MARKER + "Portal: " + found.portal.name)
         .dropdown("Destination", choices.map(p => p.name), { defaultValueIndex: 0 })
         .toggle("Bring this portal with me", { defaultValue: false });
 

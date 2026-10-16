@@ -23,7 +23,7 @@
         { "armor_*": "Material.default" }
       ],
       "textures": [
-        "query.property('subo:armor_material') == 1.0 ? Texture.copper : query.property('subo:armor_material') == 2.0 ? Texture.iron :query.property('subo:armor_material') == 3.0 ? Texture.diamond :query.property('subo:armor_material') == 4.0 ? Texture.netherite : Texture.empty"
+        "query.property('subo:armor_material') == 1 ? Texture.copper : query.property('subo:armor_material') == 2 ? Texture.iron :query.property('subo:armor_material') == 3 ? Texture.diamond :query.property('subo:armor_material') == 4 ? Texture.netherite : Texture.empty"
       ],
       "part_visibility": [
         { "*": "0" },
@@ -37,7 +37,7 @@
         { "bow": "Material.default" }
       ],
       "textures": [
-        "query.property('subo:weapon_material') == 0.0 ? Texture.bow_none : query.property('subo:weapon_material') == 1.0 ? Texture.bow_copper : query.property('subo:weapon_material') == 2.0 ? Texture.bow_iron : query.property('subo:weapon_material') == 3.0 ? Texture.bow_diamond : Texture.bow_netherite"
+        "query.property('subo:weapon_material') == 0 ? Texture.bow_none : query.property('subo:weapon_material') == 1 ? Texture.bow_copper : query.property('subo:weapon_material') == 2 ? Texture.bow_iron : query.property('subo:weapon_material') == 3 ? Texture.bow_diamond : Texture.bow_netherite"
       ],
       "part_visibility": [
         { "*": "0" },

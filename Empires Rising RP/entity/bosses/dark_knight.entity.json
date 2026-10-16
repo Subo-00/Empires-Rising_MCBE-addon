@@ -28,7 +28,7 @@
       },
       "scripts": {
         "initialize": [
-          "variable.attack_state = 0.0;",
+          "variable.attack_state = 0;",
           "variable.use_basic2 = true;"
         ],
         "pre_animation": [

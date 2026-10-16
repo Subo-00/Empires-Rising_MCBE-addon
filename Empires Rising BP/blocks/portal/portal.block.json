@@ -8,12 +8,20 @@
       },
       "traits": {
         "minecraft:placement_direction": {
-          "enabled_states": ["minecraft:cardinal_direction"]
+          "enabled_states": [
+            "minecraft:cardinal_direction"
+          ]
         }
       },
       "states": {
-        "subo:half": ["lower", "upper"],
-        "subo:active": [false, true]
+        "subo:half": [
+          "lower",
+          "upper"
+        ],
+        "subo:active": [
+          false,
+          true
+        ]
       }
     },
     "components": {
@@ -27,12 +35,28 @@
         }
       },
       "minecraft:collision_box": {
-        "origin": [-8, 0, -1],
-        "size": [16, 16, 2]
+        "origin": [
+          -8,
+          0,
+          -1
+        ],
+        "size": [
+          16,
+          16,
+          2
+        ]
       },
       "minecraft:selection_box": {
-        "origin": [-8, 0, -1.5],
-        "size": [16, 16, 3]
+        "origin": [
+          -8,
+          0,
+          -1.5
+        ],
+        "size": [
+          16,
+          16,
+          3
+        ]
       },
       "minecraft:destructible_by_mining": {
         "seconds_to_destroy": 2
@@ -48,18 +72,33 @@
         "components": {
           "minecraft:geometry": "geometry.subo_portal_upper",
           "minecraft:collision_box": {
-            "origin": [-8, 0, -1],
-            "size": [16, 16, 3]
+            "origin": [
+              -8,
+              0,
+              -1
+            ],
+            "size": [
+              16,
+              16,
+              3
+            ]
           },
           "minecraft:selection_box": {
-            "origin": [-8, 0, -1.5],
-            "size": [16, 15, 3]
+            "origin": [
+              -8,
+              0,
+              -1.5
+            ],
+            "size": [
+              16,
+              15,
+              3
+            ]
           }
         }
       },
-
       {
-        "condition": "q.block_state('subo:active') == true",
+        "condition": "q.block_state('subo:active')",
         "components": {
           "minecraft:material_instances": {
             "*": {
@@ -71,29 +110,52 @@
           "minecraft:light_emission": 8
         }
       },
-
       {
         "condition": "q.block_state('minecraft:cardinal_direction') == 'north'",
         "components": {
-          "minecraft:transformation": { "rotation": [0, 0, 0] }
+          "minecraft:transformation": {
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          }
         }
       },
       {
         "condition": "q.block_state('minecraft:cardinal_direction') == 'south'",
         "components": {
-          "minecraft:transformation": { "rotation": [0, 180, 0] }
+          "minecraft:transformation": {
+            "rotation": [
+              0,
+              180,
+              0
+            ]
+          }
         }
       },
       {
         "condition": "q.block_state('minecraft:cardinal_direction') == 'west'",
         "components": {
-          "minecraft:transformation": { "rotation": [0, 90, 0] }
+          "minecraft:transformation": {
+            "rotation": [
+              0,
+              90,
+              0
+            ]
+          }
         }
       },
       {
         "condition": "q.block_state('minecraft:cardinal_direction') == 'east'",
         "components": {
-          "minecraft:transformation": { "rotation": [0, 270, 0] }
+          "minecraft:transformation": {
+            "rotation": [
+              0,
+              270,
+              0
+            ]
+          }
         }
       }
     ]

@@ -290,7 +290,7 @@ export const DESTROYED_RIFT_MESSAGES = [
   "§7Echoes do not ask to be heard. They simply endure.",
   "§7The rift has returned to the dark from which it was torn.",
   "§7Journeys end. The longing for them does not.",
-  "§7What connected us now teaches the art of distance.",
+  "§7What once connected us, now teaches the art of distance.",
   "§7A doorway without a key is still a doorway in the mind.",
   "§7The other side no longer answers. Perhaps it never did.",
   "§7Ruins of light, scattered across the void.",

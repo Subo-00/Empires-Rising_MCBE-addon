@@ -1,0 +1,129 @@
+{
+  "namespace": "server_form",
+  // ====================== MODAL FORMS (ModalFormData) ======================
+  "custom_form": {
+    "type": "panel",
+    "controls": [
+      {
+        "vanilla_custom_form@common_dialogs.main_panel_no_buttons": {
+          "$title_panel": "common_dialogs.standard_title_label",
+          "$title_size": [
+            "100% - 15px",
+            10
+          ],
+          "$title_max_size": [
+            "100% - 15px",
+            10
+          ],
+          "size": [
+            225,
+            200
+          ],
+          "$text_name": "#title_text",
+          "$title_text_binding_type": "none",
+          "$child_control": "server_form.custom_form_panel",
+          "layer": 2,
+          "bindings": [
+            {
+              "binding_name": "#title_text"
+            },
+            {
+              "binding_type": "view",
+              "source_property_name": "((#title_text - '§0§0PORTAL') = #title_text)",
+              "target_property_name": "#visible"
+            }
+          ]
+        }
+      },
+      {
+        "subo_modal_root@server_form.subo_modal_root": {
+          "bindings": [
+            {
+              "binding_type": "view",
+              "source_property_name": "(not ((#title_text - '§0§0PORTAL') = #title_text))",
+              "target_property_name": "#visible"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "subo_modal_root": {
+    "type": "panel",
+    "size": [
+      "100%",
+      "100%"
+    ],
+    "controls": [
+      {
+        "portal_name_form@portal_form.portal_name_form": {}
+      },
+      {
+        "portal_list_form@portal_form.portal_list_form": {}
+      },
+      {
+        "exit@portal_form.my_exit_button": {}
+      }
+    ]
+  },
+  // ====================== ACTION FORMS (ActionFormData) ======================
+  "long_form": {
+    "type": "panel",
+    "controls": [
+      {
+        "vanilla_long_form@common_dialogs.main_panel_no_buttons": {
+          "$title_panel": "common_dialogs.standard_title_label",
+          "$title_size": [
+            "100% - 15px",
+            10
+          ],
+          "$title_max_size": [
+            "100% - 15px",
+            10
+          ],
+          "size": [
+            225,
+            200
+          ],
+          "$text_name": "#title_text",
+          "$title_text_binding_type": "none",
+          "$child_control": "server_form.long_form_panel",
+          "layer": 2,
+          "bindings": [
+            {
+              "binding_name": "#title_text"
+            },
+            {
+              "binding_type": "view",
+              // Currently no action-form markers defined – keep vanilla always visible
+              // When you add one, change to: ((#title_text - '§suboShop§') = #title_text)
+              "source_property_name": "((#title_text - '§0§0PORTAL') = #title_text)",
+              "target_property_name": "#visible"
+            }
+          ]
+        }
+      },
+      {
+        "subo_action_root@server_form.subo_action_root": {
+          "bindings": [
+            {
+              "binding_type": "view",
+              "source_property_name": "(not ((#title_text - '§0§0PORTAL') = #title_text))",
+              "target_property_name": "#visible"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "subo_action_root": {
+    "type": "panel",
+    "size": [
+      "100%",
+      "100%"
+    ],
+    "controls": [
+      // Action form panels go here later
+    ]
+  }
+}

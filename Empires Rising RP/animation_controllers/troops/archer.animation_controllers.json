@@ -24,13 +24,13 @@
       "states": {
         "default": {
           "transitions": [
-            { "aiming": "query.has_target || query.property('subo:is_attacking') == 1.0" }
+            { "aiming": "query.has_target" }
           ]
         },
         "aiming": {
           "animations": [ "attack" ],
           "transitions": [
-            { "default": "!query.has_target && query.property('subo:is_attacking') == 0.0" }
+            { "default": "!query.has_target" }
           ]
         }
       }
