@@ -246,7 +246,9 @@ function handleCustomDeath(ev) {
                         options = { damagingProjectile };
                         if (damagingEntity?.isValid) options.damagingEntity = damagingEntity;
                     } else {
-                        options = { cause: cause || "entityAttack" };
+                        // "projectile" is not a valid standalone cause, so fall back
+                        const safeCause = (!cause || cause === "projectile") ? "entityAttack" : cause;
+                        options = { cause: safeCause };
                         if (damagingEntity?.isValid) options.damagingEntity = damagingEntity;
                     }
 
