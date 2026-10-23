@@ -70,6 +70,7 @@
 			},
 			"minecraft:jump.static": {},
 			"minecraft:physics": {},
+            "minecraft:pushable_by_entity": {},
 			"minecraft:nameable": {
 				"allow_name_tag_renaming": true,
 				"always_show": false
@@ -139,7 +140,7 @@
 					"priority": 1,
 					"speed_multiplier": 1.3,
 					"start_distance": 5,
-					"stop_distance": 1
+					"stop_distance": 3
 				},
 				"minecraft:behavior.nearest_attackable_target": {
 					"priority": 3,
@@ -226,7 +227,7 @@
 			"barbarian:patrol_mode": {
 				"minecraft:behavior.random_stroll": {
 					"priority": 5,
-					"speed_multiplier": 0.8
+					"speed_multiplier": 0.6
 				},
 				"minecraft:behavior.nearest_attackable_target": {
 					"priority": 3,

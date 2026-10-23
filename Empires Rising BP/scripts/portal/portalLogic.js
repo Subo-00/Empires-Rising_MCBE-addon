@@ -304,7 +304,8 @@ world.afterEvents.playerPlaceBlock.subscribe(async (ev) => {
 
     const lower = ev.block;
     const dim = lower.dimension;
-    const facing = lower.permutation.getState("minecraft:cardinal_direction") || "north";
+    let facing = lower.permutation.getState("minecraft:cardinal_direction") || "north";
+
 
     const upperLoc = { x: lower.location.x, y: lower.location.y + 1, z: lower.location.z };
     const above = dim.getBlock(upperLoc);
@@ -742,9 +743,9 @@ function ensurePortalTicker() {
                 const off = FACING_OFFSET[data.dest.facing] ?? { x: 0, z: 0 };
 
                 const destLoc = {
-                    x: data.dest.x + 0.5 + off.x,
+                    x: data.dest.x + 0.5 - off.x,
                     y: data.dest.y + 0.05,
-                    z: data.dest.z + 0.5 + off.z
+                    z: data.dest.z + 0.5 - off.z
                 };
 
                 let needDropPortal = false;
@@ -804,7 +805,7 @@ function ensurePortalTicker() {
 
                 const isSameDimension = dimId === data.dest.dim;
 
-                if (isSameDimension) {
+                if (true) {
                     // Same-dimension: collect the following troops so we can move them with the player
                     const troopsToBring = [];
 
@@ -825,8 +826,13 @@ function ensurePortalTicker() {
                         troopsToBring.push(ent);
                     }
 
+                    // Cross-dimension: leave troops behind
+                    forceNearbyTroopsStay(player, TROOP_RADIUS);
+
                     system.runTimeout(() => {
                         try {
+
+
                             player.teleport(destLoc, { dimension: destDim });
                             player.sendMessage(`§bTeleported to "${data.dest.name}"`);
 
@@ -857,35 +863,35 @@ function ensurePortalTicker() {
 
                         } catch { }
 
+
+
                         // Bring the troops a few ticks AFTER the player has arrived
                         system.runTimeout(() => {
                             for (const ent of troopsToBring) {
                                 if (!ent.isValid) continue;
-
-                                const targetLoc = {
-                                    x: destLoc.x + (Math.random() - 0.5) * 1.5,
-                                    y: destLoc.y,
-                                    z: destLoc.z + (Math.random() - 0.5) * 1.5
-                                };
+                                console.warn("here");
 
                                 try {
-                                    ent.teleport(targetLoc);
+                                    ent.teleport(destLoc, { dimension: destDim });
 
                                     // Nudge 3 ticks later – forces client entity update so the owner can see them
                                     system.runTimeout(() => {
                                         if (!ent.isValid) return;
                                         try {
-                                            ent.teleport({
-                                                x: targetLoc.x + 0.01,
-                                                y: targetLoc.y,
-                                                z: targetLoc.z
-                                            });
+                                            ent.teleport(destLoc, { dimension: destDim });
                                         } catch { }
                                     }, 3);
                                 } catch { }
                             }
-                        }, 5);   // 5 ticks after the player teleport
-                    }, 2);
+                        }, 10);   // 5 ticks after the player teleport
+
+                        system.runTimeout(() => {
+
+                            // Resume any troops that were previously left at this destination
+                            restoreNearbyTroops(player, TROOP_RADIUS);
+                        }, 10)
+
+                    }, 5);
 
                 } else {
                     // Cross-dimension: leave troops behind

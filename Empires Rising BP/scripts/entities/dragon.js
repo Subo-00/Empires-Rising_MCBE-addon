@@ -208,6 +208,7 @@ function spawnFireballExplosion(dimension, location, factionTag) {
 
 /** Spawn a fireball from the dragon's mouth aimed at tLoc. */
 function shootFireballAt(dragon, tLoc) {
+
     facePosition(dragon, tLoc);
 
     const loc = dragon.location;
@@ -390,7 +391,7 @@ world.beforeEvents.playerInteractWithEntity.subscribe(ev => {
         if (!dragon.isValid || !player.isValid) return;
         dragon.getComponent("minecraft:rideable")?.addRider(player);
         setDragonRider(dragon.id, player);
-        dragon.triggerEvent("dragon:start_flying");
+        // dragon.triggerEvent("dragon:start_flying");
         dismountedInAir.delete(dragon.id);
     }, 2);
 });
@@ -610,10 +611,13 @@ export function dragonTick(now) {
         // ── Ridden Flight Control ─────────────────────────────────────
         if (currentRider) {
             const isFlying = dragon.getProperty("subo:is_flying");
-            if (!isFlying && !near_ground) {
+
+            if (isFlying && near_ground) {
+                dragon.triggerEvent("dragon:stop_flying");
+            } else if (!isFlying && !near_ground) {
                 dragon.triggerEvent("dragon:start_flying");
             }
-
+            
             // Match rider look direction
             const rot = currentRider.getRotation();
             dragon.setRotation({ x: 0, y: rot.y });
@@ -757,8 +761,9 @@ function fireSpitVolley(dragon, id, now, target) {
     spitCooldown.set(id, now + getSpitCooldown(dragon));
 
     system.runTimeout(() => {
-        if (dragon.isValid && target.isValid) {
+        if (dragon.isValid && target.isValid && dragon.dimension.isChunkLoaded(dragon.location)) {
             facePosition(dragon, target.location);
+
             shootFireballAt(dragon, target.location);
         }
     }, 1);

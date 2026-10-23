@@ -166,12 +166,6 @@ world.afterEvents.entityHitEntity.subscribe(ev => {
     }, 4); // ~0.2s
 });
 
-const names = {
-    "subo:barbarian": "Barbarian",
-    "subo:archer": "Archer",
-    "subo:dragon": "Dragon"
-};
-
 // Disable all friendly fire between same-faction troops and players
 // + handle custom death names / messages
 world.beforeEvents.entityHurt.subscribe(ev => {

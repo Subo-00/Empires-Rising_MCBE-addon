@@ -186,6 +186,9 @@ export function scanTick(players) {
     let totalProcessedSkipped = 0;
 
     for (const player of players) {
+        const dim = player.dimension;
+        if (dim.id !== "minecraft:overworld") continue;
+
         const playerScanStart = Date.now();
 
         // Convert player block position → chunk → region origin (in chunk coords).
@@ -215,7 +218,7 @@ export function scanTick(players) {
             for (let rz = -REGION_SCAN_RADIUS; rz <= REGION_SCAN_RADIUS; rz++) {
                 const regionX = playerRegionX + rx * REGION_SIZE;
                 const regionZ = playerRegionZ + rz * REGION_SIZE;
-                const key = makeRegionKey(player.dimension, regionX, regionZ);
+                const key = makeRegionKey(dim, regionX, regionZ);
 
                 if (processedRegionsCache.has(key)) {
                     processedSkipped++;
@@ -228,7 +231,7 @@ export function scanTick(players) {
                 }
 
                 if (enqueueRegion(
-                    player.dimension,
+                    dim,
                     regionX, regionZ,
                     playerRegionX, playerRegionZ,
                     movementDir

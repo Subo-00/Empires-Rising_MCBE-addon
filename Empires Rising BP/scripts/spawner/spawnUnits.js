@@ -130,7 +130,7 @@ function equipUnit(unit, spawner, type) {
             } catch (e) { }
         }
 
-        // === ARMOR TIER (only the property is needed for your custom render controller + damage logic) ===
+        // === ARMOR TIER (only the property is needed for the custom render controller + damage logic) ===
         const armorTierMap = { "None": 0, "Copper": 1, "Iron": 2, "Diamond": 3, "Netherite": 4 };
         unit.setProperty("subo:armor_material", armorTierMap[armor] ?? 0);
 
@@ -155,5 +155,5 @@ function equipUnit(unit, spawner, type) {
             } catch (e) { }
         }
 
-    }, 0);
+    }, 1);
 }

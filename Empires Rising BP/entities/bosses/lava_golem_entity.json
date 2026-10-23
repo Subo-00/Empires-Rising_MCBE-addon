@@ -23,6 +23,7 @@
             }
         },
         "components": {
+            "minecraft:boss": {"name": "Lava Golem"},
             "minecraft:type_family": {
                 "family": [
                     "lava_golem",

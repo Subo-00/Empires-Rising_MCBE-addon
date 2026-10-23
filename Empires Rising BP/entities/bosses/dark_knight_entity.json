@@ -28,6 +28,7 @@
             }
         },
         "components": {
+            "minecraft:boss": {"name": "Dark Knight"},
             "minecraft:type_family": {
                 "family": [
                     "dark_knight",

@@ -1,5 +1,5 @@
 {
-    "format_version": "1.26.0",
+    "format_version": "1.26.50",
     "minecraft:entity": {
         "description": {
             "identifier": "subo:archer_water",
@@ -75,6 +75,7 @@
                 "allow_name_tag_renaming": true,
                 "always_show": false
             },
+            "minecraft:pushable_by_entity": {},
             "minecraft:tameable": {
                 "probability": 1.0,
                 "tame_items": [
@@ -88,37 +89,37 @@
                     {
                         "def": "subo:arrow_netherite",
                         "filters": {
-                            "test": "float_property",
+                            "test": "int_property",
                             "domain": "subo:weapon_material",
                             "operator": "==",
-                            "value": 4.0
+                            "value": 4
                         }
                     },
                     {
                         "def": "subo:arrow_diamond",
                         "filters": {
-                            "test": "float_property",
+                            "test": "int_property",
                             "domain": "subo:weapon_material",
                             "operator": "==",
-                            "value": 3.0
+                            "value": 3
                         }
                     },
                     {
                         "def": "subo:arrow_iron",
                         "filters": {
-                            "test": "float_property",
+                            "test": "int_property",
                             "domain": "subo:weapon_material",
                             "operator": "==",
-                            "value": 2.0
+                            "value": 2
                         }
                     },
                     {
                         "def": "subo:arrow_copper",
                         "filters": {
-                            "test": "float_property",
+                            "test": "int_property",
                             "domain": "subo:weapon_material",
                             "operator": "==",
-                            "value": 1.0
+                            "value": 1
                         }
                     },
                     {
@@ -126,19 +127,63 @@
                     }
                 ]
             },
-            "minecraft:behavior.owner_hurt_by_target": {
-                "priority": 1,
-                "entity_types": [
-                    {
-                        "filters": {
-                            "test": "has_tag",
+            "minecraft:behavior.ranged_attack": {
+                "priority": 2,
+                "speed_multiplier": 1.2,
+                "attack_interval": {
+                    "max": 1.8,
+                    "min": 1.8
+                },
+                "attack_range": {
+                    "min": 5,
+                    "max": 30
+                }
+            },
+            "minecraft:area_attack": {
+                "damage_per_tick": 5,
+                "damage_cooldown": 1.7,
+                "damage_range": 0.8,
+                "cause": "entity_attack",
+                "use_self_as_damage_source": true,
+                "entity_filter": {
+                    "any_of": [
+                        {
+                            "test": "is_family",
                             "subject": "other",
-                            "value": "faction:water",
-                            "operator": "!="
+                            "value": "monster"
                         },
-                        "max_dist": 30
-                    }
-                ]
+                        {
+                            "all_of": [
+                                {
+                                    "test": "is_family",
+                                    "subject": "other",
+                                    "value": "subo_troop"
+                                },
+                                {
+                                    "test": "has_tag",
+                                    "subject": "other",
+                                    "value": "faction:water",
+                                    "operator": "!="
+                                }
+                            ]
+                        },
+                        {
+                            "all_of": [
+                                {
+                                    "test": "is_family",
+                                    "subject": "other",
+                                    "value": "player"
+                                },
+                                {
+                                    "test": "has_tag",
+                                    "subject": "other",
+                                    "value": "faction:water",
+                                    "operator": "!="
+                                }
+                            ]
+                        }
+                    ]
+                }
             },
             "minecraft:behavior.nearest_attackable_target": {
                 "priority": 0,
@@ -213,6 +258,20 @@
             },
             "minecraft:behavior.random_look_around": {
                 "priority": 8
+            },
+            "minecraft:behavior.owner_hurt_by_target": {
+                "priority": 1,
+                "entity_types": [
+                    {
+                        "filters": {
+                            "test": "has_tag",
+                            "subject": "other",
+                            "value": "faction:water",
+                            "operator": "!="
+                        },
+                        "max_dist": 30
+                    }
+                ]
             }
         },
         "component_groups": {
@@ -221,17 +280,7 @@
                     "priority": 1,
                     "speed_multiplier": 1.2,
                     "start_distance": 4,
-                    "stop_distance": 1
-                },
-                "minecraft:behavior.ranged_attack": {
-                    "priority": 4,
-                    "speed_multiplier": 0.01,
-                    "attack_interval": 1.8,
-                    "attack_radius": 25.0,
-                    "attack_radius_min": 0.0,
-                    "ranged_fov": 120.0,
-                    "x_max_rotation": 30.0,
-                    "burst_shots": 1
+                    "stop_distance": 3
                 },
                 "minecraft:interact": {
                     "interactions": [
@@ -265,17 +314,7 @@
             "archer:patrol_mode": {
                 "minecraft:behavior.random_stroll": {
                     "priority": 5,
-                    "speed_multiplier": 0.8
-                },
-                "minecraft:behavior.ranged_attack": {
-                    "priority": 2,
-                    "speed_multiplier": 1.5,
-                    "attack_interval": 1.8,
-                    "attack_radius": 28.0,
-                    "attack_radius_min": 2.0,
-                    "ranged_fov": 180.0,
-                    "x_max_rotation": 40.0,
-                    "burst_shots": 1
+                    "speed_multiplier": 0.6
                 },
                 "minecraft:interact": {
                     "interactions": [

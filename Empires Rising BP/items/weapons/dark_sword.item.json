@@ -19,7 +19,17 @@
                 "slot": "sword",
                 "value": 15
             },
-            "minecraft:icon": "dark_sword"
+            "minecraft:icon": "dark_sword",
+            "minecraft:can_destroy_in_creative": false,
+            "minecraft:fire_resistant": {},
+            "minecraft:digger": {
+                "destroy_speeds": [
+                    {
+                        "block": "minecraft:web",
+                        "speed": 16
+                    }
+                ]
+            }
         }
     }
 }

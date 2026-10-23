@@ -25,6 +25,9 @@
       }
     },
     "components": {
+      "minecraft:movable": {
+        "movement_type": "immovable"
+      },
       "minecraft:loot": "loot_tables/empty.json",
       "subo:portal_block": {},
       "minecraft:geometry": "geometry.subo_portal_lower",

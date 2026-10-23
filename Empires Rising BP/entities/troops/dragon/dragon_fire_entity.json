@@ -49,6 +49,7 @@
                     "minecraft:flowing_water"
                 ]
             },
+            "minecraft:pushable_by_entity": {},
             "minecraft:nameable": {
                 "always_show": false,
                 "allow_name_tag_renaming": true
@@ -210,7 +211,7 @@
             },
             "dragon:mounted": {
                 "minecraft:free_camera_controlled": {
-                    "strafe_speed_modifier": 1.0,
+                    "strafe_speed_modifier": 0.5,
                     "backwards_movement_modifier": 0.5
                 },
                 "minecraft:vertical_movement_action": {
@@ -223,9 +224,9 @@
             "dragon:follow_mode": {
                 "minecraft:behavior.follow_owner": {
                     "priority": 1,
-                    "speed_multiplier": 1.0,
+                    "speed_multiplier": 1.3,
                     "start_distance": 3,
-                    "stop_distance": 1
+                    "stop_distance": 2.5
                 },
                 "minecraft:interact": {
                     "interactions": [
@@ -331,7 +332,7 @@
             "dragon:patrol_wander": {
                 "minecraft:behavior.random_stroll": {
                     "priority": 5,
-                    "speed_multiplier": 0.8
+                    "speed_multiplier": 0.6
                 }
             },
             "dragon:state_bite": {
@@ -367,6 +368,13 @@
                 }
             },
             "dragon:grounded": {
+                "minecraft:flying_speed": {
+                    "value": 0.052
+                },
+                "minecraft:friction_modifier": {
+                    "value": 5.0
+                },
+                "minecraft:uses_legacy_friction": {},
                 "minecraft:physics": {
                     "has_gravity": true
                 },

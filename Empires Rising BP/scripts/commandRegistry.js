@@ -15,8 +15,8 @@ system.beforeEvents.startup.subscribe((init) => {
     system.run(() => {
       const { x, y, z } = player.location;
       // placeNetherFortress(x, y, z);
-      testDynamicProperties(player);
-      // buildCamp(player.dimension, x, y, z, true);
+      // testDynamicProperties(player);
+      buildCamp(player.dimension, x, y, z, true);
     });
   });
 });
@@ -63,93 +63,4 @@ async function placeNetherFortress(baseX, baseY, baseZ, width = 150, depth = 150
   // --- 3. Remove the ticking area ---
   world.tickingAreaManager.removeTickingArea(taId);
 
-}
-
-/**
- * Test function – only works on non-stackable items
- * (max stack size === 1)
- */
-export function testDynamicProperties(player) {
-  const inventory = player.getComponent("inventory");
-  if (!inventory || !inventory.container) {
-    player.sendMessage("§cNo inventory component found!");
-    return;
-  }
-
-  const container = inventory.container;
-  const size = container.size;
-
-  let totalItems = 0;
-  let nonStackableItems = 0;
-  let totalPropsWritten = 0;
-  let totalPropsRead = 0;
-
-  // ---------- WRITE PHASE ----------
-  for (let slot = 0; slot < size; slot++) {
-    const item = container.getItem(slot);
-    if (!item) continue;
-
-    totalItems++;
-
-    // Skip stackable items
-    if (item.maxAmount > 1) {
-      console.warn(`§7[SKIP] Slot ${slot} (${item.typeId}) is stackable (maxAmount=${item.maxAmount})`);
-      continue;
-    }
-
-    nonStackableItems++;
-    console.warn(`§a[WRITE] Slot ${slot} (${item.typeId}) – writing 500 properties...`);
-
-    for (let i = 0; i < 500; i++) {
-      const key = `test:prop_${i}`;
-      const value = `slot${slot}_value_${i}`;
-      item.setDynamicProperty(key, value);
-      totalPropsWritten++;
-    }
-
-    // Write the modified item back
-    container.setItem(slot, item);
-  }
-
-  console.warn(`§e[WRITE SUMMARY] Total items in inventory: ${totalItems}`);
-  console.warn(`§e[WRITE SUMMARY] Non-stackable items processed: ${nonStackableItems}`);
-  console.warn(`§e[WRITE SUMMARY] Properties written: ${totalPropsWritten}`);
-
-  if (nonStackableItems === 0) {
-    console.warn("§cNo non-stackable items found! Put swords, tools, armor, etc. in your inventory and try again.");
-    return;
-  }
-
-  // ---------- READ PHASE ----------
-  system.runTimeout(() => {
-    for (let slot = 0; slot < size; slot++) {
-      const item = container.getItem(slot);
-      if (!item || item.maxAmount > 1) continue;
-
-      const ids = item.getDynamicPropertyIds();
-      const byteCount = item.getDynamicPropertyTotalByteCount();
-
-      console.warn(`§b[READ] Slot ${slot} (${item.typeId}) → ${ids.length} properties, ${byteCount} bytes`);
-
-      // Uncomment the next lines if you really want to see every single property
-      // for (const id of ids) {
-      //     console.warn(`    ${id} = ${item.getDynamicProperty(id)}`);
-      // }
-
-      totalPropsRead += ids.length;
-    }
-
-    console.warn("§d========== FINAL RESULT ==========");
-    console.warn(`§dItems in inventory: ${totalItems}`);
-    console.warn(`§dNon-stackable items tested: ${nonStackableItems}`);
-    console.warn(`§dProperties written: ${totalPropsWritten}`);
-    console.warn(`§dProperties read back: ${totalPropsRead}`);
-    console.warn(`§dExpected: ${nonStackableItems * 500}`);
-
-    if (totalPropsRead === nonStackableItems * 500) {
-      console.warn("§a✓ SUCCESS – all 500 properties per non-stackable item were stored and retrieved!");
-    } else {
-      console.warn("§c✗ MISMATCH – some properties are missing or were not written.");
-    }
-  }, 5);
 }
