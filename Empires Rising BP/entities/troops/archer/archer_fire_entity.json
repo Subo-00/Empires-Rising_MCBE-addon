@@ -75,6 +75,16 @@
                 "allow_name_tag_renaming": true,
                 "always_show": false
             },
+            "minecraft:healable": {
+                "force_use": false,
+                "items": [
+                    {
+                        "item": "bread",
+                        "heal_amount": 2
+                    }
+                ]
+            },
+            "minecraft:behavior.open_door": {},
             "minecraft:pushable_by_entity": {},
             "minecraft:tameable": {
                 "probability": 1.0,
@@ -127,18 +137,6 @@
                     }
                 ]
             },
-            "minecraft:behavior.ranged_attack": {
-                "priority": 2,
-                "speed_multiplier": 1.2,
-                "attack_interval": {
-                    "max": 1.8,
-                    "min": 1.8
-                },
-                "attack_range": {
-                    "min": 5,
-                    "max": 30
-                }
-            },
             "minecraft:area_attack": {
                 "damage_per_tick": 5,
                 "damage_cooldown": 1.7,
@@ -186,11 +184,11 @@
                 }
             },
             "minecraft:behavior.nearest_attackable_target": {
-                "priority": 0,
-                "within_radius": 35,
+                "priority": 2,
+                "within_radius": 30,
                 "reselect_targets": true,
                 "must_see": true,
-                "must_see_forget_duration": 3.0,
+                "must_see_forget_duration": 0.5,
                 "entity_types": [
                     {
                         "filters": {
@@ -198,7 +196,7 @@
                             "subject": "other",
                             "value": "monster"
                         },
-                        "max_dist": 35
+                        "max_dist": 30
                     },
                     {
                         "filters": {
@@ -216,7 +214,7 @@
                                 }
                             ]
                         },
-                        "max_dist": 35
+                        "max_dist": 30
                     },
                     {
                         "filters": {
@@ -234,7 +232,7 @@
                                 }
                             ]
                         },
-                        "max_dist": 35
+                        "max_dist": 30
                     }
                 ]
             },
@@ -248,7 +246,7 @@
                             "value": "faction:fire",
                             "operator": "!="
                         },
-                        "max_dist": 35
+                        "max_dist": 30
                     }
                 ]
             },
@@ -282,6 +280,18 @@
                     "start_distance": 4,
                     "stop_distance": 3
                 },
+                "minecraft:behavior.ranged_attack": {
+                    "priority": 2,
+                    "speed_multiplier": 0.2,
+                    "attack_interval": {
+                        "max": 1.8,
+                        "min": 1.8
+                    },
+                    "attack_range": {
+                        "min": 5,
+                        "max": 30
+                    }
+                },
                 "minecraft:interact": {
                     "interactions": [
                         {
@@ -314,7 +324,19 @@
             "archer:patrol_mode": {
                 "minecraft:behavior.random_stroll": {
                     "priority": 5,
-                    "speed_multiplier": 0.6
+                    "speed_multiplier": 0.4
+                },
+                "minecraft:behavior.ranged_attack": {
+                    "priority": 2,
+                    "speed_multiplier": 1.3,
+                    "attack_interval": {
+                        "max": 1.8,
+                        "min": 1.8
+                    },
+                    "attack_range": {
+                        "min": 5,
+                        "max": 30
+                    }
                 },
                 "minecraft:interact": {
                     "interactions": [

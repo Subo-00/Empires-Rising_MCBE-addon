@@ -826,74 +826,77 @@ function ensurePortalTicker() {
                         troopsToBring.push(ent);
                     }
 
-                    // Cross-dimension: leave troops behind
-                    forceNearbyTroopsStay(player, TROOP_RADIUS);
+                    try {
 
-                    system.runTimeout(() => {
-                        try {
+                        // Bring the troops
+                        for (const ent of troopsToBring) {
+                            if (!ent.isValid) continue;
+                            ent.teleport(destLoc, { dimension: destDim });
+                        }
 
-
-                            player.teleport(destLoc, { dimension: destDim });
+                        system.runTimeout(() => {
                             player.sendMessage(`§bTeleported to "${data.dest.name}"`);
+                            player.teleport(destLoc, { dimension: destDim });
+                        }, 1);
 
-                            if (needDropPortal) {
-                                system.runTimeout(() => {
-                                    try {
-                                        player.dimension.spawnItem(new ItemStack("subo:portal", 1), player.location);
-                                        player.sendMessage("§eInventory full – portal dropped at your feet.");
-                                    } catch { }
-                                }, 10);
-                            }
-
-                            // 0.5 seconds later: snap back if the game put the player too far away
+                        if (needDropPortal) {
                             system.runTimeout(() => {
-                                if (!player.isValid) return;
                                 try {
-                                    const pos = player.location;
-                                    const dx = pos.x - destLoc.x;
-                                    const dy = pos.y - destLoc.y;
-                                    const dz = pos.z - destLoc.z;
-                                    const distSq = dx * dx + dy * dy + dz * dz;
-
-                                    if (distSq > 0.5) {   // > 1 block
-                                        player.teleport(destLoc, { dimension: destDim });
-                                    }
+                                    player.dimension.spawnItem(new ItemStack("subo:portal", 1), player.location);
+                                    player.sendMessage("§eInventory full – portal dropped at your feet.");
                                 } catch { }
                             }, 10);
+                        }
 
-                        } catch { }
-
-
-
-                        // Bring the troops a few ticks AFTER the player has arrived
+                        // 0.5 seconds later: snap back if the game put the player too far away
                         system.runTimeout(() => {
-                            for (const ent of troopsToBring) {
-                                if (!ent.isValid) continue;
-                                console.warn("here");
+                            if (!player.isValid) return;
+                            try {
+                                const pos = player.location;
+                                const dx = pos.x - destLoc.x;
+                                const dy = pos.y - destLoc.y;
+                                const dz = pos.z - destLoc.z;
+                                const distSq = dx * dx + dy * dy + dz * dz;
 
-                                try {
-                                    ent.teleport(destLoc, { dimension: destDim });
+                                if (distSq > 0.5) {   // > 1 block
+                                    player.teleport(destLoc, { dimension: destDim });
+                                }
+                            } catch { }
+                        }, 10);
 
-                                    // Nudge 3 ticks later – forces client entity update so the owner can see them
-                                    system.runTimeout(() => {
-                                        if (!ent.isValid) return;
-                                        try {
-                                            ent.teleport(destLoc, { dimension: destDim });
-                                        } catch { }
-                                    }, 3);
-                                } catch { }
-                            }
-                        }, 10);   // 5 ticks after the player teleport
+                        // Nudge troops 3 ticks later – forces client entity update so the owner can see them
+                        for (const ent of troopsToBring) {
+                            if (!ent.isValid) continue;
+                            ent.teleport(destLoc, { dimension: destDim });
+                        }
 
-                        system.runTimeout(() => {
+                    } catch { }
 
-                            // Resume any troops that were previously left at this destination
-                            restoreNearbyTroops(player, TROOP_RADIUS);
-                        }, 10)
 
-                    }, 5);
 
-                } else {
+                    // // Bring the troops a few ticks AFTER the player has arrived
+                    // system.runTimeout(() => {
+                    //     for (const ent of troopsToBring) {
+                    //         if (!ent.isValid) continue;
+                    //         console.warn("terleporting troop");
+
+
+                    //         try {
+                    //             ent.teleport(destLoc, { dimension: destDim });
+
+                    //             // Nudge 3 ticks later – forces client entity update so the owner can see them
+                    //             system.runTimeout(() => {
+                    //                 if (!ent.isValid) return;
+                    //                 try {
+                    //                     ent.teleport(destLoc, { dimension: destDim });
+                    //                 } catch { }
+                    //             }, 3);
+                    //         } catch { }
+                    //     }
+                    // }, 1);   // 5 ticks after the player teleport
+                }
+
+                else {
                     // Cross-dimension: leave troops behind
                     forceNearbyTroopsStay(player, TROOP_RADIUS);
 

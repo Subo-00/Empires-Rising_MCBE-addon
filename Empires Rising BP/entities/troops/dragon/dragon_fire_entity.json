@@ -49,10 +49,20 @@
                     "minecraft:flowing_water"
                 ]
             },
+            "minecraft:leashable": {},
             "minecraft:pushable_by_entity": {},
             "minecraft:nameable": {
                 "always_show": false,
                 "allow_name_tag_renaming": true
+            },
+            "minecraft:healable": {
+                "force_use": false,
+                "items": [
+                    {
+                        "item": "magma_cream",
+                        "heal_amount": 2
+                    }
+                ]
             },
             "minecraft:health": {
                 "value": 20,
@@ -124,87 +134,6 @@
         },
         "component_groups": {
             "dragon:unmounted": {
-                "minecraft:behavior.nearest_attackable_target": {
-                    "priority": 3,
-                    "within_radius": 40,
-                    "reselect_targets": true,
-                    "must_see": true,
-                    "must_see_forget_duration": 4.0,
-                    "entity_types": [
-                        {
-                            "filters": {
-                                "test": "is_family",
-                                "subject": "other",
-                                "value": "monster"
-                            },
-                            "max_dist": 40
-                        },
-                        {
-                            "filters": {
-                                "all_of": [
-                                    {
-                                        "test": "is_family",
-                                        "subject": "other",
-                                        "value": "subo_troop"
-                                    },
-                                    {
-                                        "test": "has_tag",
-                                        "subject": "other",
-                                        "value": "faction:fire",
-                                        "operator": "!="
-                                    }
-                                ]
-                            },
-                            "max_dist": 40
-                        },
-                        {
-                            "filters": {
-                                "all_of": [
-                                    {
-                                        "test": "is_family",
-                                        "subject": "other",
-                                        "value": "player"
-                                    },
-                                    {
-                                        "test": "has_tag",
-                                        "subject": "other",
-                                        "value": "faction:fire",
-                                        "operator": "!="
-                                    }
-                                ]
-                            },
-                            "max_dist": 40
-                        }
-                    ]
-                },
-                "minecraft:behavior.hurt_by_target": {
-                    "priority": 1,
-                    "entity_types": [
-                        {
-                            "filters": {
-                                "test": "has_tag",
-                                "subject": "other",
-                                "value": "faction:fire",
-                                "operator": "!="
-                            },
-                            "max_dist": 30
-                        }
-                    ]
-                },
-                "minecraft:behavior.owner_hurt_by_target": {
-                    "priority": 1,
-                    "entity_types": [
-                        {
-                            "filters": {
-                                "test": "has_tag",
-                                "subject": "other",
-                                "value": "faction:fire",
-                                "operator": "!="
-                            },
-                            "max_dist": 10
-                        }
-                    ]
-                },
                 "minecraft:movement": {
                     "value": 0.4
                 }
@@ -243,6 +172,13 @@
                                             "test": "is_sneaking",
                                             "subject": "other",
                                             "value": false
+                                        },
+                                        {
+                                            "test": "has_equipment",
+                                            "subject": "other",
+                                            "domain": "hand",
+                                            "operator": "!=",
+                                            "value": "minecraft:lead"
                                         }
                                     ]
                                 },
@@ -294,6 +230,13 @@
                                             "test": "is_sneaking",
                                             "subject": "other",
                                             "value": false
+                                        },
+                                        {
+                                            "test": "has_equipment",
+                                            "subject": "other",
+                                            "domain": "hand",
+                                            "operator": "!=",
+                                            "value": "minecraft:lead"
                                         }
                                     ]
                                 },
@@ -372,7 +315,7 @@
                     "value": 0.052
                 },
                 "minecraft:friction_modifier": {
-                    "value": 5.0
+                    "value": 0.96
                 },
                 "minecraft:uses_legacy_friction": {},
                 "minecraft:physics": {

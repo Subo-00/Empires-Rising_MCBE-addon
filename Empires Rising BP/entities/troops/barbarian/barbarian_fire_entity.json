@@ -75,6 +75,11 @@
 				"allow_name_tag_renaming": true,
 				"always_show": false
 			},
+			"minecraft:healable": {
+				"force_use": false,
+				"items": [{"item":"bread","heal_amount":2}]
+			},
+            "minecraft:behavior.open_door": {},
 			"minecraft:tameable": {
 				"probability": 1.0,
 				"tame_items": [
@@ -155,7 +160,7 @@
 								"subject": "other",
 								"value": "monster"
 							},
-							"max_dist": 10
+							"max_dist": 3
 						},
 						{
 							"filters": {
@@ -173,7 +178,7 @@
 									}
 								]
 							},
-							"max_dist": 10
+							"max_dist": 3
 						},
 						{
 							"filters": {
@@ -191,7 +196,7 @@
 									}
 								]
 							},
-							"max_dist": 10
+							"max_dist": 3
 						}
 					]
 				},
@@ -227,11 +232,11 @@
 			"barbarian:patrol_mode": {
 				"minecraft:behavior.random_stroll": {
 					"priority": 5,
-					"speed_multiplier": 0.6
+					"speed_multiplier": 0.4
 				},
 				"minecraft:behavior.nearest_attackable_target": {
 					"priority": 3,
-					"within_radius": 35,
+					"within_radius": 20,
 					"reselect_targets": true,
 					"must_see": true,
 					"must_see_forget_duration": 4.0,
@@ -242,7 +247,7 @@
 								"subject": "other",
 								"value": "monster"
 							},
-							"max_dist": 35
+							"max_dist": 20
 						},
 						{
 							"filters": {
@@ -260,7 +265,7 @@
 									}
 								]
 							},
-							"max_dist": 35
+							"max_dist": 20
 						},
 						{
 							"filters": {
@@ -278,7 +283,7 @@
 									}
 								]
 							},
-							"max_dist": 35
+							"max_dist": 20
 						}
 					]
 				},
