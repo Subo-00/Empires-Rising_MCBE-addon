@@ -1,5 +1,5 @@
 {
-    "format_version": "1.20.0",
+    "format_version": "1.26.50",
     "minecraft:entity": {
         "description": {
             "identifier": "subo:lava_golem",
@@ -23,7 +23,9 @@
             }
         },
         "components": {
-            "minecraft:boss": {"name": "Lava Golem"},
+            "minecraft:boss": {
+                "name": "Lava Golem"
+            },
             "minecraft:type_family": {
                 "family": [
                     "lava_golem",
@@ -64,6 +66,10 @@
                     {
                         "cause": "magic",
                         "deals_damage": "no"
+                    },
+                    {
+                        "cause": "projectile",
+                        "deals_damage": "no"
                     }
                 ]
             },
@@ -85,7 +91,6 @@
             "minecraft:attack": {
                 "damage": 0
             },
-            "minecraft:burns_in_daylight": false,
             "minecraft:loot": {
                 "table": "loot_tables/entities/lava_golem.json"
             },

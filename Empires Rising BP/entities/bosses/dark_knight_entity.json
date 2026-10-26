@@ -1,5 +1,5 @@
 {
-    "format_version": "1.20.0",
+    "format_version": "1.26.50",
     "minecraft:entity": {
         "description": {
             "identifier": "subo:dark_knight",
@@ -8,10 +8,7 @@
             "properties": {
                 "subo:attack_state": {
                     "type": "int",
-                    "range": [
-                        0,
-                        5
-                    ],
+                    "range": [0, 4],
                     "default": 0,
                     "client_sync": true
                 },
@@ -30,11 +27,7 @@
         "components": {
             "minecraft:boss": {"name": "Dark Knight"},
             "minecraft:type_family": {
-                "family": [
-                    "dark_knight",
-                    "boss",
-                    "monster"
-                ]
+                "family": ["dark_knight", "boss", "monster"]
             },
             "minecraft:health": {
                 "value": 300,
@@ -54,9 +47,7 @@
                 "value": 1
             },
             "minecraft:mob_effect_immunity": {
-                "mob_effects": [
-                    "poison"
-                ]
+                "mob_effects": ["poison"]
             },
             "minecraft:damage_sensor": {
                 "triggers": [
@@ -72,6 +63,10 @@
                     },
                     {
                         "cause": "magic",
+                        "deals_damage": "no"
+                    },
+                    {
+                        "cause": "projectile",
                         "deals_damage": "no"
                     }
                 ]
@@ -240,15 +235,6 @@
                     "priority": 99
                 }
             },
-            "dark_knight:state_blink": {
-                "minecraft:timer": {
-                    "time": 1.2,
-                    "time_down_event": {
-                        "event": "dark_knight:end_attack",
-                        "target": "self"
-                    }
-                }
-            },
             "dark_knight:taunt_timer": {
                 "minecraft:timer": {
                     "time": 3.0,
@@ -265,14 +251,10 @@
                     "subo:attack_state": 1
                 },
                 "remove": {
-                    "component_groups": [
-                        "dark_knight:state_basic"
-                    ]
+                    "component_groups": ["dark_knight:state_basic"]
                 },
                 "add": {
-                    "component_groups": [
-                        "dark_knight:state_basic"
-                    ]
+                    "component_groups": ["dark_knight:state_basic"]
                 }
             },
             "dark_knight:start_spin": {
@@ -280,14 +262,10 @@
                     "subo:attack_state": 2
                 },
                 "remove": {
-                    "component_groups": [
-                        "dark_knight:state_spin"
-                    ]
+                    "component_groups": ["dark_knight:state_spin"]
                 },
                 "add": {
-                    "component_groups": [
-                        "dark_knight:state_spin"
-                    ]
+                    "component_groups": ["dark_knight:state_spin"]
                 }
             },
             "dark_knight:start_leap": {
@@ -295,16 +273,10 @@
                     "subo:attack_state": 3
                 },
                 "remove": {
-                    "component_groups": [
-                        "dark_knight:state_leap",
-                        "dark_knight:dashing"
-                    ]
+                    "component_groups": ["dark_knight:state_leap", "dark_knight:dashing"]
                 },
                 "add": {
-                    "component_groups": [
-                        "dark_knight:state_leap",
-                        "dark_knight:dashing"
-                    ]
+                    "component_groups": ["dark_knight:state_leap", "dark_knight:dashing"]
                 }
             },
             "dark_knight:start_heal": {
@@ -312,29 +284,10 @@
                     "subo:attack_state": 4
                 },
                 "remove": {
-                    "component_groups": [
-                        "dark_knight:state_heal"
-                    ]
+                    "component_groups": ["dark_knight:state_heal"]
                 },
                 "add": {
-                    "component_groups": [
-                        "dark_knight:state_heal"
-                    ]
-                }
-            },
-            "dark_knight:start_blink": {
-                "set_property": {
-                    "subo:attack_state": 5
-                },
-                "remove": {
-                    "component_groups": [
-                        "dark_knight:state_blink"
-                    ]
-                },
-                "add": {
-                    "component_groups": [
-                        "dark_knight:state_blink"
-                    ]
+                    "component_groups": ["dark_knight:state_heal"]
                 }
             },
             "dark_knight:use_basic1": {
@@ -358,14 +311,11 @@
                         "dark_knight:state_spin",
                         "dark_knight:state_leap",
                         "dark_knight:dashing",
-                        "dark_knight:state_heal",
-                        "dark_knight:state_blink"
+                        "dark_knight:state_heal"
                     ]
                 },
                 "add": {
-                    "component_groups": [
-                        "dark_knight:restore_movement"
-                    ]
+                    "component_groups": ["dark_knight:restore_movement"]
                 }
             },
             "dark_knight:start_taunt": {
@@ -373,9 +323,7 @@
                     "subo:is_taunting": true
                 },
                 "add": {
-                    "component_groups": [
-                        "dark_knight:taunt_timer"
-                    ]
+                    "component_groups": ["dark_knight:taunt_timer"]
                 }
             },
             "dark_knight:end_taunt": {
@@ -383,9 +331,7 @@
                     "subo:is_taunting": false
                 },
                 "remove": {
-                    "component_groups": [
-                        "dark_knight:taunt_timer"
-                    ]
+                    "component_groups": ["dark_knight:taunt_timer"]
                 }
             }
         }

@@ -1,7 +1,7 @@
 import { system, world } from "@minecraft/server";
 import {
     BASIC_COOLDOWN_TICKS, SPIN_COOLDOWN_TICKS, LEAP_COOLDOWN_TICKS,
-    HEAL_COOLDOWN_TICKS, BLINK_COOLDOWN_TICKS,
+    HEAL_COOLDOWN_TICKS, HEAL_AMOUNT,
     BASIC_RANGE, SPIN_RANGE, LEAP_MAX_RANGE, DETECTION_RANGE,
     BASIC_DAMAGE, SPIN_DAMAGE, LAST_HIT_TIMEOUT
 } from "../config/entities/darkKnightConfig.js";
@@ -14,7 +14,6 @@ const basicCooldown = new Map();
 const spinCooldown = new Map();
 const leapCooldown = new Map();
 const healCooldown = new Map();
-const blinkCooldown = new Map();
 
 const hasTaunted = new Set();
 const knightTargets = new Map();   // knightId → { entity, tick }
@@ -43,7 +42,6 @@ world.afterEvents.entityDie.subscribe((event) => {
         spinCooldown.delete(id);
         leapCooldown.delete(id);
         healCooldown.delete(id);
-        blinkCooldown.delete(id);
         knightTargets.delete(id);
         useBasic2Map.delete(id);
     }
@@ -130,21 +128,6 @@ function stopHealingParticles(knightId) {
     }
 }
 
-function spawnEnderPearlParticles(dimension, loc) {
-    for (let i = 0; i < 10; i++) {
-        const offsetX = (Math.random() - 0.5) * 1.2;
-        const offsetY = Math.random() * 1.8;
-        const offsetZ = (Math.random() - 0.5) * 1.2;
-        try {
-            dimension.spawnParticle("minecraft:mob_portal", {
-                x: loc.x + offsetX,
-                y: loc.y + offsetY,
-                z: loc.z + offsetZ
-            });
-        } catch { }
-    }
-}
-
 // ────────────────────────────────────────────────
 // MAIN TICK
 // ────────────────────────────────────────────────
@@ -174,7 +157,6 @@ export function darkKnightTick(currentTick) {
         const nextSpin = spinCooldown.get(knightId) ?? 0;
         const nextLeap = leapCooldown.get(knightId) ?? 0;
         const nextHeal = healCooldown.get(knightId) ?? 0;
-        const nextBlink = blinkCooldown.get(knightId) ?? 0;
 
         const healthComp = knight.getComponent("minecraft:health");
 
@@ -303,41 +285,6 @@ export function darkKnightTick(currentTick) {
             continue;
         }
 
-        // === BLINK / TELEPORT ===
-        if (dist >= 8 && dist <= 25 && currentTick >= nextBlink) {
-            if (!hasLineOfSight(knight, target)) continue;
-            const BLINK_TELEPORT_TICK = 30; // 75 % of the 2-second heal anim
-
-            knight.triggerEvent("dark_knight:start_blink");
-            blinkCooldown.set(knightId, currentTick + BLINK_COOLDOWN_TICKS);
-            resetAttackState(knight, 40);
-
-            const originLoc = { ...knight.location };
-            spawnEnderPearlParticles(knight.dimension, originLoc);
-
-            system.runTimeout(() => {
-                if (!knight?.isValid || !target?.isValid) return;
-
-                const dx = target.location.x - knight.location.x;
-                const dz = target.location.z - knight.location.z;
-                const distToTarget = Math.sqrt(dx * dx + dz * dz);
-
-                if (distToTarget < 3) return;
-
-                const teleportDist = 0.5;
-                const tx = target.location.x - (dx / distToTarget) * teleportDist;
-                const tz = target.location.z - (dz / distToTarget) * teleportDist;
-                const ty = target.location.y + 0.1;
-                const destLoc = { x: tx, y: ty, z: tz };
-
-                spawnEnderPearlParticles(knight.dimension, originLoc);
-                knight.teleport(destLoc, { checkForBlocks: false });
-                spawnEnderPearlParticles(knight.dimension, destLoc);
-            }, BLINK_TELEPORT_TICK);
-
-            continue;
-        }
-
         // === HEAL (only as last resort) ===
         // Conditions:
         // - Not at full health
@@ -349,7 +296,7 @@ export function darkKnightTick(currentTick) {
 
             if (healthComp) {
                 // Heal to full max health
-                healthComp.setCurrentValue(healthComp.effectiveMax);
+                healthComp.setCurrentValue(Math.min(healthComp.currentValue + HEAL_AMOUNT, healthComp.effectiveMax));
             }
 
             startHealingParticles(knight);

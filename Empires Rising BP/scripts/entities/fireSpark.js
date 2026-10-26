@@ -4,7 +4,7 @@ import {
     LEAP_TIMEOUT_MS, EXPLOSION_DAMAGE, FIRE_SECONDS,
     FIRE_SPARK_DIMENSIONS
 } from "../config/entities/fireSparkConfig.js";
-import { isSimpleValidTarget, distSq3D } from "./entityHelpers.js";
+import { isSimpleValidTarget, distSq3D, hasLineOfSight } from "./entityHelpers.js";
 
 const leapedSparks = new Map();  // Now stores {targetId, launchTime}
 
@@ -20,6 +20,7 @@ function getNearestTarget(spark) {
 
     for (const e of entities) {
         if (e.id === spark.id || !isSimpleValidTarget(e)) continue;
+        if (!hasLineOfSight(spark, e)) continue;
 
         const distSq = distSq3D(spark.location, e.location);
         if (distSq < bestDistSq) {
@@ -84,7 +85,7 @@ export function fireSparkTick() {
                     }
                 }
 
-                // Safety timeout (max 2 seconds in air)
+                // Safety timeout (max 2 seconds in air) — always explode + damage nearest if close
                 if (Date.now() - data.launchTime > LEAP_TIMEOUT_MS) {
                     triggerExplosion(spark);
                 }
@@ -140,14 +141,35 @@ function triggerExplosion(spark, target = null) {
         });
     } catch { }
 
-    // Damage target if we actually hit
-    if (target?.isValid) {
+    // Prefer the provided target; otherwise only damage if something is < 0.3 blocks away
+    let damageTarget = target?.isValid ? target : null;
+
+    if (!damageTarget) {
+        const blastRadius = 0.3;
+        const nearby = spark.dimension.getEntities({
+            location: loc,
+            maxDistance: blastRadius,
+            excludeTypes: ["minecraft:item"]
+        });
+
+        let bestDistSq = Infinity;
+        for (const e of nearby) {
+            if (e.id === spark.id || !isSimpleValidTarget(e)) continue;
+            const dSq = distSq3D(loc, e.location);
+            if (dSq < bestDistSq) {
+                bestDistSq = dSq;
+                damageTarget = e;
+            }
+        }
+    }
+
+    if (damageTarget?.isValid) {
         try {
-            target.applyDamage(EXPLOSION_DAMAGE, {
+            damageTarget.applyDamage(EXPLOSION_DAMAGE, {
                 cause: "entityExplosion",
                 damagingEntity: spark
             });
-            target.setOnFire(FIRE_SECONDS, true);
+            damageTarget.setOnFire(FIRE_SECONDS, true);
         } catch { }
     }
 

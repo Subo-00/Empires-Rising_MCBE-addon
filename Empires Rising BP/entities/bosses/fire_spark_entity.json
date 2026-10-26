@@ -65,6 +65,7 @@
                 "within_radius": 24,
                 "reselect_targets": true,
                 "must_see": false,
+                "must_reach": true,
                 "entity_types": [
                     {
                         "filters": {
