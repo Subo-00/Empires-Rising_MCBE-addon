@@ -25,10 +25,10 @@ export const LOOT_TIERS = {
     "subo:random_chest_2": {
         rolls: 6,
         pool: [
-            { id: "minecraft:iron_ingot", weight: 200, min: 5, max: 13 },
+            { id: "minecraft:iron_ingot", weight: 200, min: 2, max: 5 },
             { id: "minecraft:gold_ingot", weight: 100, min: 3, max: 9 },
-            { id: "minecraft:emerald", weight: 60, min: 1, max: 5 },
-            { id: "minecraft:diamond", weight: 50, min: 1, max: 3 },
+            { id: "minecraft:emerald", weight: 60, min: 1, max: 3 },
+            { id: "minecraft:diamond", weight: 50, min: 1, max: 4 },
             { id: "minecraft:experience_bottle", weight: 30, min: 10, max: 32 },
             { id: "minecraft:netherite_scrap", weight: 30, min: 1, max: 2 },
             { id: "minecraft:golden_apple", weight: 20, min: 1, max: 2 },

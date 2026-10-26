@@ -386,6 +386,9 @@ world.beforeEvents.playerInteractWithEntity.subscribe(ev => {
         system.run(() => fireBlaster(player, mainhand)); // fire it manually since onUse won't trigger here
         return;
     }
+    if (["subo:potion_blaster", "minecraft:magma_cream", "minecraft:lead"].includes(mainhand?.typeId)) {
+        return;
+    }
 
     system.runTimeout(() => {
         if (!dragon.isValid || !player.isValid) return;
@@ -617,7 +620,7 @@ export function dragonTick(now) {
             } else if (!isFlying && !near_ground) {
                 dragon.triggerEvent("dragon:start_flying");
             }
-            
+
             // Match rider look direction
             const rot = currentRider.getRotation();
             dragon.setRotation({ x: 0, y: rot.y });

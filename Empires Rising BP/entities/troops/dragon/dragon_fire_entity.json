@@ -179,6 +179,13 @@
                                             "domain": "hand",
                                             "operator": "!=",
                                             "value": "minecraft:lead"
+                                        },
+                                        {
+                                            "test": "has_equipment",
+                                            "subject": "other",
+                                            "domain": "hand",
+                                            "operator": "!=",
+                                            "value": "minecraft:magma_cream"
                                         }
                                     ]
                                 },
@@ -237,6 +244,13 @@
                                             "domain": "hand",
                                             "operator": "!=",
                                             "value": "minecraft:lead"
+                                        },
+                                        {
+                                            "test": "has_equipment",
+                                            "subject": "other",
+                                            "domain": "hand",
+                                            "operator": "!=",
+                                            "value": "minecraft:magma_cream"
                                         }
                                     ]
                                 },

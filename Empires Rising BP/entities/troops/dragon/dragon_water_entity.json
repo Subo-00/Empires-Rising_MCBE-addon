@@ -53,10 +53,15 @@
                 "always_show": false,
                 "allow_name_tag_renaming": true
             },
-			"minecraft:healable": {
-				"force_use": false,
-				"items": [{"item":"magma_cream","heal_amount":2}]
-			},
+            "minecraft:healable": {
+                "force_use": false,
+                "items": [
+                    {
+                        "item": "magma_cream",
+                        "heal_amount": 2
+                    }
+                ]
+            },
             "minecraft:health": {
                 "value": 20,
                 "max": 20
@@ -255,6 +260,13 @@
                                             "domain": "hand",
                                             "operator": "!=",
                                             "value": "minecraft:lead"
+                                        },
+                                        {
+                                            "test": "has_equipment",
+                                            "subject": "other",
+                                            "domain": "hand",
+                                            "operator": "!=",
+                                            "value": "minecraft:magma_cream"
                                         }
                                     ]
                                 },
@@ -313,6 +325,13 @@
                                             "domain": "hand",
                                             "operator": "!=",
                                             "value": "minecraft:lead"
+                                        },
+                                        {
+                                            "test": "has_equipment",
+                                            "subject": "other",
+                                            "domain": "hand",
+                                            "operator": "!=",
+                                            "value": "minecraft:magma_cream"
                                         }
                                     ]
                                 },
