@@ -60,9 +60,6 @@
       },
       {
         "portal_list_form@portal_form.portal_list_form": {}
-      },
-      {
-        "exit@portal_form.my_exit_button": {}
       }
     ]
   },

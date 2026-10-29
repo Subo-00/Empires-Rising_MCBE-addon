@@ -2,25 +2,23 @@ import { world, system, BlockPermutation, ItemStack } from "@minecraft/server";
 import { ModalFormData, ActionFormData } from "@minecraft/server-ui";
 import { ACTIVE_SECONDS, TROOP_RADIUS } from "../config/itemsConfig.js";
 import { RIFT_DIMENSION_ID } from "../config/rift/riftConfig.js";
-import { getStorageLocation, setTag, getTag, isTroop } from "../spawner/spawnerHelpers.js";
+import { getStorageLocation, setTag, getTag, isTroop } from "../spawner/spawnerHelpers.js"; getPortalNameColor
 import { forceNearbyTroopsStay, restoreNearbyTroops } from "../sharedHelpers/troopTeleport.js";
-
-const PORTAL_BLOCK = "subo:portal";
-const PORTAL_ENTITY = "subo:portal_entity";
-
-const BASE_MARKER = "§0§0PORTAL";
-const NAME_MARKER = "NAME";
-const LIST_MARKER = "LIST";
-
-// Used for compact portal storage on player tags
-const DIM_CODES = { "minecraft:overworld": 0, "minecraft:nether": 1, "minecraft:the_end": 2 };
-const DIM_NAMES = ["minecraft:overworld", "minecraft:nether", "minecraft:the_end"];
-const FACING_CODES = { north: 0, south: 1, west: 2, east: 3 };
-const FACING_NAMES = ["north", "south", "west", "east"];
+import {
+    PORTAL_BLOCK, PORTAL_ENTITY,
+    BASE_MARKER, NAME_MARKER, LIST_MARKER,
+    getPlayerPortals, setPlayerPortals, addPlayerPortal, removePlayerPortalById,
+    getPortalEntity, findPortalAt, portalDataFromEntity, removePortalEntity,
+    getLowerPortalBlock, setActive, playExpandParticle, tryGivePortalItem,
+    cloneBlockLoc, portalKeyFromLoc, lowerLocFromBrokenHalf,
+    getPortalNameColor
+} from "./portalHelpers.js";
 
 // Active portals: Map<"dim:x:y:z", { dest, expireTick, activator }>
 const activePortals = new Map();
 let portalTickId = null;
+
+const formOpenPlayers = new Set();
 
 // Break dedupe:
 // key = "dimension|lowerX|lowerY|lowerZ"
@@ -92,201 +90,6 @@ world.afterEvents.entityLoad.subscribe((ev) => {
     });
 });
 
-// Instead of one big list, store each portal as its own tag:
-// "portal:<id>:<name>:<x>:<y>:<z>:<dimCode>:<facingCode>"
-function getPlayerPortals(player) {
-    if (!player?.isValid) return [];
-    const result = [];
-    for (const tag of player.getTags()) {
-        if (!tag.startsWith("portal:")) continue;
-        const parts = tag.slice(7).split(":");
-        if (parts.length < 7) continue;
-        result.push(expandPortal([
-            parts[0],          // id
-            parts[1],          // name
-            +parts[2], +parts[3], +parts[4],
-            +parts[5], +parts[6]
-        ]));
-    }
-    return result;
-}
-
-function setPlayerPortals(player, portals) {
-    // wipe old ones
-    for (const t of [...player.getTags()]) {
-        if (t.startsWith("portal:")) player.removeTag(t);
-    }
-    for (const p of portals) {
-        const c = compactPortal(p);
-        // keep under 256 easily
-        player.addTag(`portal:${c[0]}:${c[1]}:${c[2]}:${c[3]}:${c[4]}:${c[5]}:${c[6]}`);
-    }
-}
-
-function addPlayerPortal(player, portal) {
-    const list = getPlayerPortals(player);
-    list.push(portal);
-    setPlayerPortals(player, list);
-}
-
-function removePlayerPortalById(player, id) {
-    const list = getPlayerPortals(player).filter(p => p.id !== id);
-    setPlayerPortals(player, list);
-}
-
-/** Turn the compact array back into the object the rest of the code expects */
-function expandPortal(arr) {
-    return {
-        id: arr[0],
-        name: arr[1],
-        x: arr[2],
-        y: arr[3],
-        z: arr[4],
-        dim: DIM_NAMES[arr[5]] ?? "minecraft:overworld",
-        facing: FACING_NAMES[arr[6]] ?? "north"
-    };
-}
-
-/** Turn a normal portal object into the compact array */
-function compactPortal(p) {
-    return [
-        p.id,
-        p.name,
-        Math.floor(p.x),
-        Math.floor(p.y),
-        Math.floor(p.z),
-        DIM_CODES[p.dim] ?? 0,
-        FACING_CODES[p.facing] ?? 0
-    ];
-}
-
-function getPortalEntity(block) {
-    if (!block) return null;
-
-    const storageLoc = getStorageLocation(block);
-
-    const ents = block.dimension.getEntities({
-        type: PORTAL_ENTITY,
-        location: storageLoc,
-        maxDistance: 0.5
-    });
-
-    return ents[0] ?? null;
-}
-
-function findPortalAt(block) {
-    if (!block) return null;
-
-    const entity = getPortalEntity(block);
-    if (entity) {
-        const portal = portalDataFromEntity(entity);
-        if (portal?.id) return { owner: portal.owner, portal, entity };
-    }
-
-    return null;
-}
-
-function portalDataFromEntity(entity) {
-    if (!entity) return null;
-    return {
-        id: getTag(entity, "id:", null),
-        name: getTag(entity, "name:", null),
-        owner: getTag(entity, "owner:", null),
-        x: Number(getTag(entity, "x:", 0)),
-        y: Number(getTag(entity, "y:", 0)),
-        z: Number(getTag(entity, "z:", 0)),
-        dim: (getTag(entity, "dim:", null) || "").replace("_", ":"),   // back to "minecraft:overworld"
-        facing: getTag(entity, "facing:", "north")
-    };
-}
-
-function removePortalEntity(entity) {
-    if (entity?.isValid) entity.remove();
-}
-
-function tryGivePortalItem(player) {
-    const TYPE = "subo:portal";
-    const inv = player.getComponent("inventory")?.container;
-    if (!inv) return false;
-
-    // Prefer adding to an existing stack that still has room
-    for (let i = 0; i < inv.size; i++) {
-        const slot = inv.getItem(i);
-        if (slot && slot.typeId === TYPE && slot.amount < slot.maxAmount) {
-            slot.amount += 1;
-            inv.setItem(i, slot);
-            return true;
-        }
-    }
-
-    // Otherwise use an empty slot
-    if (inv.emptySlotsCount > 0) {
-        inv.addItem(new ItemStack(TYPE, 1));
-        return true;
-    }
-
-    return false; // completely full
-}
-
-function getLowerPortalBlock(block) {
-    if (block.permutation.getState("subo:half") === "upper") {
-        return block.dimension.getBlock({
-            x: block.location.x,
-            y: block.location.y - 1,
-            z: block.location.z
-        });
-    }
-    return block;
-}
-
-function setActive(lowerBlock, active) {
-    if (!lowerBlock || lowerBlock.typeId !== PORTAL_BLOCK) return;
-
-    const upper = lowerBlock.dimension.getBlock({
-        x: lowerBlock.location.x,
-        y: lowerBlock.location.y + 1,
-        z: lowerBlock.location.z
-    });
-
-    try {
-        lowerBlock.setPermutation(
-            lowerBlock.permutation.withState("subo:active", active)
-        );
-        if (upper?.typeId === PORTAL_BLOCK) {
-            upper.setPermutation(
-                upper.permutation.withState("subo:active", active)
-            );
-        }
-    } catch { }
-}
-
-function playExpandParticle(dim, loc, maxRadius = 20) {
-    let t = 0;
-    const id = system.runInterval(() => {
-        t += 1;
-        const progress = t / 40;               // 2 seconds total
-        const radius = progress < 0.5
-            ? maxRadius * (progress * 2)       // grow
-            : maxRadius * (2 - progress * 2);  // shrink
-
-        // spawn a ring of particles
-        try {
-            for (let i = 0; i < TROOP_RADIUS; i++) {
-                const angle = (i / TROOP_RADIUS) * Math.PI * 2;
-                dim.spawnParticle("minecraft:mob_portal", {
-                    x: loc.x + Math.cos(angle) * radius,
-                    y: loc.y + 1,
-                    z: loc.z + Math.sin(angle) * radius
-                });
-            }
-        } catch (error) {
-
-        }
-
-        if (t >= 40) system.clearRun(id);
-    }, 2);
-}
-
 // ===== Placement → name prompt =====
 world.afterEvents.playerPlaceBlock.subscribe(async (ev) => {
     if (ev.block.typeId !== PORTAL_BLOCK) return;
@@ -328,7 +131,7 @@ world.afterEvents.playerPlaceBlock.subscribe(async (ev) => {
         .withState("subo:active", false));
 
     const form = new ModalFormData()
-        .title(BASE_MARKER + NAME_MARKER + "§sName Your Portal")   // or any dynamic string
+        .title(BASE_MARKER + NAME_MARKER + "§uName Your Portal")
         .textField("Portal name (must be unique for you)", "e.g. Home Base");
 
     const response = await form.show(player);
@@ -339,14 +142,28 @@ world.afterEvents.playerPlaceBlock.subscribe(async (ev) => {
         return;
     }
 
-    const name = response.formValues[0].trim();
+    let name = response.formValues[0].trim();
+
+    // Player is not allowed to put § in the name
+    if (name.includes("§")) {
+        tryGivePortalItem(player);
+        removePortalBlocksNoDrop(dim, lower.location);
+        player.sendMessage("§cPortal name cannot contain the § character.");
+        return;
+    }
+
     const existing = getPlayerPortals(player);
-    if (existing.some(p => p.name.toLowerCase() === name.toLowerCase())) {
+    // Compare without color codes so uniqueness is based on the text the player typed
+    if (existing.some(p => p.name.replace(/§./g, "").toLowerCase() === name.toLowerCase())) {
         tryGivePortalItem(player);
         removePortalBlocksNoDrop(dim, lower.location);
         player.sendMessage("§cYou already have a portal named that!");
         return;
     }
+
+    // Prepend biome color
+    const color = getPortalNameColor(dim, lower.location);
+    name = color + name;
 
     // spawn persistence entity (same pattern as purifier)
     system.run(() => {
@@ -374,10 +191,8 @@ world.afterEvents.playerPlaceBlock.subscribe(async (ev) => {
         }
     });
 
-    player.sendMessage(`§aPortal "${name}" created!`);
+    player.sendMessage(`§aPortal "${name}§a" created!`);
 });
-
-const formOpenPlayers = new Set();
 
 // ===== Right-click → choose destination =====
 world.beforeEvents.playerInteractWithBlock.subscribe((ev) => {
@@ -435,9 +250,13 @@ function openPortalConnectForm(player, blockLoc, dimId) {
     }
 
     const form = new ModalFormData()
-        .title(BASE_MARKER + LIST_MARKER + "Portal: " + found.portal.name)
-        .dropdown("Destination", choices.map(p => p.name), { defaultValueIndex: 0 })
-        .toggle("Bring this portal with me", { defaultValue: false });
+        .title(
+            BASE_MARKER + LIST_MARKER +
+            "§d        PORTAL:      \n" +
+            padCenter(found.portal.name, 21)
+        )
+        .dropdown("§l§uDestination", choices.map(p => p.name), { defaultValueIndex: 0 })
+        .toggle("§uBring this portal with me", { defaultValue: false });
 
     form.show(player).then((response) => {
         if (response.canceled || !response.formValues) return;
@@ -449,27 +268,10 @@ function openPortalConnectForm(player, blockLoc, dimId) {
         activatePortal(lower, dest, player, bringPortal); // Passing the lower block
     });
 }
-
-function cloneBlockLoc(loc) {
-    return {
-        x: Math.floor(loc.x),
-        y: Math.floor(loc.y),
-        z: Math.floor(loc.z)
-    };
-}
-
-function portalKeyFromLoc(dimId, loc) {
-    return `${dimId}|${Math.floor(loc.x)}|${Math.floor(loc.y)}|${Math.floor(loc.z)}`;
-}
-
-function lowerLocFromBrokenHalf(loc, half) {
-    const out = cloneBlockLoc(loc);
-
-    if (half === "upper") {
-        out.y -= 1;
-    }
-
-    return out;
+function padCenter(text, width = 22) {
+    const clean = text.replace(/§./g, "");
+    const pad = Math.max(0, Math.floor((width - clean.length) / 2));
+    return " ".repeat(pad) + clean;
 }
 
 function unregisterPortal(found) {
@@ -619,13 +421,13 @@ function activatePortal(block, dest, activator, bringPortal = false) {
         setTag(entity, "activeUntil:", expire);   // expire already computed above
     }
 
-    activator.sendMessage(`§aPortal open to "${dest.name}" for ${ACTIVE_SECONDS} seconds!`);
+    activator.sendMessage(`§aPortal open to "${dest.name}§a" for ${ACTIVE_SECONDS} seconds!`);
     lower.dimension.playSound("portal.trigger", lower.location, { volume: 1, pitch: 1 });
     playExpandParticle(lower.dimension, {
         x: lower.location.x + 0.5,
         y: lower.location.y,
         z: lower.location.z + 0.5
-    });
+    }, 20, TROOP_RADIUS);
 }
 
 // ===== Teleport anyone standing in an active portal =====
@@ -835,7 +637,7 @@ function ensurePortalTicker() {
                         }
 
                         system.runTimeout(() => {
-                            player.sendMessage(`§bTeleported to "${data.dest.name}"`);
+                            player.sendMessage(`§bTeleported to "${data.dest.name}§b"`);
                             player.teleport(destLoc, { dimension: destDim });
                         }, 1);
 

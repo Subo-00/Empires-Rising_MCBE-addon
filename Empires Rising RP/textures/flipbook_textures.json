@@ -15,7 +15,7 @@
   {
     "atlas_tile": "subo_portal_active",
     "flipbook_texture": "textures/blocks/portal/subo_portal_active",
-    "ticks_per_frame": 3,
+    "ticks_per_frame": 4,
     "blend_frames": true
   },
   {

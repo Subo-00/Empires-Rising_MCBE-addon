@@ -4,7 +4,7 @@
         "type": "panel",
         "size": [
             280,
-            200
+            140
         ],
         "anchor_from": "center",
         "anchor_to": "center",
@@ -20,16 +20,15 @@
             {
                 "bg": {
                     "type": "image",
-                    "texture": "textures/ui/portal_bg",
+                    "texture": "textures/ui/portal_name_bg",
                     "size": [
                         "100%",
                         "100%"
                     ],
                     "uv_size": [
-                        14,
-                        15
+                        64,
+                        32
                     ],
-                    "uv": "@portal_form.portal_name_anim",
                     "keep_ratio": false
                 }
             },
@@ -44,7 +43,7 @@
                         1
                     ],
                     "font_type": "MinecraftTen",
-                    "font_scale_factor": 1.5,
+                    "font_scale_factor": 1.8,
                     "anchor_from": "top_middle",
                     "anchor_to": "top_middle",
                     "offset": [
@@ -70,11 +69,11 @@
                     "type": "panel",
                     "size": [
                         "100% - 20px",
-                        "100% - 50px"
+                        "100% - 60px"
                     ],
                     "offset": [
                         0,
-                        40
+                        50
                     ],
                     "anchor_from": "top_middle",
                     "anchor_to": "top_middle",
@@ -84,14 +83,22 @@
                         }
                     ]
                 }
+            },
+            {
+                "exit@portal_form.my_exit_button": {
+                    "offset": [
+                        -20,
+                        19
+                    ]
+                }
             }
         ]
     },
     "portal_list_form": {
         "type": "panel",
         "size": [
-            280,
-            200
+            160,
+            "100% + 50px"
         ],
         "anchor_from": "center",
         "anchor_to": "center",
@@ -107,17 +114,17 @@
             {
                 "bg": {
                     "type": "image",
-                    "texture": "textures/ui/portal_list",
+                    "texture": "textures/ui/portal_list_bg",
                     "size": [
-                        "100%",
+                        "100% + 10px",
                         "100%"
                     ],
                     "uv_size": [
-                        14,
-                        15
+                        18,
+                        34
                     ], // exact size of ONE frame
-                    "uv": "@portal_form.portal_list_anim",
-                    "keep_ratio": false
+                    "keep_ratio": false,
+                    "uv": "@portal_form.portal_list_anim"
                 }
             },
             // Dynamic title – pure-code marker subtracted
@@ -131,12 +138,12 @@
                         1
                     ],
                     "font_type": "MinecraftTen",
-                    "font_scale_factor": 1.5,
+                    "font_scale_factor": 1.0,
                     "anchor_from": "top_middle",
                     "anchor_to": "top_middle",
                     "offset": [
                         0,
-                        12
+                        26
                     ],
                     "bindings": [
                         {
@@ -161,7 +168,7 @@
                     ],
                     "offset": [
                         0,
-                        40
+                        60
                     ],
                     "anchor_from": "top_middle",
                     "anchor_to": "top_middle",
@@ -171,20 +178,24 @@
                         }
                     ]
                 }
+            },
+            {
+                "exit@portal_form.my_exit_button": {
+                    "offset": [
+                        -15,
+                        23
+                    ]
+                }
             }
         ]
     },
     "my_exit_button@common.button": {
         "size": [
-            20,
-            20
+            13,
+            13
         ],
         "anchor_from": "top_right",
         "anchor_to": "top_right",
-        "offset": [
-            -10,
-            10
-        ],
         "layer": 20,
         "default_control": "default",
         "hover_control": "hover",
@@ -230,7 +241,7 @@
         ]
     },
     // ====
-    // YOUR CUSTOM CONTROLS (ported from subo_template; PRESUMED - test in-game)
+    // CUSTOM CONTROLS
     // ====
     "portal_slice_image": {
         "type": "image",
@@ -278,9 +289,6 @@
         ],
         "controls": [
             {
-                "row_label@portal_form.portal_label": {}
-            },
-            {
                 "box@portal_form.portal_input_box": {}
             }
         ]
@@ -291,23 +299,23 @@
         "$tex_hover|default": "textures/ui/portal_edit_box_indent_hover",
         "$tex_locked|default": "textures/ui/portal_edit_box_indent",
         "$text_color|default": [
-            0.92,
-            0.92,
-            0.92
+            0.85,
+            0.55,
+            1.0
         ],
         "$text_color_dim|default": [
-            0.6,
-            0.6,
-            0.6
+            0.55,
+            0.35,
+            0.75
         ],
         "text_box_name": "custom_input",
         "text_edit_box_grid_collection_name": "custom_form",
-        "max_length": 100,
+        "max_length": 17,
         "text_type": "ExtendedASCII",
         "focus_enabled": true,
         "size": [
             "100%",
-            18
+            24
         ],
         "text_control": "input_text_label",
         "place_holder_control": "input_placeholder_label",
@@ -632,7 +640,7 @@
         "layer": 2,
         "$input_size|default": [
             "100%",
-            20
+            16
         ],
         "$tex_default|default": "textures/ui/portal_dropdown_background",
         "$tex_hover|default": "textures/ui/portal_dropDownHoverBG",
@@ -650,7 +658,7 @@
             "200%"
         ],
         "$dropdown_name": "custom_dropdown",
-        "$dropdown_content": "server_form.custom_dropdown_content",
+        "$dropdown_content": "portal_form.portal_dropdown_content",
         "$toggle_binding_type": "collection",
         "$toggle_grid_collection_name": "custom_form",
         "$toggle_enabled_binding_type": "none",
@@ -670,7 +678,21 @@
             {
                 "dropdown_box@common.dropdown": {
                     "size": "$input_size",
-                    "$dropdown_toggle": "portal_form.portal_dropdown_toggle"
+                    "offset": [
+                        2,
+                        0
+                    ],
+                    "$dropdown_toggle": "portal_form.portal_dropdown_toggle",
+                    "$dropdown_background": "portal_form.portal_dropdown_popup_bg"
+                }
+            },
+            {
+                "bottom_spacer": {
+                    "type": "panel",
+                    "size": [
+                        "100%",
+                        25
+                    ]
                 }
             }
         ]
@@ -751,7 +773,7 @@
         ]
     },
     // ==================================================
-    // YOUR OWN GENERATED CONTENTS (factory points to portal_*)
+    // CUSTOM GENERATED CONTENTS (factory points to portal_*)
     // ==================================================
     "portal_generated_contents": {
         "type": "stack_panel",
@@ -785,7 +807,7 @@
         ]
     },
     // ==================================================
-    // YOUR OWN SCROLLING PANEL
+    // CUSTOM SCROLLING PANEL
     // ==================================================
     "portal_form_panel@common.scrolling_panel": {
         "anchor_to": "top_left",
@@ -831,21 +853,46 @@
                 "generated_form@portal_form.portal_generated_contents": {}
             },
             {
-                "submit_button@common_buttons.light_text_button": {
-                    "$pressed_button_name": "button.submit_custom_form",
-                    "anchor_from": "top_left",
-                    "anchor_to": "top_left",
+                "spacer": {
+                    "type": "panel",
                     "size": [
                         "100%",
-                        32
+                        5
+                    ] // empty space
+                }
+            },
+            {
+                "submit_button@common_buttons.light_text_button": {
+                    "$pressed_button_name": "button.submit_custom_form",
+                    "size": [
+                        "100%",
+                        24
                     ],
                     "$button_text": "#submit_text",
                     "$button_text_binding_type": "global",
                     "$button_binding_condition": "once",
-                    // optional: also texture the submit button only for portal forms
-                    "$default_button_texture": "textures/ui/portal_button_borderless_dark",
-                    "$hover_button_texture": "textures/ui/portal_button_borderless_darkhover",
-                    "$pressed_button_texture": "textures/ui/portal_button_borderless_darkpressed",
+                    "$default_button_texture": "textures/ui/portal_submit_button",
+                    "$hover_button_texture": "textures/ui/portal_submit_button_hover",
+                    "$pressed_button_texture": "textures/ui/portal_submit_button_pressed",
+                    // Text color overrides
+                    "$default_text_color": [
+                        0.85,
+                        0.55,
+                        1.0
+                    ],
+                    "$hover_text_color": [
+                        0.23,
+                        0.05,
+                        0.45
+                    ],
+                    "$pressed_text_color": [
+                        0.7,
+                        0.4,
+                        0.9
+                    ],
+                    "$border_visible": false,
+                    "$button_border": false,
+                    "$show_border": false,
                     "bindings": [
                         {
                             "binding_name": "#submit_button_visible",
@@ -862,22 +909,63 @@
             0,
             0
         ],
-        "frame_count": 7,
-        "frame_step": 14,
+        "frame_count": 8,
+        "frame_step": 18,
         "fps": 6,
         "looping": true,
         "easing": "linear"
     },
-    "portal_name_anim": {
-        "anim_type": "flip_book",
-        "initial_uv": [
-            0,
-            0
+    // ==================================================
+    // OPEN DROPDOWN LIST (the popup)
+    // ==================================================
+    "portal_dropdown_content@settings_common.option_radio_dropdown_group": {
+        "$radio_buttons": [],
+        "$toggle_focus_id_binding_type": "collection",
+        "$toggle_focus_id_collection_name": "custom_form",
+        "$toggle_focus_id_binding_name": "#custom_toggle_focus_id",
+        "$radio_factory": {
+            "name": "buttons",
+            "control_name": "portal_form.portal_dropdown_radio"
+        },
+        "$radio_collection_name": "custom_dropdown",
+        "$radio_bindings": [
+            {
+                "binding_name": "#custom_dropdown_length",
+                "binding_type": "collection",
+                "binding_name_override": "#collection_length",
+                "binding_collection_name": "custom_form"
+            }
+        ]
+    },
+    "portal_dropdown_radio@settings_common.radio_with_label": {
+        "$toggle_name": "custom_dropdown_radio_toggle",
+        "$toggle_state_binding_name": "#custom_radio_toggled",
+        "$toggle_binding_type": "collection",
+        "$toggle_grid_collection_name": "custom_dropdown",
+        "$toggle_collection_details_type": "collection_details",
+        "$radio_label_text": "#custom_radio_text",
+        "$radio_label_bindings": [
+            {
+                "binding_name": "#custom_radio_text",
+                "binding_type": "collection",
+                "binding_collection_name": "custom_dropdown"
+            },
+            {
+                "binding_type": "collection_details"
+            }
+        ]
+    },
+    // ==================================================
+    // OPTION ROW BACKGROUND
+    // ==================================================
+    "portal_dropdown_popup_bg": {
+        "type": "image",
+        "texture": "textures/ui/portal_dropdown_list_bg", // your custom texture
+        "size": [
+            "100%",
+            "100%"
         ],
-        "frame_count": 7,
-        "frame_step": 14,
-        "fps": 6,
-        "looping": true,
-        "easing": "linear"
+        "keep_ratio": false,
+        "alpha": 0.97
     }
 }
