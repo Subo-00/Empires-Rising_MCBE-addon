@@ -31,8 +31,8 @@ export const DROP_TABLE = {
     "minecraft:warden": { corrupted_soul: 0.70, rotten_heart: 0.35 },
 
     // Custom mobs
-    "subo:dark_knight": { corrupted_soul: 0.45, rotten_heart: 0.30 },
-    "subo:lava_golem": { corrupted_soul: 0.45, rotten_heart: 0.30 },
+    "subo:dark_knight": { corrupted_soul: 0.45, rotten_heart: 0.45 },
+    "subo:lava_golem": { corrupted_soul: 0.45, rotten_heart: 0.45 },
 
     // Fallback for any other hostile mob
     "default": { corrupted_soul: 0.01, rotten_heart: 0.001 }
